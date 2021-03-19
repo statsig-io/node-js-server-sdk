@@ -1,0 +1,4 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# Global owners
+*       @tore-statsig @marcos-statsig @roim-statsig @jkw-statsig @sroyal-statsig @tim-statsig @vijaye-statsig @alex-statsig

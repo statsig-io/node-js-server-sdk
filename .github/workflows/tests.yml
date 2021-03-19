@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  jest:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: cache .npm
+        uses: actions/cache@v2
+        env:
+          cache-name: npm
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - run: npm ci
+      - run: npm run test
