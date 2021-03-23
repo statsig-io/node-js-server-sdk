@@ -25,16 +25,20 @@ const statsig = {
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
    * @param {string} secretKey - The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations
    * @param {typedefs.StatsigOptions} options - manual sdk configuration for advanced setup
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} - a promise which rejects only if you fail to provide a proper SDK Key
    */
   initialize(secretKey, options = {}) {
     if (statsig.isReady != null) {
-      return Promise.reject(new Error('Initialize() was already called.'));
+      return Promise.resolve();
     }
-    if (typeof secretKey !== 'string' || secretKey.length === 0) {
+    if (
+      typeof secretKey !== 'string' ||
+      secretKey.length === 0 ||
+      !secretKey.startsWith('secret-')
+    ) {
       return Promise.reject(
         new Error(
-          'You must provide a secret key to initialize the Statsig client.'
+          'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
         )
       );
     }

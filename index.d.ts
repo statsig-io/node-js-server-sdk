@@ -23,7 +23,7 @@ declare module 'statsig-node-js-server-sdk' {
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
    * @param {string} secretKey - The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations
    * @param {StatsigOptions} options - manual sdk configuration for advanced setup
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} - a promise which rejects only if you fail to provide a proper SDK Key
    */
   export function initialize(secretKey: string, options: object): Promise<void>;
 

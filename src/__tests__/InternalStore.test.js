@@ -3,7 +3,7 @@ describe('Verify behavior of InternalStore', () => {
   const fetch = require('node-fetch');
   const hash = require('object-hash');
   const statsig = require('../index');
-  const secretKey = 'secretKey';
+  const secretKey = 'secret-key';
 
   jest.mock('node-fetch');
 

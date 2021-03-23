@@ -1,7 +1,7 @@
 const LogEvent = require('../LogEvent');
 
 describe('Verify behavior of top level index functions', () => {
-  const secretKey = 'secretKey';
+  const secretKey = 'secret-key';
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
 
@@ -33,22 +33,42 @@ describe('Verify behavior of top level index functions', () => {
     jest.restoreAllMocks();
   });
 
-  test('Verify initialize() throws when a secret key is not provided', async () => {
+  test('Verify initialize() returns an error when a secret key is not provided', async () => {
     const statsig = require('../index');
-    return expect(statsig.initialize).rejects.toEqual(
+    // @ts-ignore intentionally testing incorrect param type
+    return expect(statsig.initialize()).rejects.toEqual(
       new Error(
-        'You must provide a secret key to initialize the Statsig client.'
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
       )
     );
   });
 
-  test('Verify initialize() throws when an empty secret key is provided', async () => {
+  test('Verify initialize() returns an error when an empty secret key is provided', async () => {
     const statsig = require('../index');
     return expect(statsig.initialize('')).rejects.toEqual(
       new Error(
-        'You must provide a secret key to initialize the Statsig client.'
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
       )
     );
+  });
+
+  test('Verify initialize() returns an error when a client key is provided', async () => {
+    const statsig = require('../index');
+    return expect(
+      statsig.initialize('client-abcdefg1234567890')
+    ).rejects.toEqual(
+      new Error(
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
+      )
+    );
+  });
+
+  test('Verify multiple initialize calls resolve', async () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    return statsig.initialize(secretKey).then(() => {
+      expect(statsig.initialize(secretKey)).resolves.not.toThrow();
+    });
   });
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
