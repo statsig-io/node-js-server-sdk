@@ -24,8 +24,9 @@ const statsig = {
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
    * @param {string} secretKey - The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations
-   * @param {typedefs.StatsigOptions} options - manual sdk configuration for advanced setup
+   * @param {typedefs.StatsigOptions} [options={}] - manual sdk configuration for advanced setup
    * @returns {Promise<void>} - a promise which rejects only if you fail to provide a proper SDK Key
+   * @throws Error if a Server Secret Key is not provided
    */
   initialize(secretKey, options = {}) {
     if (statsig.isReady != null) {
@@ -114,10 +115,15 @@ const statsig = {
    * @param {typedefs.StatsigUser} user - the user to check this gate value for
    * @param {string} gateName - the name of the gate to check
    * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
+   * @throws Error if initialize() was not called first
+   * @throws Error if the gateName is not provided or not a string
    */
   checkGate(user, gateName) {
     if (statsig.isReady !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
+    }
+    if (typeof gateName !== 'string') {
+      return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     user = trimUserObjIfNeeded(user);
     return statsig.store
@@ -138,10 +144,15 @@ const statsig = {
    * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
    * @param {string} configName - the name of the dynamic config to get
    * @returns {Promise<DynamicConfig>} - the config for the user
+   * @throws Error if initialize() was not called first
+   * @throws Error if the configName is not provided or not a string
    */
   getConfig(user, configName) {
     if (statsig.isReady !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
+    }
+    if (typeof configName !== 'string') {
+      return Promise.reject(new Error('Must pass a valid configName to check'));
     }
     user = trimUserObjIfNeeded(user);
 

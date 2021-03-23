@@ -35,6 +35,7 @@
  *
  * @callback getBoolFn
  * @param {string} index
+ * @param {boolean} defaultValue
  * @returns {boolean}
  * @memberof typedefs
  */
@@ -44,6 +45,7 @@
  *
  * @callback getNumberFn
  * @param {string} index
+ * @param {number} defaultValue
  * @returns {number}
  * @memberof typedefs
  */
@@ -53,6 +55,7 @@
  *
  * @callback getStringFn
  * @param {string} index
+ * @param {string} defaultValue
  * @returns {string}
  * @memberof typedefs
  */
@@ -62,6 +65,7 @@
  *
  * @callback getObjectFn
  * @param {string} index
+ * @param {object} defaultValue
  * @returns {object}
  * @memberof typedefs
  */

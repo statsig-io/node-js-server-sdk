@@ -27,24 +27,20 @@ class DynamicConfig {
   /**
    * @ignore
    */
-  normalizeDefault(defaultValue, expectedType) {
+  validateDefault(defaultValue, expectedType) {
     if (defaultValue == null) {
-      console.warn(
-        'Please provide a valid default value to be used when offline.'
+      throw new Error(
+        'You must provide a valid default value to check config parameters'
       );
     }
     if (typeof defaultValue !== expectedType) {
-      console.warn(
+      throw new Error(
         'Expected type of ' +
           expectedType +
           ' but got ' +
           typeof defaultValue +
           ' for the default value.'
       );
-      if (expectedType === 'string') return '';
-      if (expectedType === 'number') return 0;
-      if (expectedType === 'boolean') return false;
-      if (expectedType === 'object') return {};
     }
     return defaultValue;
   }
@@ -54,13 +50,15 @@ class DynamicConfig {
    * @param {string} name - The name of the parameter to check
    * @param {boolean} [defaultValue=false] - The default value of the parameter to return in cases where the parameter is not found or is not the correct type.
    * @returns {boolean}
+   * @throws Error if the provided defaultValue is not a boolean
    * @memberof DynamicConfig
    */
   getBool(name, defaultValue = false) {
-    defaultValue = this.normalizeDefault(defaultValue, 'boolean');
+    defaultValue = this.validateDefault(defaultValue, 'boolean');
     if (!name || this.value[name] == null) {
       console.warn(
-        'name does not exist on the DynamicConfig, returning the default value.'
+        name +
+          ' does not exist on the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
@@ -78,13 +76,15 @@ class DynamicConfig {
    * @param {string} name - The name of the parameter to check
    * @param {string} [defaultValue=''] - The default value of the parameter to return in cases where the parameter is not found or is not the correct type.
    * @returns {string}
+   * @throws Error if the provided defaultValue is not a string
    * @memberof DynamicConfig
    */
   getString(name, defaultValue = '') {
-    defaultValue = this.normalizeDefault(defaultValue, 'string');
+    defaultValue = this.validateDefault(defaultValue, 'string');
     if (!name || this.value[name] == null) {
       console.warn(
-        'name does not exist on the DynamicConfig, returning the default value.'
+        name +
+          ' does not exist on the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
@@ -109,13 +109,15 @@ class DynamicConfig {
    * @param {string} name - The name of the parameter to check
    * @param {number} [defaultValue=0] - The default value of the parameter to return in cases where the parameter is not found or is not the correct type.
    * @returns {number}
+   * @throws Error if the provided defaultValue is not a number
    * @memberof DynamicConfig
    */
   getNumber(name, defaultValue = 0) {
-    defaultValue = this.normalizeDefault(defaultValue, 'number');
+    defaultValue = this.validateDefault(defaultValue, 'number');
     if (!name || this.value[name] == null) {
       console.warn(
-        'name does not exist on the DynamicConfig, returning the default value.'
+        name +
+          ' does not exist on the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
@@ -133,13 +135,15 @@ class DynamicConfig {
    * @param {string} name - The name of the parameter to check
    * @param {object} [defaultValue={}] - The default value of the parameter to return in cases where the parameter is not found or is not the correct type.
    * @returns {DynamicConfig}
+   * @throws Error if the provided defaultValue is not an object
    * @memberof DynamicConfig
    */
   getObject(name, defaultValue = {}) {
-    defaultValue = this.normalizeDefault(defaultValue, 'object');
+    defaultValue = this.validateDefault(defaultValue, 'object');
     if (!name || this.value[name] == null) {
       console.warn(
-        'name does not exist on the DynamicConfig, returning the default value.'
+        name +
+          ' does not exist on the DynamicConfig, returning the default value.'
       );
       return new DynamicConfig(name, defaultValue, 'statsig::invalid_config');
     }

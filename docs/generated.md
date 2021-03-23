@@ -33,6 +33,10 @@ Returns the data for a DynamicConfig in the statsig console via typed get functi
 Returns the boolean value of the given parameter, or the defaultValue if not found.
 
 **Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
+**Throws**:
+
+- Error if the provided defaultValue is not a boolean
+
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -45,6 +49,10 @@ Returns the boolean value of the given parameter, or the defaultValue if not fou
 Returns the string value of the given parameter, or the defaultValue if not found.
 
 **Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
+**Throws**:
+
+- Error if the provided defaultValue is not a string
+
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -57,6 +65,10 @@ Returns the string value of the given parameter, or the defaultValue if not foun
 Returns the number value of the given parameter, or the defaultValue if not found.
 
 **Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
+**Throws**:
+
+- Error if the provided defaultValue is not a number
+
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -69,6 +81,10 @@ Returns the number value of the given parameter, or the defaultValue if not foun
 Returns the object value of the given parameter as another DynamicConfig, or a DynamicConfig representing the defaultValue if not found.
 
 **Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
+**Throws**:
+
+- Error if the provided defaultValue is not an object
+
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -141,6 +157,7 @@ Returns the boolean representation of the value at the given index in the config
 | Param | Type |
 | --- | --- |
 | index | <code>string</code> | 
+| defaultValue | <code>boolean</code> | 
 
 <a name="typedefs.getNumberFn"></a>
 
@@ -152,6 +169,7 @@ Returns the number representation of the value at the given index in the config
 | Param | Type |
 | --- | --- |
 | index | <code>string</code> | 
+| defaultValue | <code>number</code> | 
 
 <a name="typedefs.getStringFn"></a>
 
@@ -163,6 +181,7 @@ Returns the string representation of the value at the given index in the config
 | Param | Type |
 | --- | --- |
 | index | <code>string</code> | 
+| defaultValue | <code>string</code> | 
 
 <a name="typedefs.getObjectFn"></a>
 
@@ -174,4 +193,5 @@ Returns the object representation of the value at the given index in the config
 | Param | Type |
 | --- | --- |
 | index | <code>string</code> | 
+| defaultValue | <code>object</code> | 
 

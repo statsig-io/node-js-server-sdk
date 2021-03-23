@@ -86,9 +86,56 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify cannot call checkGate() before initialize()', () => {
     const statsig = require('../index');
     expect.assertions(1);
-    return statsig
-      .checkGate({ userID: '12345' }, 'my_gate')
-      .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
+    return expect(
+      statsig.checkGate({ userID: '12345' }, 'my_gate')
+    ).rejects.toEqual(new Error('Must call initialize() first.'));
+  });
+
+  test('Verify cannot call checkGate() with no gate name', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    return statsig.initialize(secretKey).then(() => {
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.checkGate(null)).rejects.toEqual(
+        new Error('Must pass a valid gateName to check')
+      );
+    });
+  });
+
+  test('Verify cannot call checkGate() with invalid gate name', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+
+    return statsig.initialize(secretKey).then(() => {
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.checkGate({}, 12)).rejects.toEqual(
+        new Error('Must pass a valid gateName to check')
+      );
+    });
+  });
+
+  test('Verify cannot call getConfig() with no config name', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+
+    return statsig.initialize(secretKey).then(() => {
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.getConfig({})).rejects.toEqual(
+        new Error('Must pass a valid configName to check')
+      );
+    });
+  });
+
+  test('Verify cannot call getConfig() with invalid config name', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+
+    return statsig.initialize(secretKey).then(() => {
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.getConfig({}, false)).rejects.toEqual(
+        new Error('Must pass a valid configName to check')
+      );
+    });
   });
 
   test('Verify checkGate resolves to false for a gate that does not exist', async () => {
@@ -167,19 +214,6 @@ describe('Verify behavior of top level index functions', () => {
     const spy = jest.spyOn(statsig.logger, 'log');
     return statsig.getConfig({ userID: 12345 }, 'my_config').then((config) => {
       expect(config.name).toBe('my_config');
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  test('Verify getConfig() returns fallback config when name not provided', async () => {
-    const statsig = require('../index');
-    expect.assertions(3);
-    statsig.initialize(secretKey);
-
-    const spy = jest.spyOn(statsig.logger, 'log');
-    return statsig.getConfig(null, null).then((config) => {
-      expect(config.name).toBe('invalid_config_name');
-      expect(config._groupName).toBe('statsig::invalid_config');
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
