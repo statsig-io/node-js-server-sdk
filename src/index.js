@@ -20,6 +20,9 @@ const typedefs = require('./typedefs');
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
 
+/**
+ * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
+ */
 const statsig = {
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.

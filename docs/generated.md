@@ -13,6 +13,14 @@
 <dd></dd>
 </dl>
 
+## Constants
+
+<dl>
+<dt><a href="#statsig">statsig</a></dt>
+<dd><p>The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.</p>
+</dd>
+</dl>
+
 <a name="DynamicConfig"></a>
 
 ## DynamicConfig
@@ -105,11 +113,6 @@ Returns the raw value of the DynamicConfig
 * [typedefs](#typedefs) : <code>object</code>
     * [.StatsigUser](#typedefs.StatsigUser) : <code>Object.&lt;string, \*&gt;</code>
     * [.StatsigOptions](#typedefs.StatsigOptions) : <code>Object.&lt;string, \*&gt;</code>
-    * [.valueFn](#typedefs.valueFn) ⇒ <code>object</code>
-    * [.getBoolFn](#typedefs.getBoolFn) ⇒ <code>boolean</code>
-    * [.getNumberFn](#typedefs.getNumberFn) ⇒ <code>number</code>
-    * [.getStringFn](#typedefs.getStringFn) ⇒ <code>string</code>
-    * [.getObjectFn](#typedefs.getObjectFn) ⇒ <code>object</code>
 
 <a name="typedefs.StatsigUser"></a>
 
@@ -141,57 +144,91 @@ An object of properties for initializing the sdk with advanced options
 | --- | --- |
 | [api] | <code>string</code> | 
 
-<a name="typedefs.valueFn"></a>
+<a name="statsig"></a>
 
-### typedefs.valueFn ⇒ <code>object</code>
-Returns the json object representing this config
+## statsig
+The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
 
-**Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
-<a name="typedefs.getBoolFn"></a>
+**Kind**: global constant  
 
-### typedefs.getBoolFn ⇒ <code>boolean</code>
-Returns the boolean representation of the value at the given index in the config
+* [statsig](#statsig)
+    * [.initialize(secretKey, [options])](#statsig.initialize) ⇒ <code>Promise.&lt;void&gt;</code>
+    * [.checkGate(user, gateName)](#statsig.checkGate) ⇒ <code>Promise.&lt;boolean&gt;</code>
+    * [.getConfig(user, configName)](#statsig.getConfig) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
+    * [.logEvent(user, eventName, value, metadata)](#statsig.logEvent)
+    * [.shutdown()](#statsig.shutdown)
 
-**Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
+<a name="statsig.initialize"></a>
 
-| Param | Type |
-| --- | --- |
-| index | <code>string</code> | 
-| defaultValue | <code>boolean</code> | 
+### statsig.initialize(secretKey, [options]) ⇒ <code>Promise.&lt;void&gt;</code>
+Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
 
-<a name="typedefs.getNumberFn"></a>
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+**Returns**: <code>Promise.&lt;void&gt;</code> - - a promise which rejects only if you fail to provide a proper SDK Key  
+**Throws**:
 
-### typedefs.getNumberFn ⇒ <code>number</code>
-Returns the number representation of the value at the given index in the config
+- Error if a Server Secret Key is not provided
 
-**Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
 
-| Param | Type |
-| --- | --- |
-| index | <code>string</code> | 
-| defaultValue | <code>number</code> | 
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| secretKey | <code>string</code> |  | The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations |
+| [options] | [<code>StatsigOptions</code>](#typedefs.StatsigOptions) | <code>{}</code> | manual sdk configuration for advanced setup |
 
-<a name="typedefs.getStringFn"></a>
+<a name="statsig.checkGate"></a>
 
-### typedefs.getStringFn ⇒ <code>string</code>
-Returns the string representation of the value at the given index in the config
+### statsig.checkGate(user, gateName) ⇒ <code>Promise.&lt;boolean&gt;</code>
+Check the value of a gate configured in the statsig console
 
-**Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+**Returns**: <code>Promise.&lt;boolean&gt;</code> - - The value of the gate for the user.  Gates are off (return false) by default  
+**Throws**:
 
-| Param | Type |
-| --- | --- |
-| index | <code>string</code> | 
-| defaultValue | <code>string</code> | 
+- Error if initialize() was not called first
+- Error if the gateName is not provided or not a string
 
-<a name="typedefs.getObjectFn"></a>
 
-### typedefs.getObjectFn ⇒ <code>object</code>
-Returns the object representation of the value at the given index in the config
+| Param | Type | Description |
+| --- | --- | --- |
+| user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user to check this gate value for |
+| gateName | <code>string</code> | the name of the gate to check |
 
-**Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
+<a name="statsig.getConfig"></a>
 
-| Param | Type |
-| --- | --- |
-| index | <code>string</code> | 
-| defaultValue | <code>object</code> | 
+### statsig.getConfig(user, configName) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
+Checks the value of a config for a given user
 
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+**Returns**: [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig) - - the config for the user  
+**Throws**:
+
+- Error if initialize() was not called first
+- Error if the configName is not provided or not a string
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user to evaluate for the dyamic config |
+| configName | <code>string</code> | the name of the dynamic config to get |
+
+<a name="statsig.logEvent"></a>
+
+### statsig.logEvent(user, eventName, value, metadata)
+Log an event for data analysis and alerting or to measure the impact of an experiment
+
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user associated with this event |
+| eventName | <code>string</code> | the name of the event (name = Purchase) |
+| value | <code>string</code> \| <code>number</code> | the value associated with the event (value = 10) |
+| metadata | <code>object</code> | other attributes associated with this event (metadata = {items: 2, currency: USD}) |
+
+<a name="statsig.shutdown"></a>
+
+### statsig.shutdown()
+Informs the statsig SDK that the server is closing or shutting down
+so the SDK can clean up internal state
+
+**Kind**: static method of [<code>statsig</code>](#statsig)  
