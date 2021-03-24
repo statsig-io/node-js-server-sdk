@@ -78,8 +78,8 @@ function LogEventProcessor(options, secretKey) {
           queue = queue.slice(queue.length - maxEventQueueSize + 10);
         }
         logStatsigInternal(
-          'log_event_failed',
           null,
+          'log_event_failed',
           { error: e.message },
           this
         );
