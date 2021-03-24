@@ -36,15 +36,18 @@ function LogEventProcessor(options, secretKey) {
     }
     queue.push(event);
 
-    // flush every N events
     if (queue.length >= flushBatchSize) {
       processor.flush();
+    } else if (queue.length === 1) {
+      resetFlushTimeout();
     }
-
-    resetFlushTimeout();
   };
 
-  processor.flush = function () {
+  processor.flush = function (waitForResponse = true) {
+    if (flushTimer != null) {
+      clearTimeout(flushTimer);
+    }
+
     if (queue.length === 0) {
       return;
     }
@@ -55,6 +58,16 @@ function LogEventProcessor(options, secretKey) {
       statsigMetadata: getStatsigMetadata(),
       events: oldQueue,
     };
+    if (!waitForResponse) {
+      // we are exiting, fire and forget
+      fetch(options.api + '/log_event', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-type': 'application/json; charset=UTF-8' },
+      });
+      return;
+    }
+
     fetch(options.api + '/log_event', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -83,13 +96,9 @@ function LogEventProcessor(options, secretKey) {
           { error: e.message },
           this
         );
-      })
-      .finally(() => {
-        resetFlushTimeout();
       });
 
     queue = [];
-    clearTimeout(flushTimer);
   };
 
   function resetFlushTimeout() {

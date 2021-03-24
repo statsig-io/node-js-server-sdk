@@ -16,7 +16,7 @@ describe('Verify behavior of InternalStore', () => {
     fetch.mockReturnValueOnce(Promise.resolve());
 
     await statsig.initialize(secretKey);
-    const store = statsig.store;
+    const store = statsig._store;
     expect(store.cache).toBeDefined();
     expect(store.pendingPromises).toBeDefined();
     expect(store.checkGate).toBeInstanceOf(Function);
@@ -26,7 +26,7 @@ describe('Verify behavior of InternalStore', () => {
   test('Verify checkGate rejects when gateName is not valid.', async () => {
     expect.assertions(7);
 
-    const store = statsig.store;
+    const store = statsig._store;
     await store
       .checkGate({ userID: 123 })
       .catch((e) =>
@@ -67,7 +67,7 @@ describe('Verify behavior of InternalStore', () => {
   test('Verify checkGate and getConfig return correct value when cache miss.', async () => {
     expect.assertions(10);
 
-    const store = statsig.store;
+    const store = statsig._store;
     let mockFetchPromise = Promise.resolve({
       ok: true,
       json: () =>
@@ -105,7 +105,7 @@ describe('Verify behavior of InternalStore', () => {
   test('Verify checkGate and getConfig return correct value when cache hits.', async () => {
     expect.assertions(11);
 
-    const store = statsig.store;
+    const store = statsig._store;
     const hashKey = hash({ userID: 123 });
     store.cache = {};
     store.cache[hashKey] = {

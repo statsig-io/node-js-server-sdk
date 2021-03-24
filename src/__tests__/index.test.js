@@ -75,11 +75,11 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(5);
     return statsig.initialize(secretKey).then(() => {
-      expect(statsig.secretKey).toBe(secretKey);
-      expect(statsig.logger).toBeDefined();
-      expect(statsig.store).toBeDefined();
-      expect(statsig.options.api).toBe('https://api.statsig.com/v1');
-      expect(statsig.isReady).toBe(true);
+      expect(statsig._secretKey).toBe(secretKey);
+      expect(statsig._logger).toBeDefined();
+      expect(statsig._store).toBeDefined();
+      expect(statsig._options.api).toBe('https://api.statsig.com/v1');
+      expect(statsig._ready).toBe(true);
     });
   });
 
@@ -142,7 +142,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     const statsig = require('../index');
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       return statsig
         .checkGate({ userID: '12345' }, 'my_nonexistent_gate')
         .then((data) => {
@@ -156,7 +156,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     const statsig = require('../index');
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       return statsig
         .checkGate({ userID: '12345' }, 'valid_gate')
         .then((data) => {
@@ -170,7 +170,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     const statsig = require('../index');
     statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig.logger, 'log');
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.checkGate({ userID: 12345 }, 'valid_gate').then((data) => {
       expect(data).toBe(true);
       expect(spy).toHaveBeenCalledTimes(1);
@@ -198,7 +198,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
     statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig.logger, 'log');
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig
       .getConfig({ userID: '12345' }, 'my_config')
       .then((config) => {
@@ -211,7 +211,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
     statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig.logger, 'log');
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.getConfig({ userID: 12345 }, 'my_config').then((config) => {
       expect(config.name).toBe('my_config');
       expect(spy).toHaveBeenCalledTimes(1);
@@ -222,14 +222,14 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     statsig.logEvent({ userID: '12345' }, 'my_event');
-    expect(statsig.logger).toBe(undefined);
+    expect(statsig._logger).toBe(undefined);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent({ userID: '12345' }, null);
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -239,7 +239,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent({ userID: '12345' }, '');
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -249,7 +249,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       statsig.logEvent({ userID: '12345' }, { name: 'event' });
       expect(spy).toHaveBeenCalledTimes(0);
@@ -260,7 +260,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent(null, 'event', 1, { price: 2 });
       expect(spy).toHaveBeenCalledTimes(1);
     });
@@ -270,7 +270,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent({ userID: '12345' }, 'event', 1, { price: 2 });
       expect(spy).toHaveBeenCalledTimes(1);
     });
@@ -280,7 +280,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent({ userID: 12345 }, 'event', 1, { price: 2 });
       expect(spy).toHaveBeenCalledTimes(1);
     });
@@ -302,7 +302,7 @@ describe('Verify behavior of top level index functions', () => {
         email: 'jest@statsig.com',
         custom: { extradata: str_1k },
       };
-      const spy = jest.spyOn(statsig.logger, 'log');
+      const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEvent(bigUser, str_64 + 'extra', str_64 + 'extra', {
         extradata: str_1k,
       });
@@ -316,6 +316,17 @@ describe('Verify behavior of top level index functions', () => {
       trimmedEvent.setValue(str_64.substring(0, 64));
       trimmedEvent.setMetadata({ error: 'not logged due to size too large' });
       expect(spy).toBeCalledWith(trimmedEvent);
+    });
+  });
+
+  test('Verify shutdown makes the SDK not ready', async () => {
+    const statsig = require('../index');
+    expect.assertions(2);
+    return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'flush');
+      statsig.shutdown();
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(statsig.isReady()).toStrictEqual(false);
     });
   });
 });

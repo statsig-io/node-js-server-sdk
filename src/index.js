@@ -32,7 +32,7 @@ const statsig = {
    * @throws Error if a Server Secret Key is not provided
    */
   initialize(secretKey, options = {}) {
-    if (statsig.isReady != null) {
+    if (statsig._ready != null) {
       return Promise.resolve();
     }
     if (
@@ -46,18 +46,22 @@ const statsig = {
         )
       );
     }
-    statsig.isReady = false;
-    statsig.secretKey = secretKey;
-    statsig.options = StatsigOptions(options);
-    statsig.logger = LogEventProcessor(statsig.options, statsig.secretKey);
-    statsig.store = InternalStore(secretKey, statsig.logger, statsig.options);
-    statsig.isReady = true;
+    statsig._ready = false;
+    statsig._secretKey = secretKey;
+    statsig._options = StatsigOptions(options);
+    statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
+    statsig._store = InternalStore(
+      secretKey,
+      statsig._logger,
+      statsig._options
+    );
+    statsig._ready = true;
 
     const params = {
       sdkKey: secretKey,
       statsigMetadata: getStatsigMetadata(),
     };
-    fetch(statsig.options.api + '/initialize', {
+    fetch(statsig._options.api + '/initialize', {
       method: 'POST',
       body: JSON.stringify(params),
       headers: { 'Content-type': 'application/json; charset=UTF-8' },
@@ -71,33 +75,33 @@ const statsig = {
       .then((responseJSON) => {
         const sdkParams = responseJSON?.sdkParams;
         if (sdkParams != null && typeof sdkParams === 'object') {
-          if (statsig.logger != null) {
+          if (statsig._logger != null) {
             const flushInterval = getNumericValue(sdkParams?.flushInterval);
             if (flushInterval != null) {
-              statsig.logger.setFlushInterval(flushInterval);
+              statsig._logger.setFlushInterval(flushInterval);
             }
 
             const flushBatchSize = getNumericValue(sdkParams?.flushBatchSize);
             if (flushInterval != null) {
-              statsig.logger.setFlushBatchSize(flushBatchSize);
+              statsig._logger.setFlushBatchSize(flushBatchSize);
             }
 
             const maxEventQueueSize = getNumericValue(
               sdkParams?.maxEventQueueSize
             );
             if (maxEventQueueSize != null) {
-              statsig.logger.setMaxEventQueueSize(maxEventQueueSize);
+              statsig._logger.setMaxEventQueueSize(maxEventQueueSize);
             }
           }
-          if (statsig.store != null) {
+          if (statsig._store != null) {
             const fetchTimeout = getNumericValue(sdkParams?.fetchTimeout);
             if (fetchTimeout != null) {
-              statsig.store.setFetchTimeout(fetchTimeout);
+              statsig._store.setFetchTimeout(fetchTimeout);
             }
 
             const fetchRetry = getNumericValue(sdkParams?.fetchRetry);
             if (fetchRetry != null) {
-              statsig.store.setFetchRetry(fetchRetry);
+              statsig._store.setFetchRetry(fetchRetry);
             }
           }
         }
@@ -107,7 +111,7 @@ const statsig = {
           null,
           'initialize_failed',
           { error: e.message },
-          statsig.logger
+          statsig._logger
         );
       });
     return Promise.resolve();
@@ -122,21 +126,21 @@ const statsig = {
    * @throws Error if the gateName is not provided or not a string
    */
   checkGate(user, gateName) {
-    if (statsig.isReady !== true) {
+    if (statsig._ready !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
     }
     if (typeof gateName !== 'string') {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     user = trimUserObjIfNeeded(user);
-    return statsig.store
+    return statsig._store
       .checkGate(user, gateName)
       .then((value) => {
-        logGateExposure(user, gateName, value, statsig.logger);
+        logGateExposure(user, gateName, value, statsig._logger);
         return Promise.resolve(value);
       })
       .catch((e) => {
-        logGateExposure(user, gateName, false, statsig.logger);
+        logGateExposure(user, gateName, false, statsig._logger);
         console.warn(e.message + ' Returning false as the default value.');
         return Promise.resolve(false);
       });
@@ -151,7 +155,7 @@ const statsig = {
    * @throws Error if the configName is not provided or not a string
    */
   getConfig(user, configName) {
-    if (statsig.isReady !== true) {
+    if (statsig._ready !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
     }
     if (typeof configName !== 'string') {
@@ -159,14 +163,14 @@ const statsig = {
     }
     user = trimUserObjIfNeeded(user);
 
-    return statsig.store
+    return statsig._store
       .getConfig(user, configName)
       .then((config) => {
         logConfigExposure(
           user,
           configName,
           config.getGroupName(),
-          statsig.logger
+          statsig._logger
         );
         return Promise.resolve(config);
       })
@@ -175,7 +179,7 @@ const statsig = {
           user,
           configName,
           'statsig::invalid_config',
-          statsig.logger
+          statsig._logger
         );
         console.warn(
           e.message + ' The config will only return the default values.'
@@ -192,7 +196,7 @@ const statsig = {
    * @param {object} metadata - other attributes associated with this event (metadata = {items: 2, currency: USD})
    */
   logEvent(user, eventName, value = null, metadata = null) {
-    if (statsig.isReady !== true) {
+    if (statsig._ready !== true) {
       console.error('Must call initialize() before logEvent().');
       return;
     }
@@ -225,7 +229,16 @@ const statsig = {
     event.setUser(user);
     event.setValue(value);
     event.setMetadata(metadata);
-    statsig.logger.log(event);
+    statsig._logger.log(event);
+  },
+
+  /**
+   * Checks to see if the SDK is in a ready state to check gates and configs
+   * If the SDK is initializing or switching users, it is not in a ready state.
+   * @returns {boolean} if the SDK is ready
+   */
+  isReady: function () {
+    return statsig._ready === true;
   },
 
   /**
@@ -233,10 +246,11 @@ const statsig = {
    * so the SDK can clean up internal state
    */
   shutdown() {
-    if (statsig.logger == null) {
+    if (statsig._logger == null) {
       return;
     }
-    statsig.logger.flush();
+    statsig._ready = null;
+    statsig._logger.flush(false);
   },
 };
 

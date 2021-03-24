@@ -11,6 +11,7 @@ The global statsig class for interacting with gates, configs, experiments config
   - [.checkGate(user, gateName)](#statsig.checkGate) ⇒ <code>Promise.&lt;boolean&gt;</code>
   - [.getConfig(user, configName)](#statsig.getConfig) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
   - [.logEvent(user, eventName, value, metadata)](#statsig.logEvent)
+  - [.isReady()](#statsig.isReady) ⇒ <code>boolean</code>
   - [.shutdown()](#statsig.shutdown)
 
 <a name="statsig.initialize"></a>
@@ -81,6 +82,13 @@ Log an event for data analysis and alerting or to measure the impact of an exper
 | value     | <code>string</code> \| <code>number</code> | the value associated with the event (value = 10)                                   |
 | metadata  | <code>object</code>                        | other attributes associated with this event (metadata = {items: 2, currency: USD}) |
 
+### statsig.isReady() ⇒ <code>boolean</code>
+
+Checks to see if the SDK is in a ready state to check gates and configs
+If the SDK is initializing or switching users, it is not in a ready state.
+
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+**Returns**: <code>boolean</code> - if the SDK is ready  
 <a name="statsig.shutdown"></a>
 
 ### statsig.shutdown()
