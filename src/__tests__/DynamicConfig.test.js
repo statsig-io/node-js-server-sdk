@@ -16,6 +16,7 @@ describe('Verify behavior of DynamicConfig', () => {
       numberStr1: '3',
       numberStr2: '3.3',
       numberStr3: '3.3.3',
+      arr: [1, 2, 'three'],
     },
     'default'
   );
@@ -75,9 +76,21 @@ describe('Verify behavior of DynamicConfig', () => {
     expect(testConfig.getBool('key_not_found', false)).toStrictEqual(false);
     expect(() => {
       // @ts-ignore intentionally testing incorrect param type
-      expect(testConfig.getBool('key_not_found', '123')).toStrictEqual(false);
+      expect(testConfig.getBool('key_not_found', '123'));
     }).toThrowError(
       'Expected type of boolean but got string for the default value.'
+    );
+  });
+
+  test('Test arrays', () => {
+    expect(testConfig.getArray('number')).toStrictEqual([]);
+    expect(testConfig.getArray('bool')).toStrictEqual([]);
+    expect(testConfig.getArray('arr')).toStrictEqual([1, 2, 'three']);
+    expect(() => {
+      // @ts-ignore intentionally testing incorrect param type
+      expect(testConfig.getArray('key_not_found', '123'));
+    }).toThrowError(
+      'Expected type of array but got string for the default value.'
     );
   });
 

@@ -33,12 +33,16 @@ class DynamicConfig {
         'You must provide a valid default value to check config parameters'
       );
     }
-    if (typeof defaultValue !== expectedType) {
+
+    const givenType = Array.isArray(defaultValue)
+      ? 'array'
+      : typeof defaultValue;
+    if (givenType !== expectedType) {
       throw new Error(
         'Expected type of ' +
           expectedType +
           ' but got ' +
-          typeof defaultValue +
+          givenType +
           ' for the default value.'
       );
     }
@@ -125,6 +129,32 @@ class DynamicConfig {
     const val = utils.getNumericValue(this.value[name]);
     if (val == null) {
       console.warn(name + ' is not a number. Returning the default value.');
+      return defaultValue;
+    }
+    return val;
+  }
+
+  /**
+   * Returns the Array value of the given parameter, or the defaultValue if not found.
+   * @param {string} name - The name of the parameter to check
+   * @param {Array} [defaultValue=[]] - The default value of the parameter to return in cases where the parameter is not found or is not the correct type.
+   * @returns {Array}
+   * @throws Error if the provided defaultValue is not an Array
+   * @memberof DynamicConfig
+   */
+  getArray(name, defaultValue = []) {
+    defaultValue = this.validateDefault(defaultValue, 'array');
+    if (!name || this.value[name] == null) {
+      console.warn(
+        name +
+          ' does not exist on the DynamicConfig, returning the default value.'
+      );
+      return defaultValue;
+    }
+
+    const val = this.value[name];
+    if (val == null || !Array.isArray(val)) {
+      console.warn(name + ' is not an array. Returning the default value.');
       return defaultValue;
     }
     return val;

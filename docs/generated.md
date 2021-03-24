@@ -32,6 +32,7 @@ Returns the data for a DynamicConfig in the statsig console via typed get functi
     * [.getBool(name, [defaultValue])](#DynamicConfig+getBool) ⇒ <code>boolean</code>
     * [.getString(name, [defaultValue])](#DynamicConfig+getString) ⇒ <code>string</code>
     * [.getNumber(name, [defaultValue])](#DynamicConfig+getNumber) ⇒ <code>number</code>
+    * [.getArray(name, [defaultValue])](#DynamicConfig+getArray) ⇒ <code>Array</code>
     * [.getObject(name, [defaultValue])](#DynamicConfig+getObject) ⇒ [<code>DynamicConfig</code>](#DynamicConfig)
     * [.getRawValue()](#DynamicConfig+getRawValue) ⇒ <code>any</code>
 
@@ -82,6 +83,22 @@ Returns the number value of the given parameter, or the defaultValue if not foun
 | --- | --- | --- | --- |
 | name | <code>string</code> |  | The name of the parameter to check |
 | [defaultValue] | <code>number</code> | <code>0</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
+
+<a name="DynamicConfig+getArray"></a>
+
+### dynamicConfig.getArray(name, [defaultValue]) ⇒ <code>Array</code>
+Returns the Array value of the given parameter, or the defaultValue if not found.
+
+**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
+**Throws**:
+
+- Error if the provided defaultValue is not an Array
+
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | The name of the parameter to check |
+| [defaultValue] | <code>Array</code> | <code>[]</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
 
 <a name="DynamicConfig+getObject"></a>
 
