@@ -215,15 +215,16 @@ An object of properties relating to a user
 
 **Properties**
 
-| Name       | Type                                       |
-| ---------- | ------------------------------------------ |
-| [userID]   | <code>string</code> \| <code>number</code> |
-| [ip]       | <code>string</code>                        |
-| [ua]       | <code>string</code>                        |
-| [country]  | <code>string</code>                        |
-| [email]    | <code>string</code>                        |
-| [username] | <code>string</code>                        |
-| [custom]   | <code>object</code>                        |
+| Name            | Type                                       |
+| --------------- | ------------------------------------------ |
+| [userID]        | <code>string</code> \| <code>number</code> |
+| [email]         | <code>string</code>                        |
+| [ip]            | <code>string</code>                        |
+| [userAgent]     | <code>string</code>                        |
+| [country]       | <code>string</code>                        |
+| [locale]        | <code>string</code>                        |
+| [clientVersion] | <code>string</code>                        |
+| [custom]        | <code>object</code>                        |
 
 <a name="StatsigOptions"></a>
 

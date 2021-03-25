@@ -134,7 +134,9 @@ Returns the raw value of the DynamicConfig
 <a name="typedefs.StatsigUser"></a>
 
 ### typedefs.StatsigUser : <code>Object.&lt;string, \*&gt;</code>
-An object of properties relating to a user
+An object of properties relating to the current user
+Provide as many as possible to take advantage of advanced conditions in the statsig console
+A dictionary of additional fields can be provided under the "custom" field
 
 **Kind**: static typedef of [<code>typedefs</code>](#typedefs)  
 **Properties**
@@ -142,11 +144,12 @@ An object of properties relating to a user
 | Name | Type |
 | --- | --- |
 | [userID] | <code>string</code> \| <code>number</code> | 
-| [ip] | <code>string</code> | 
-| [ua] | <code>string</code> | 
-| [country] | <code>string</code> | 
 | [email] | <code>string</code> | 
-| [username] | <code>string</code> | 
+| [ip] | <code>string</code> | 
+| [userAgent] | <code>string</code> | 
+| [country] | <code>string</code> | 
+| [locale] | <code>string</code> | 
+| [clientVersion] | <code>string</code> | 
 | [custom] | <code>object</code> | 
 
 <a name="typedefs.StatsigOptions"></a>

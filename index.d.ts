@@ -1,23 +1,19 @@
 declare module 'statsig-node-js-server-sdk' {
   /**
-   * An object of properties relating to a user
-   * */
-  export interface StatsigUser {
+   * An object of properties relating to the current user
+   * Provide as many as possible to take advantage of advanced conditions in the statsig console
+   * A dictionary of additional fields can be provided under the "custom" field
+   */
+  export type StatsigUser = {
     userID?: string | number;
+    email?: string;
     ip?: string;
     userAgent?: string;
-    name?: string;
     country?: string;
-    email?: string;
-    custom?: {
-      [key: string]:
-        | string
-        | boolean
-        | number
-        | object
-        | Array<string | boolean | number>;
-    };
-  }
+    locale?: string;
+    clientVersion?: string;
+    custom?: Record<string, string>;
+  };
 
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.

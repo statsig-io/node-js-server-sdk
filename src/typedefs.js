@@ -3,14 +3,17 @@
  */
 
 /**
- * An object of properties relating to a user
+ * An object of properties relating to the current user
+ * Provide as many as possible to take advantage of advanced conditions in the statsig console
+ * A dictionary of additional fields can be provided under the "custom" field
  * @typedef {Object<string, *>} StatsigUser
  * @property {string | number} [userID]
- * @property {string} [ip]
- * @property {string} [ua]
- * @property {string} [country]
  * @property {string} [email]
- * @property {string} [username]
+ * @property {string} [ip]
+ * @property {string} [userAgent]
+ * @property {string} [country]
+ * @property {string} [locale]
+ * @property {string} [clientVersion]
  * @property {object} [custom]
  * @memberof typedefs
  */
