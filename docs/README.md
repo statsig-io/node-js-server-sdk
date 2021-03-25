@@ -224,7 +224,7 @@ An object of properties relating to a user
 | [country]       | <code>string</code>                        |
 | [locale]        | <code>string</code>                        |
 | [clientVersion] | <code>string</code>                        |
-| [custom]        | <code>object</code>                        |
+| [custom]        | <code>Object.&lt;string, \*&gt;</code>     |
 
 <a name="StatsigOptions"></a>
 

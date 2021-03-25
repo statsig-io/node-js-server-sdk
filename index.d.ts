@@ -12,7 +12,7 @@ declare module 'statsig-node-js-server-sdk' {
     country?: string;
     locale?: string;
     clientVersion?: string;
-    custom?: Record<string, string>;
+    custom?: Record<string, any>;
   };
 
   /**

@@ -150,7 +150,7 @@ A dictionary of additional fields can be provided under the "custom" field
 | [country] | <code>string</code> | 
 | [locale] | <code>string</code> | 
 | [clientVersion] | <code>string</code> | 
-| [custom] | <code>object</code> | 
+| [custom] | <code>Object.&lt;string, \*&gt;</code> | 
 
 <a name="typedefs.StatsigOptions"></a>
 

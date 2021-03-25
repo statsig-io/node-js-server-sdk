@@ -14,7 +14,7 @@
  * @property {string} [country]
  * @property {string} [locale]
  * @property {string} [clientVersion]
- * @property {object} [custom]
+ * @property {Object<string, *>} [custom]
  * @memberof typedefs
  */
 
