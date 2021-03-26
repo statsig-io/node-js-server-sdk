@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const fetcher = require('./utils/StatsigFetcher');
 const { DynamicConfig, getFallbackConfig } = require('./DynamicConfig');
 const InternalStore = require('./InternalStore');
 const {
@@ -251,6 +252,7 @@ const statsig = {
     }
     statsig._ready = null;
     statsig._logger.flush(false);
+    fetcher.shutdown();
   },
 };
 

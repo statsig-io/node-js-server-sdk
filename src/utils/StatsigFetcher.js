@@ -4,6 +4,7 @@ const fetcher = {
   init: function () {
     if (fetcher.leakyBucket == null) {
       fetcher.leakyBucket = {};
+      fetcher.pendingTimers = [];
     }
   },
 
@@ -46,9 +47,11 @@ const fetcher = {
 
     if (timeout != null && typeof timeout === 'number' && timeout > 0) {
       const timer = new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve();
-        }, timeout);
+        fetcher.pendingTimers.push(
+          setTimeout(() => {
+            resolve();
+          }, timeout)
+        );
       });
       return Promise.race([fetchPromise, timer]);
     }
@@ -87,15 +90,17 @@ const fetcher = {
       .catch((e) => {
         if (retries > 0) {
           return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              fetcher.leakyBucket[url] = Math.max(
-                fetcher.leakyBucket[url] - 1,
-                0
-              );
-              this.post(url, body, retries - 1, backoff * 2)
-                .then(resolve)
-                .catch(reject);
-            }, backoff);
+            fetcher.pendingTimers.push(
+              setTimeout(() => {
+                fetcher.leakyBucket[url] = Math.max(
+                  fetcher.leakyBucket[url] - 1,
+                  0
+                );
+                this.post(url, body, retries - 1, backoff * 2)
+                  .then(resolve)
+                  .catch(reject);
+              }, backoff)
+            );
           });
         }
         return Promise.reject(e);
@@ -103,6 +108,16 @@ const fetcher = {
       .finally(() => {
         fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);
       });
+  },
+
+  shutdown: function () {
+    if (fetcher.pendingTimers != null) {
+      fetcher.pendingTimers.forEach((timer) => {
+        if (timer != null) {
+          clearTimeout(timer);
+        }
+      });
+    }
   },
 };
 
