@@ -1,5 +1,7 @@
 # Statsig
 
+[![npm version](https://badge.fury.io/js/statsig-node-js-server-sdk.svg)](https://badge.fury.io/js/statsig-node-js-server-sdk)
+
 ## Statsig Node Server SDK
 
 The nodejs SDK for server environments. If you're looking for a javascript client SDK, try [https://github.com/statsig-io/js-client-sdk](https://github.com/statsig-io/node-js-server-sdk).
