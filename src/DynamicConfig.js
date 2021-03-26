@@ -30,7 +30,7 @@ class DynamicConfig {
   validateDefault(defaultValue, expectedType) {
     if (defaultValue == null) {
       throw new Error(
-        'You must provide a valid default value to check config parameters'
+        'You must provide a valid default value to check DynamicConfig parameters'
       );
     }
 
@@ -61,15 +61,20 @@ class DynamicConfig {
     defaultValue = this.validateDefault(defaultValue, 'boolean');
     if (!name || this.value[name] == null) {
       console.warn(
-        name +
-          ' does not exist on the DynamicConfig, returning the default value.'
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' does not exist in the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
 
     const val = utils.getBoolValue(this.value[name]);
     if (val == null) {
-      console.warn(name + ' is not a boolean. Returning the default value.');
+      console.warn(
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' is not a boolean. Returning the default value.'
+      );
       return defaultValue;
     }
     return val;
@@ -87,8 +92,9 @@ class DynamicConfig {
     defaultValue = this.validateDefault(defaultValue, 'string');
     if (!name || this.value[name] == null) {
       console.warn(
-        name +
-          ' does not exist on the DynamicConfig, returning the default value.'
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' does not exist in the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
@@ -96,12 +102,16 @@ class DynamicConfig {
     let val = this.value[name];
     if (typeof val === 'number' || typeof val === 'boolean') {
       console.warn(
-        name + ' is not a string, converting and returning it as a string.'
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' is not a string, converting and returning it as a string.'
       );
       val = val.toString();
     } else if (typeof val === 'object') {
       console.warn(
-        name + ' is an object, not string. Returning the default value.'
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' is an object, not string. Returning the default value.'
       );
       return defaultValue;
     }
@@ -120,15 +130,17 @@ class DynamicConfig {
     defaultValue = this.validateDefault(defaultValue, 'number');
     if (!name || this.value[name] == null) {
       console.warn(
-        name +
-          ' does not exist on the DynamicConfig, returning the default value.'
+        'statsigSDK::DynamicConfig> ' +
+          name +
+          ' does not exist in the DynamicConfig, returning the default value.'
       );
       return defaultValue;
     }
 
     const val = utils.getNumericValue(this.value[name]);
     if (val == null) {
-      console.warn(name + ' is not a number. Returning the default value.');
+      'statsigSDK::DynamicConfig> ' +
+        console.warn(name + ' is not a number. Returning the default value.');
       return defaultValue;
     }
     return val;
@@ -145,16 +157,18 @@ class DynamicConfig {
   getArray(name, defaultValue = []) {
     defaultValue = this.validateDefault(defaultValue, 'array');
     if (!name || this.value[name] == null) {
-      console.warn(
-        name +
-          ' does not exist on the DynamicConfig, returning the default value.'
-      );
+      'statsigSDK::DynamicConfig> ' +
+        console.warn(
+          name +
+            ' does not exist in the DynamicConfig, returning the default value.'
+        );
       return defaultValue;
     }
 
     const val = this.value[name];
     if (val == null || !Array.isArray(val)) {
-      console.warn(name + ' is not an array. Returning the default value.');
+      'statsigSDK::DynamicConfig> ' +
+        console.warn(name + ' is not an array. Returning the default value.');
       return defaultValue;
     }
     return val;
@@ -171,16 +185,18 @@ class DynamicConfig {
   getObject(name, defaultValue = {}) {
     defaultValue = this.validateDefault(defaultValue, 'object');
     if (!name || this.value[name] == null) {
-      console.warn(
-        name +
-          ' does not exist on the DynamicConfig, returning the default value.'
-      );
+      'statsigSDK::DynamicConfig> ' +
+        console.warn(
+          name +
+            ' does not exist in the DynamicConfig, returning the default value.'
+        );
       return new DynamicConfig(name, defaultValue, 'statsig::invalid_config');
     }
 
     const val = this.value[name];
     if (typeof val !== 'object') {
-      console.warn(name + ' is not an object. Returning the default value.');
+      'statsigSDK::DynamicConfig> ' +
+        console.warn(name + ' is not an object. Returning the default value.');
       return new DynamicConfig(name, defaultValue, 'statsig::invalid_config');
     }
     return new DynamicConfig(name, val, this._groupName);

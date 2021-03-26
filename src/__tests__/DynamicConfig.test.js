@@ -39,7 +39,7 @@ describe('Verify behavior of DynamicConfig', () => {
     expect(() => {
       testConfig.getString('key_not_found', null);
     }).toThrow(
-      'You must provide a valid default value to check config parameters'
+      'You must provide a valid default value to check DynamicConfig parameters'
     );
     expect(() => {
       // @ts-ignore intentionally testing incorrect param type
@@ -98,7 +98,7 @@ describe('Verify behavior of DynamicConfig', () => {
     expect(() => {
       testConfig.getObject('number', null).getRawValue();
     }).toThrowError(
-      'You must provide a valid default value to check config parameters'
+      'You must provide a valid default value to check DynamicConfig parameters'
     );
     expect(testConfig.getObject('number').getRawValue()).toStrictEqual({});
     expect(testConfig.getObject('object').getRawValue()).toStrictEqual({

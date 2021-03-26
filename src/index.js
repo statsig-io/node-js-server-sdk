@@ -190,32 +190,44 @@ const statsig = {
    */
   logEvent(user, eventName, value = null, metadata = null) {
     if (statsig._ready !== true) {
-      console.error('Must call initialize() before logEvent().');
+      console.error(
+        'statsigSDK::logEvent> Must call initialize() before logEvent().'
+      );
       return;
     }
     if (typeof eventName !== 'string' || eventName.length === 0) {
-      console.error('Must provide a valid string for the eventName.');
+      console.error(
+        'statsigSDK::logEvent> Must provide a valid string for the eventName.'
+      );
       return;
     }
     if (!isUserIdentifiable(user)) {
       console.warn(
-        'A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.'
+        'statsigSDK::logEvent> A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.'
       );
     }
     user = trimUserObjIfNeeded(user);
     if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
       console.warn(
-        'eventName is too long, trimming to ' + MAX_VALUE_SIZE + '.'
+        'statsigSDK::logEvent> eventName is too long, trimming to ' +
+          MAX_VALUE_SIZE +
+          '.'
       );
       eventName = eventName.substring(0, MAX_VALUE_SIZE);
     }
     if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
-      console.warn('value is too long, trimming to ' + MAX_VALUE_SIZE + '.');
+      console.warn(
+        'statsigSDK::logEvent> value is too long, trimming to ' +
+          MAX_VALUE_SIZE +
+          '.'
+      );
       value = value.substring(0, MAX_VALUE_SIZE);
     }
 
     if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
-      console.warn('metadata is too big. Dropping the metadata.');
+      console.warn(
+        'statsigSDK::logEvent> metadata is too big. Dropping the metadata.'
+      );
       metadata = { error: 'not logged due to size too large' };
     }
     let event = new LogEvent(eventName);
@@ -285,16 +297,22 @@ function shouldTrimParam(obj, size) {
 function trimUserObjIfNeeded(user) {
   if (user == null) return user;
   if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
-    console.warn('User ID is too large, trimming to ' + MAX_VALUE_SIZE);
+    console.warn(
+      'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE
+    );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
   }
   if (shouldTrimParam(user, MAX_OBJ_SIZE)) {
     user.custom = {};
     if (shouldTrimParam(user, MAX_OBJ_SIZE)) {
-      console.warn('User object is too large, only keeping the user ID.');
+      console.warn(
+        'statsigSDK> User object is too large, only keeping the user ID.'
+      );
       user = { userID: user.userID };
     } else {
-      console.warn('User object is too large, dropping the custom property.');
+      console.warn(
+        'statsigSDK> User object is too large, dropping the custom property.'
+      );
     }
   }
   return user;

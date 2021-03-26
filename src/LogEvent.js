@@ -3,7 +3,7 @@ const { clone } = require('./utils/core');
 class LogEvent {
   constructor(eventName) {
     if (eventName == null || typeof eventName !== 'string') {
-      console.error('EventName needs to be a string.');
+      console.error('statsigSDK> EventName needs to be a string.');
       eventName = 'invalid_event';
     }
     this.time = Date.now();
@@ -12,7 +12,9 @@ class LogEvent {
 
   setUser(user) {
     if (user != null && typeof user !== 'object') {
-      console.warn('User is not set because it needs to be an object.');
+      console.warn(
+        'statsigSDK> User is not set because it needs to be an object.'
+      );
       return;
     }
     this.user = clone(user);
@@ -25,7 +27,7 @@ class LogEvent {
       typeof value !== 'number'
     ) {
       console.warn(
-        'Value is not set because it needs to be of type string or number.'
+        'statsigSDK> Value is not set because it needs to be of type string or number.'
       );
       return;
     }
@@ -34,7 +36,9 @@ class LogEvent {
 
   setMetadata(metadata) {
     if (metadata != null && typeof metadata !== 'object') {
-      console.warn('Metadata is not set because it needs to be an object.');
+      console.warn(
+        'statsigSDK> Metadata is not set because it needs to be an object.'
+      );
       return;
     }
     this.metadata = clone(metadata);
