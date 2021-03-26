@@ -30,7 +30,7 @@ declare module 'statsig-node-js-server-sdk' {
    * @param {string} gateName - the name of the gate to check
    * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
-   * @throws Error if the gateName is not provided or not a string
+   * @throws Error if the gateName is not provided or not a non-empty string
    */
   export function checkGate(
     user: StatsigUser,
@@ -43,7 +43,7 @@ declare module 'statsig-node-js-server-sdk' {
    * @param {string} configName - the name of the dynamic config to get
    * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
-   * @throws Error if the configName is not provided or not a string
+   * @throws Error if the configName is not provided or not a non-empty string
    */
   export function getConfig(
     user: StatsigUser,

@@ -42,7 +42,7 @@ Check the value of a gate configured in the statsig console
 **Throws**:
 
 - Error if initialize() was not called first
-- Error if the gateName is not provided or not a string
+- Error if the gateName is not provided or not a non-empty string
 
 | Param    | Type                                     | Description                           |
 | -------- | ---------------------------------------- | ------------------------------------- |
@@ -60,7 +60,7 @@ Checks the value of a config for a given user
 **Throws**:
 
 - Error if initialize() was not called first
-- Error if the configName is not provided or not a string
+- Error if the configName is not provided or not a non-empty string
 
 | Param      | Type                                     | Description                                |
 | ---------- | ---------------------------------------- | ------------------------------------------ |

@@ -1,7 +1,6 @@
 const fetch = require('node-fetch');
 const fetcher = require('./utils/StatsigFetcher');
 const { DynamicConfig, getFallbackConfig } = require('./DynamicConfig');
-const InternalStore = require('./InternalStore');
 const {
   getNumericValue,
   getStatsigMetadata,
@@ -51,11 +50,6 @@ const statsig = {
     statsig._secretKey = secretKey;
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
-    statsig._store = InternalStore(
-      secretKey,
-      statsig._logger,
-      statsig._options
-    );
     statsig._ready = true;
 
     const params = {
@@ -124,25 +118,27 @@ const statsig = {
    * @param {string} gateName - the name of the gate to check
    * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
-   * @throws Error if the gateName is not provided or not a string
+   * @throws Error if the gateName is not provided or not a non-empty string
    */
   checkGate(user, gateName) {
     if (statsig._ready !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
     }
-    if (typeof gateName !== 'string') {
+    if (typeof gateName !== 'string' || gateName.length === 0) {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     user = trimUserObjIfNeeded(user);
-    return statsig._store
-      .checkGate(user, gateName)
-      .then((value) => {
+    return this._fetchValues('check_gate', {
+      user: user,
+      gateName: gateName,
+    })
+      .then((gate) => {
+        const value = gate.value ?? false;
         logGateExposure(user, gateName, value, statsig._logger);
         return Promise.resolve(value);
       })
-      .catch((e) => {
+      .catch(() => {
         logGateExposure(user, gateName, false, statsig._logger);
-        console.warn(e.message + ' Returning false as the default value.');
         return Promise.resolve(false);
       });
   },
@@ -153,39 +149,35 @@ const statsig = {
    * @param {string} configName - the name of the dynamic config to get
    * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
-   * @throws Error if the configName is not provided or not a string
+   * @throws Error if the configName is not provided or not a non-empty string
    */
   getConfig(user, configName) {
     if (statsig._ready !== true) {
       return Promise.reject(new Error('Must call initialize() first.'));
     }
-    if (typeof configName !== 'string') {
+    if (typeof configName !== 'string' || configName.length === 0) {
       return Promise.reject(new Error('Must pass a valid configName to check'));
     }
     user = trimUserObjIfNeeded(user);
 
-    return statsig._store
-      .getConfig(user, configName)
+    return this._fetchValues('get_config', {
+      user: user,
+      configName: configName,
+    })
       .then((config) => {
-        logConfigExposure(
-          user,
-          configName,
-          config.getGroupName(),
-          statsig._logger
+        logConfigExposure(user, configName, config.group, statsig._logger);
+        return Promise.resolve(
+          new DynamicConfig(configName, config.value, config.group)
         );
-        return Promise.resolve(config);
       })
-      .catch((e) => {
+      .catch(() => {
         logConfigExposure(
           user,
           configName,
           'statsig::invalid_config',
           statsig._logger
         );
-        console.warn(
-          e.message + ' The config will only return the default values.'
-        );
-        return Promise.resolve(getFallbackConfig(configName));
+        return Promise.resolve(getFallbackConfig());
       });
   },
 
@@ -253,6 +245,30 @@ const statsig = {
     statsig._ready = null;
     statsig._logger.flush(false);
     fetcher.shutdown();
+  },
+
+  _fetchValues(endpoint, input) {
+    return fetcher.postWithTimeout(
+      statsig._options.api + '/' + endpoint,
+      Object.assign(input, {
+        sdkKey: statsig.secretKey,
+        statsigMetadata: getStatsigMetadata(),
+      }),
+      (resJSON) => {
+        return Promise.resolve(resJSON);
+      },
+      (e) => {
+        logStatsigInternal(
+          input.user,
+          endpoint + '_failed',
+          { error: e.message },
+          statsig.logger
+        );
+        return Promise.reject();
+      },
+      3000,
+      3
+    );
   },
 };
 

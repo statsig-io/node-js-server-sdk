@@ -1,36 +1,41 @@
-const LogEvent = require('../LogEvent');
-
 describe('Verify behavior of top level index functions', () => {
+  const LogEvent = require('../LogEvent');
+  const fetch = require('node-fetch');
+  jest.mock('node-fetch', () => jest.fn());
   const secretKey = 'secret-key';
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
 
-  jest.mock('../InternalStore', (_secretKey, _logger) => {
-    return jest.fn().mockImplementation(() => {
-      return {
-        checkGate: (user, gateName) => {
-          if (gateName === 'valid_gate') return Promise.resolve(true);
-          if (gateName === 'should_throw')
-            return Promise.reject(new Error('should throw'));
-          return Promise.resolve(false);
-        },
-        getConfig: (user, configName) => {
-          if (configName == null) {
-            return Promise.reject(
-              new Error('configName is not a valid string.')
-            );
-          }
-          const { DynamicConfig } = require('../DynamicConfig');
-          return Promise.resolve(new DynamicConfig(configName, {}, 'default'));
-        },
-        save: () => {},
-      };
-    });
-  });
-
   beforeEach(() => {
-    jest.resetModules();
     jest.restoreAllMocks();
+    fetch.mockImplementation((url) => {
+      if (url.includes('initialize')) {
+        return Promise.resolve({});
+      } else if (url.includes('check_gate')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              name: 'gate1',
+              value: true,
+            }),
+        });
+      } else if (url.includes('get_config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              name: 'config1',
+              value: {
+                string: '123',
+                number: 12,
+              },
+              group: 'default',
+            }),
+        });
+      }
+      return Promise.reject();
+    });
   });
 
   test('Verify initialize() returns an error when a secret key is not provided', async () => {
@@ -63,6 +68,29 @@ describe('Verify behavior of top level index functions', () => {
     );
   });
 
+  test('Verify logEvent() does not log before initialize()', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    statsig.logEvent({ userID: '12345' }, 'my_event');
+    expect(statsig._logger).toBe(undefined);
+  });
+
+  test('Verify cannot call checkGate() before initialize()', () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    return expect(
+      statsig.checkGate({ userID: '12345' }, 'my_gate')
+    ).rejects.toEqual(new Error('Must call initialize() first.'));
+  });
+
+  test('Verify cannot call getConfig() before initialize()', async () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    return statsig
+      .getConfig({ userID: '12345' }, 'my_config')
+      .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
+  });
+
   test('Verify multiple initialize calls resolve', async () => {
     const statsig = require('../index');
     expect.assertions(1);
@@ -73,22 +101,13 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
     const statsig = require('../index');
-    expect.assertions(5);
+    expect.assertions(4);
     return statsig.initialize(secretKey).then(() => {
       expect(statsig._secretKey).toBe(secretKey);
       expect(statsig._logger).toBeDefined();
-      expect(statsig._store).toBeDefined();
       expect(statsig._options.api).toBe('https://api.statsig.com/v1');
       expect(statsig._ready).toBe(true);
     });
-  });
-
-  test('Verify cannot call checkGate() before initialize()', () => {
-    const statsig = require('../index');
-    expect.assertions(1);
-    return expect(
-      statsig.checkGate({ userID: '12345' }, 'my_gate')
-    ).rejects.toEqual(new Error('Must call initialize() first.'));
   });
 
   test('Verify cannot call checkGate() with no gate name', () => {
@@ -138,91 +157,25 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify checkGate resolves to false for a gate that does not exist', async () => {
-    expect.assertions(2);
-    const statsig = require('../index');
-    return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig._logger, 'log');
-      return statsig
-        .checkGate({ userID: '12345' }, 'my_nonexistent_gate')
-        .then((data) => {
-          expect(data).toBe(false);
-          expect(spy).toHaveBeenCalledTimes(1);
-        });
-    });
-  });
-
-  test('Verify checkGate resolves to true for a gate that does exist', async () => {
-    expect.assertions(2);
-    const statsig = require('../index');
-    return statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(statsig._logger, 'log');
-      return statsig
-        .checkGate({ userID: '12345' }, 'valid_gate')
-        .then((data) => {
-          expect(data).toBe(true);
-          expect(spy).toHaveBeenCalledTimes(1);
-        });
-    });
-  });
-
-  test('Verify checkGate resolves to true for a gate that does exist for userID as a number', async () => {
-    expect.assertions(2);
-    const statsig = require('../index');
-    statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig._logger, 'log');
-    return statsig.checkGate({ userID: 12345 }, 'valid_gate').then((data) => {
-      expect(data).toBe(true);
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  test('Verify checkGate resolves to false when store ', async () => {
+  test('Verify checkGate returns correct value', async () => {
     expect.assertions(1);
+
     const statsig = require('../index');
-    statsig.initialize(secretKey);
-    return statsig
-      .checkGate({ userID: '12345' }, 'should_throw')
-      .then((data) => expect(data).toBe(false));
+    await statsig.initialize(secretKey);
+    return expect(
+      statsig.checkGate({ userID: 123 }, 'gate1')
+    ).resolves.toStrictEqual(true);
   });
 
-  test('Verify cannot call getConfig() before initialize()', async () => {
-    const statsig = require('../index');
-    expect.assertions(1);
-    return statsig
-      .getConfig({ userID: '12345' }, 'my_config')
-      .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
-  });
-
-  test('Verify getConfig() resolves to the asked config', async () => {
-    const statsig = require('../index');
+  test('Verify getConfig returns correct value', async () => {
     expect.assertions(2);
-    statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig._logger, 'log');
-    return statsig
-      .getConfig({ userID: '12345' }, 'my_config')
-      .then((config) => {
-        expect(config.name).toBe('my_config');
-        expect(spy).toHaveBeenCalledTimes(1);
-      });
-  });
 
-  test('Verify getConfig() resolves to the asked config with number as userID', async () => {
     const statsig = require('../index');
-    expect.assertions(2);
-    statsig.initialize(secretKey);
-    const spy = jest.spyOn(statsig._logger, 'log');
-    return statsig.getConfig({ userID: 12345 }, 'my_config').then((config) => {
-      expect(config.name).toBe('my_config');
-      expect(spy).toHaveBeenCalledTimes(1);
+    await statsig.initialize(secretKey);
+    await statsig.getConfig({ userID: 123 }, 'config1').then((data) => {
+      expect(data.getNumber('number')).toStrictEqual(12);
+      expect(data.getString('string')).toStrictEqual('123');
     });
-  });
-
-  test('Verify logEvent() does not log before initialize()', () => {
-    const statsig = require('../index');
-    expect.assertions(1);
-    statsig.logEvent({ userID: '12345' }, 'my_event');
-    expect(statsig._logger).toBe(undefined);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {
@@ -322,6 +275,7 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify shutdown makes the SDK not ready', async () => {
     const statsig = require('../index');
     expect.assertions(2);
+    fetch.mockImplementation(() => Promise.resolve({}));
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'flush');
       statsig.shutdown();
