@@ -263,7 +263,7 @@ const statsig = {
     return fetcher.postWithTimeout(
       statsig._options.api + '/' + endpoint,
       Object.assign(input, {
-        sdkKey: statsig.secretKey,
+        sdkKey: statsig._secretKey,
         statsigMetadata: getStatsigMetadata(),
       }),
       (resJSON) => {
