@@ -54,16 +54,19 @@ function LogEventProcessor(options, secretKey) {
     const oldQueue = queue;
     queue = [];
     const body = {
-      sdkKey: secretKey,
       statsigMetadata: getStatsigMetadata(),
       events: oldQueue,
     };
+
     if (!waitForResponse) {
       // we are exiting, fire and forget
       fetch(options.api + '/log_event', {
         method: 'POST',
         body: JSON.stringify(body),
-        headers: { 'Content-type': 'application/json; charset=UTF-8' },
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8',
+          'STATSIG-API-KEY': secretKey,
+        },
       });
       return;
     }
@@ -71,7 +74,10 @@ function LogEventProcessor(options, secretKey) {
     fetch(options.api + '/log_event', {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: { 'Content-type': 'application/json; charset=UTF-8' },
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+        'STATSIG-API-KEY': secretKey,
+      },
     })
       .then((response) => {
         if (!response.ok) {

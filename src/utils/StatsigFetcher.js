@@ -16,6 +16,7 @@ const fetcher = {
    */
   postWithTimeout: function (
     url,
+    sdkKey,
     body,
     resolveCallback,
     rejectCallback,
@@ -26,7 +27,7 @@ const fetcher = {
     if (typeof url !== 'string' || url.length === 0) {
       return Promise.reject(new Error('url is invalid.'));
     }
-    const fetchPromise = this.post(url, body, retries, backout)
+    const fetchPromise = this.post(url, sdkKey, body, retries, backout)
       .then((res) => {
         if (res.ok) {
           return res.json().then((json) => {
@@ -58,7 +59,7 @@ const fetcher = {
     return fetchPromise;
   },
 
-  post: function (url, body, retries = 0, backoff = 1000) {
+  post: function (url, sdkKey, body, retries = 0, backoff = 1000) {
     this.init();
     const counter = fetcher.leakyBucket[url];
     if (counter != null && counter >= 1000) {
@@ -76,7 +77,10 @@ const fetcher = {
     const params = {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: { 'Content-type': 'application/json; charset=UTF-8' },
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+        'STATSIG-API-KEY': sdkKey,
+      },
     };
     return fetch(url, params)
       .then((res) => {
@@ -96,7 +100,7 @@ const fetcher = {
                   fetcher.leakyBucket[url] - 1,
                   0
                 );
-                this.post(url, body, retries - 1, backoff * 2)
+                this.post(url, sdkKey, body, retries - 1, backoff * 2)
                   .then(resolve)
                   .catch(reject);
               }, backoff)

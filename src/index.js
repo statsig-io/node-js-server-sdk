@@ -53,13 +53,16 @@ const statsig = {
     statsig._ready = true;
 
     const params = {
-      sdkKey: secretKey,
       statsigMetadata: getStatsigMetadata(),
     };
+
     fetch(statsig._options.api + '/initialize', {
       method: 'POST',
       body: JSON.stringify(params),
-      headers: { 'Content-type': 'application/json; charset=UTF-8' },
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+        'STATSIG-API-KEY': statsig._secretKey,
+      },
     })
       .then((response) => {
         if (response.ok) {
@@ -262,8 +265,8 @@ const statsig = {
   _fetchValues(endpoint, input) {
     return fetcher.postWithTimeout(
       statsig._options.api + '/' + endpoint,
+      statsig._secretKey,
       Object.assign(input, {
-        sdkKey: statsig._secretKey,
         statsigMetadata: getStatsigMetadata(),
       }),
       (resJSON) => {
