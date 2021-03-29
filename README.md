@@ -4,7 +4,7 @@
 
 ## Statsig Node Server SDK
 
-The nodejs SDK for server environments. If you're looking for a javascript client SDK, try [https://github.com/statsig-io/js-client-sdk](https://github.com/statsig-io/node-js-server-sdk).
+The nodejs SDK for server environments. If you're looking for a javascript client SDK, try [https://github.com/statsig-io/js-client-sdk](https://github.com/statsig-io/js-client-sdk).
 
 Statsig helps you move faster with Feature Gates and Dynamic Configs. If you're new to Statsig, create an account at [statsig.com](https://www.statsig.com).
 
