@@ -83,13 +83,6 @@ const statsig = {
             if (flushInterval != null) {
               statsig._logger.setFlushBatchSize(flushBatchSize);
             }
-
-            const maxEventQueueSize = getNumericValue(
-              sdkParams?.maxEventQueueSize
-            );
-            if (maxEventQueueSize != null) {
-              statsig._logger.setMaxEventQueueSize(maxEventQueueSize);
-            }
           }
           if (statsig._store != null) {
             const fetchTimeout = getNumericValue(sdkParams?.fetchTimeout);
@@ -108,7 +101,7 @@ const statsig = {
         logStatsigInternal(
           null,
           'initialize_failed',
-          { error: e.message },
+          { error: e?.message || 'initialize_failed' },
           statsig._logger
         );
       });
@@ -276,7 +269,7 @@ const statsig = {
         logStatsigInternal(
           input.user,
           endpoint + '_failed',
-          { error: e.message },
+          { error: e?.message || '_fetchValuesFailed' },
           statsig.logger
         );
         return Promise.reject();

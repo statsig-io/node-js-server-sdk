@@ -2,14 +2,15 @@ const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
 const LogEvent = require('./LogEvent');
 const { logStatsigInternal } = require('./utils/logging');
+const fetcher = require('./utils/StatsigFetcher');
 
 function LogEventProcessor(options, secretKey) {
   const processor = {};
-  let flushBatchSize = 1000;
+  let flushBatchSize = 500;
   let flushInterval = 60 * 1000;
-  let maxEventQueueSize = 20000;
   let queue = [];
   let flushTimer = null;
+  let loggedErrors = new Set();
 
   processor.setFlushInterval = function (interval) {
     flushInterval = interval;
@@ -22,11 +23,7 @@ function LogEventProcessor(options, secretKey) {
     }
   };
 
-  processor.setMaxEventQueueSize = function (size) {
-    maxEventQueueSize = size;
-  };
-
-  processor.log = function (event) {
+  processor.log = function (event, errorKey = null) {
     if (!(event instanceof LogEvent)) {
       return;
     }
@@ -34,6 +31,14 @@ function LogEventProcessor(options, secretKey) {
     if (!event.validate()) {
       return;
     }
+
+    if (errorKey != null) {
+      if (loggedErrors.has(errorKey)) {
+        return;
+      }
+      loggedErrors.add(errorKey);
+    }
+
     queue.push(event);
 
     if (queue.length >= flushBatchSize) {
@@ -60,51 +65,20 @@ function LogEventProcessor(options, secretKey) {
 
     if (!waitForResponse) {
       // we are exiting, fire and forget
-      fetch(options.api + '/log_event', {
-        method: 'POST',
-        body: JSON.stringify(body),
-        headers: {
-          'Content-type': 'application/json; charset=UTF-8',
-          'STATSIG-API-KEY': secretKey,
-        },
-      });
+      fetcher.post(options.api + '/log_event', secretKey, body, 0);
       return;
     }
 
-    fetch(options.api + '/log_event', {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-type': 'application/json; charset=UTF-8',
-        'STATSIG-API-KEY': secretKey,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw Error(response.statusText);
-        }
-      })
+    fetcher
+      .post(options.api + '/log_event', secretKey, body, 13, 10000)
       .catch((e) => {
-        queue = oldQueue.concat(queue);
-        if (queue.length >= flushBatchSize) {
-          flushBatchSize = Math.min(
-            queue.length + flushBatchSize,
-            maxEventQueueSize
-          );
-        }
-        if (queue.length > maxEventQueueSize) {
-          // Drop oldest events so that the queue has 10 less than the max amount of events we allow
-          queue = queue.slice(queue.length - maxEventQueueSize + 10);
-        }
         logStatsigInternal(
           null,
           'log_event_failed',
-          { error: e.message },
+          { error: e?.message || 'log_event_failed' },
           this
         );
       });
-
-    queue = [];
   };
 
   function resetFlushTimeout() {
