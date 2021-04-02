@@ -12,17 +12,6 @@ function LogEventProcessor(options, secretKey) {
   let flushTimer = null;
   let loggedErrors = new Set();
 
-  processor.setFlushInterval = function (interval) {
-    flushInterval = interval;
-  };
-
-  processor.setFlushBatchSize = function (size) {
-    flushBatchSize = size;
-    if (queue.length > flushBatchSize) {
-      this.flush();
-    }
-  };
-
   processor.log = function (event, errorKey = null) {
     if (!(event instanceof LogEvent)) {
       return;

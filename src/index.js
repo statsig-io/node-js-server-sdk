@@ -1,11 +1,7 @@
 const fetch = require('node-fetch');
 const fetcher = require('./utils/StatsigFetcher');
 const { DynamicConfig, getFallbackConfig } = require('./DynamicConfig');
-const {
-  getNumericValue,
-  getStatsigMetadata,
-  isUserIdentifiable,
-} = require('./utils/core');
+const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const {
   logConfigExposure,
   logGateExposure,
@@ -51,60 +47,6 @@ const statsig = {
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
     statsig._ready = true;
-
-    const params = {
-      statsigMetadata: getStatsigMetadata(),
-    };
-
-    fetch(statsig._options.api + '/initialize', {
-      method: 'POST',
-      body: JSON.stringify(params),
-      headers: {
-        'Content-type': 'application/json; charset=UTF-8',
-        'STATSIG-API-KEY': statsig._secretKey,
-      },
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error(response.statusText);
-      })
-      .then((responseJSON) => {
-        const sdkParams = responseJSON?.sdkParams;
-        if (sdkParams != null && typeof sdkParams === 'object') {
-          if (statsig._logger != null) {
-            const flushInterval = getNumericValue(sdkParams?.flushInterval);
-            if (flushInterval != null) {
-              statsig._logger.setFlushInterval(flushInterval);
-            }
-
-            const flushBatchSize = getNumericValue(sdkParams?.flushBatchSize);
-            if (flushInterval != null) {
-              statsig._logger.setFlushBatchSize(flushBatchSize);
-            }
-          }
-          if (statsig._store != null) {
-            const fetchTimeout = getNumericValue(sdkParams?.fetchTimeout);
-            if (fetchTimeout != null) {
-              statsig._store.setFetchTimeout(fetchTimeout);
-            }
-
-            const fetchRetry = getNumericValue(sdkParams?.fetchRetry);
-            if (fetchRetry != null) {
-              statsig._store.setFetchRetry(fetchRetry);
-            }
-          }
-        }
-      })
-      .catch((e) => {
-        logStatsigInternal(
-          null,
-          'initialize_failed',
-          { error: e?.message || 'initialize_failed' },
-          statsig._logger
-        );
-      });
     return Promise.resolve();
   },
 
