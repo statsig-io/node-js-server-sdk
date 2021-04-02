@@ -123,8 +123,8 @@ const statsig = {
    * Log an event for data analysis and alerting or to measure the impact of an experiment
    * @param {typedefs.StatsigUser} user - the user associated with this event
    * @param {string} eventName - the name of the event (name = Purchase)
-   * @param {string | number} value - the value associated with the event (value = 10)
-   * @param {object} metadata - other attributes associated with this event (metadata = {items: 2, currency: USD})
+   * @param {?string | number} value - the value associated with the event (value = 10)
+   * @param {?Record<string, string>} metadata - other attributes associated with this event (metadata = {item_name: 'banana', currency: 'USD'})
    */
   logEvent(user, eventName, value = null, metadata = null) {
     if (statsig._ready !== true) {

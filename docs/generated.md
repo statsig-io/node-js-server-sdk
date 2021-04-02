@@ -150,7 +150,7 @@ A dictionary of additional fields can be provided under the "custom" field
 | [country] | <code>string</code> | 
 | [locale] | <code>string</code> | 
 | [clientVersion] | <code>string</code> | 
-| [custom] | <code>Object.&lt;string, \*&gt;</code> | 
+| [custom] | <code>Object.&lt;string, (string\|number\|boolean\|Array.&lt;string&gt;)&gt;</code> | 
 
 <a name="typedefs.StatsigOptions"></a>
 
@@ -244,7 +244,7 @@ Log an event for data analysis and alerting or to measure the impact of an exper
 | user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user associated with this event |
 | eventName | <code>string</code> | the name of the event (name = Purchase) |
 | value | <code>string</code> \| <code>number</code> | the value associated with the event (value = 10) |
-| metadata | <code>object</code> | other attributes associated with this event (metadata = {items: 2, currency: USD}) |
+| metadata | <code>Record.&lt;string, string&gt;</code> | other attributes associated with this event (metadata = {item_name: 'banana', currency: 'USD'}) |
 
 <a name="statsig.isReady"></a>
 
