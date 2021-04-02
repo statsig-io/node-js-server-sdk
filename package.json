@@ -1,6 +1,6 @@
 {
   "name": "statsig-node-js-server-sdk",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Statsig node js server SDK",
   "main": "src/index.js",
   "scripts": {
