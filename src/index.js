@@ -1,12 +1,7 @@
-const fetch = require('node-fetch');
 const fetcher = require('./utils/StatsigFetcher');
 const { DynamicConfig, getFallbackConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
-const {
-  logConfigExposure,
-  logGateExposure,
-  logStatsigInternal,
-} = require('./utils/logging');
+const { logConfigExposure, logGateExposure } = require('./utils/logging');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
 const StatsigOptions = require('./StatsigOptions');
@@ -198,27 +193,18 @@ const statsig = {
   },
 
   _fetchValues(endpoint, input) {
-    return fetcher.postWithTimeout(
-      statsig._options.api + '/' + endpoint,
-      statsig._secretKey,
-      Object.assign(input, {
-        statsigMetadata: getStatsigMetadata(),
-      }),
-      (resJSON) => {
-        return Promise.resolve(resJSON);
-      },
-      (e) => {
-        logStatsigInternal(
-          input.user,
-          endpoint + '_failed',
-          { error: e?.message || '_fetchValuesFailed' },
-          statsig.logger
-        );
-        return Promise.reject();
-      },
-      3000,
-      3
-    );
+    return fetcher
+      .dispatch(
+        statsig._options.api + '/' + endpoint,
+        statsig._secretKey,
+        Object.assign(input, {
+          statsigMetadata: getStatsigMetadata(),
+        }),
+        5000
+      )
+      .then((res) => {
+        return res.json();
+      });
   },
 };
 

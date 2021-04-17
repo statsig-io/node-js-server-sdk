@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const Dispatcher = require('./Dispatcher');
 
 const fetcher = {
   init: function () {
@@ -6,57 +7,14 @@ const fetcher = {
       fetcher.leakyBucket = {};
       fetcher.pendingTimers = [];
     }
+    if (fetcher.dispatcher == null) {
+      fetcher.dispatcher = new Dispatcher(200);
+    }
   },
 
-  /**
-   * Helper function to help make a post request with a timeout to resolve early.
-   * Optional resolve and reject callbacks can be provided to be executed when the
-   * post request finishes, whether before or after the timeout. Also optional params
-   * can be provided to add retries for the post request with a backoff timer.
-   */
-  postWithTimeout: function (
-    url,
-    sdkKey,
-    body,
-    resolveCallback,
-    rejectCallback,
-    timeout,
-    retries = 0,
-    backout = 1000
-  ) {
-    if (typeof url !== 'string' || url.length === 0) {
-      return Promise.reject(new Error('url is invalid.'));
-    }
-    const fetchPromise = this.post(url, sdkKey, body, retries, backout)
-      .then((res) => {
-        if (res.ok) {
-          return res.json().then((json) => {
-            if (typeof resolveCallback === 'function') {
-              resolveCallback(json);
-            }
-            return Promise.resolve(json);
-          });
-        }
-        throw new Error(res.statusText);
-      })
-      .catch((e) => {
-        if (typeof rejectCallback === 'function') {
-          rejectCallback(e);
-        }
-        return Promise.reject(e);
-      });
-
-    if (timeout != null && typeof timeout === 'number' && timeout > 0) {
-      const timer = new Promise((resolve, reject) => {
-        fetcher.pendingTimers.push(
-          setTimeout(() => {
-            resolve();
-          }, timeout)
-        );
-      });
-      return Promise.race([fetchPromise, timer]);
-    }
-    return fetchPromise;
+  dispatch: function (url, sdkKey, body, timeout) {
+    this.init();
+    return fetcher.dispatcher.enqueue(this.post(url, sdkKey, body), timeout);
   },
 
   post: function (url, sdkKey, body, retries = 0, backoff = 1000) {
@@ -121,6 +79,9 @@ const fetcher = {
           clearTimeout(timer);
         }
       });
+    }
+    if (fetcher.dispatcher != null) {
+      fetcher.dispatcher._shutdown();
     }
   },
 };
