@@ -1,4 +1,4 @@
-declare module 'statsig-node-js-server-sdk' {
+declare module 'statsig-node' {
   /**
    * An object of properties relating to the current user
    * Provide as many as possible to take advantage of advanced conditions in the statsig console

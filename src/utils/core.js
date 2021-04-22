@@ -5,7 +5,7 @@ function getSDKVersion() {
 }
 
 function getSDKType() {
-  return 'node-js-server-sdk';
+  return require('../../package.json')?.name ?? '';
 }
 
 function generateID() {
