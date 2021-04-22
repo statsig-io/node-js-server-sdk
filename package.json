@@ -1,7 +1,7 @@
 {
-  "name": "statsig-node-js-server-sdk",
-  "version": "1.0.23",
-  "description": "Statsig node js server SDK",
+  "name": "statsig-node",
+  "version": "1.1.0",
+  "description": "Statsig Node.js SDK for usage in multi-user server environments.",
   "main": "src/index.js",
   "scripts": {
     "test": "jest",
