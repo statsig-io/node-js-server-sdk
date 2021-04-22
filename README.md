@@ -1,6 +1,6 @@
 # Statsig
 
-[![npm version](https://badge.fury.io/js/statsig-node-js-server-sdk.svg)](https://badge.fury.io/js/statsig-node-js-server-sdk)
+[![npm version](https://badge.fury.io/js/statsig-node.svg)](https://badge.fury.io/js/statsig-node)
 
 ## Statsig Node Server SDK
 
