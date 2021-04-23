@@ -30,7 +30,12 @@ function logStatsigInternal(user, eventName, metadata, eventProcessor) {
   if (user != null) {
     event.setUser(user);
   }
-  if (metadata.error != null) {
+  
+  if (metadata != null) {
+    event.setMetadata(metadata);
+  }
+
+  if (metadata?.error != null) {
     eventProcessor.log(event, eventName + metadata.error);
   } else {
     eventProcessor.log(event);
