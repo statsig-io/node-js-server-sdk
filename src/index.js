@@ -1,5 +1,5 @@
 const fetcher = require('./utils/StatsigFetcher');
-const { DynamicConfig, getFallbackConfig } = require('./DynamicConfig');
+const { DynamicConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const { logConfigExposure, logGateExposure } = require('./utils/logging');
 const LogEvent = require('./LogEvent');
@@ -80,7 +80,7 @@ const statsig = {
    * Checks the value of a config for a given user
    * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
    * @param {string} configName - the name of the dynamic config to get
-   * @returns {Promise<DynamicConfig>} - the config for the user
+   * @returns {Promise<DynamicConfig | null>} - the config for the user
    * @throws Error if initialize() was not called first
    * @throws Error if the configName is not provided or not a non-empty string
    */
@@ -104,13 +104,7 @@ const statsig = {
         );
       })
       .catch(() => {
-        logConfigExposure(
-          user,
-          configName,
-          'statsig::invalid_config',
-          statsig._logger
-        );
-        return Promise.resolve(getFallbackConfig());
+        return Promise.resolve(null);
       });
   },
 

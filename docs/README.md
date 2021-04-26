@@ -9,7 +9,7 @@ The global statsig class for interacting with gates, configs, experiments config
 - [statsig](#statsig)
   - [.initialize(secretKey, [options])](#statsig.initialize) ⇒ <code>Promise.&lt;void&gt;</code>
   - [.checkGate(user, gateName)](#statsig.checkGate) ⇒ <code>Promise.&lt;boolean&gt;</code>
-  - [.getConfig(user, configName)](#statsig.getConfig) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
+  - [.getConfig(user, configName)](#statsig.getConfig) ⇒ [<code>Promise.&lt;DynamicConfig | null&gt;</code>](#DynamicConfig)
   - [.logEvent(user, eventName, value, metadata)](#statsig.logEvent)
   - [.isReady()](#statsig.isReady) ⇒ <code>boolean</code>
   - [.shutdown()](#statsig.shutdown)
@@ -107,100 +107,37 @@ Returns the data for a DynamicConfig in the statsig console via typed get functi
 **Kind**: global class
 
 - [DynamicConfig](#DynamicConfig)
-  - [.getBool(name, [defaultValue])](#DynamicConfig+getBool) ⇒ <code>boolean</code>
-  - [.getString(name, [defaultValue])](#DynamicConfig+getString) ⇒ <code>string</code>
-  - [.getNumber(name, [defaultValue])](#DynamicConfig+getNumber) ⇒ <code>number</code>
-  - [.getArray(name, [defaultValue])](#DynamicConfig+getArray) ⇒ <code>Array</code>
-  - [.getObject(name, [defaultValue])](#DynamicConfig+getObject) ⇒ [<code>DynamicConfig</code>](#DynamicConfig)
-  - [.getRawValue()](#DynamicConfig+getRawValue) ⇒ <code>any</code>
+  - [.get<T>([key], [defaultValue])](#DynamicConfig+get) ⇒ <code>T</code> \| <code>null</code>
+  - [.getValue([key], [defaultValue])](#DynamicConfig+getValue) ⇒ <code>boolean</code> \| <code>number</code> \| <code>string</code> \| <code>object</code> \| <code>Array.&lt;any&gt;</code> \| <code>null</code>
 
-<a name="DynamicConfig+getBool"></a>
+<a name="DynamicConfig+get"></a>
 
-### dynamicConfig.getBool(name, [defaultValue]) ⇒ <code>boolean</code>
+### dynamicConfig.get<T>([key], [defaultValue]) ⇒ <code>T</code> \| <code>null</code>
 
-Returns the boolean value of the given parameter, or the defaultValue if not found.
-
-**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
-**Throws**:
-
-- Error if the provided defaultValue is not a boolean
-
-| Param          | Type                 | Default            | Description                                                                                                        |
-| -------------- | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| name           | <code>string</code>  |                    | The name of the parameter to check                                                                                 |
-| [defaultValue] | <code>boolean</code> | <code>false</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
-
-<a name="DynamicConfig+getString"></a>
-
-### dynamicConfig.getString(name, [defaultValue]) ⇒ <code>string</code>
-
-Returns the string value of the given parameter, or the defaultValue if not found.
-
-**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
-**Throws**:
-
-- Error if the provided defaultValue is not a string
-
-| Param          | Type                | Default                               | Description                                                                                                        |
-| -------------- | ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| name           | <code>string</code> |                                       | The name of the parameter to check                                                                                 |
-| [defaultValue] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
-
-<a name="DynamicConfig+getNumber"></a>
-
-### dynamicConfig.getNumber(name, [defaultValue]) ⇒ <code>number</code>
-
-Returns the number value of the given parameter, or the defaultValue if not found.
-
-**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
-**Throws**:
-
-- Error if the provided defaultValue is not a number
-
-| Param          | Type                | Default        | Description                                                                                                        |
-| -------------- | ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| name           | <code>string</code> |                | The name of the parameter to check                                                                                 |
-| [defaultValue] | <code>number</code> | <code>0</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
-
-<a name="DynamicConfig+getArray"></a>
-
-### dynamicConfig.getArray(name, [defaultValue]) ⇒ <code>Array</code>
-
-Returns the Array value of the given parameter, or the defaultValue if not found.
-
-**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
-**Throws**:
-
-- Error if the provided defaultValue is not an Array
-
-| Param          | Type                | Default         | Description                                                                                                        |
-| -------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
-| name           | <code>string</code> |                 | The name of the parameter to check                                                                                 |
-| [defaultValue] | <code>Array</code>  | <code>[]</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
-
-<a name="DynamicConfig+getObject"></a>
-
-### dynamicConfig.getObject(name, [defaultValue]) ⇒ [<code>DynamicConfig</code>](#DynamicConfig)
-
-Returns the object value of the given parameter as another DynamicConfig, or a DynamicConfig representing the defaultValue if not found.
-
-**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)  
-**Throws**:
-
-- Error if the provided defaultValue is not an object
-
-| Param          | Type                | Default         | Description                                                                                                        |
-| -------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
-| name           | <code>string</code> |                 | The name of the parameter to check                                                                                 |
-| [defaultValue] | <code>object</code> | <code>{}</code> | The default value of the parameter to return in cases where the parameter is not found or is not the correct type. |
-
-<a name="DynamicConfig+getRawValue"></a>
-
-### dynamicConfig.getRawValue() ⇒ <code>any</code>
-
-Returns the raw value of the DynamicConfig
+A generic, type sensitive getter, which returns the value at the given index in the config if it matches the type of the default value,
+and returns the default value otherwise
 
 **Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)
+
+| Param          | Type                                | Description                                                                                                                            |
+| -------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [key]          | <code>string</code>                 | The index of the config to check                                                                                                       |
+| [defaultValue] | <code>T</code> \| <code>null</code> | The default value of the parameter to return in cases where the parameter is not found or does not match the type of the default value |
+
+<a name="DynamicConfig+getValue"></a>
+
+### dynamicConfig.getValue([key], [defaultValue]) ⇒ <code>boolean</code> \| <code>number</code> \| <code>string</code> \| <code>object</code> \| <code>Array.&lt;any&gt;</code> \| <code>null</code>
+
+With no parameters, returns the JSON object representing this config (or null if not found)
+With a key parameter, returns the value at that index in the JSON object, or null if not found
+With a key and a defaultValue, returns the value at that index, or the provided default if not found
+
+**Kind**: instance method of [<code>DynamicConfig</code>](#DynamicConfig)
+
+| Param          | Type                                                                                                                                             | Default       | Description                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------- |
+| [key]          | <code>string</code>                                                                                                                              |               | The index of the config to check                                                       |
+| [defaultValue] | <code>boolean</code> \| <code>number</code> \| <code>string</code> \| <code>object</code> \| <code>Array.&lt;any&gt;</code> \| <code>null</code> | <code></code> | The default value of the parameter to return in cases where the parameter is not found |
 
 ## Input Types: StatsigUser and StatsigOptions
 

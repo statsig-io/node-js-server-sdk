@@ -173,8 +173,8 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     await statsig.initialize(secretKey);
     await statsig.getConfig({ userID: 123 }, 'config1').then((data) => {
-      expect(data.getNumber('number')).toStrictEqual(12);
-      expect(data.getString('string')).toStrictEqual('123');
+      expect(data.getValue('number')).toStrictEqual(12);
+      expect(data.getValue('string')).toStrictEqual('123');
     });
   });
 
@@ -214,7 +214,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEvent(null, 'event', 1, { price: 2 });
+      statsig.logEvent(null, 'event', 1, { price: '2' });
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
@@ -224,7 +224,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEvent({ userID: '12345' }, 'event', 1, { price: 2 });
+      statsig.logEvent({ userID: '12345' }, 'event', 1, { price: '2' });
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
@@ -234,7 +234,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEvent({ userID: 12345 }, 'event', 1, { price: 2 });
+      statsig.logEvent({ userID: 12345 }, 'event', 1, { price: '2' });
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
