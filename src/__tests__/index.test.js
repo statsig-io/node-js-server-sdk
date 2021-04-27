@@ -186,7 +186,7 @@ describe('Verify behavior of top level index functions', () => {
     const spy = jest.spyOn(statsig._logger, 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser(user);
-    gateExposure.setMetadata({ gate: gateName, gateValue: true });
+    gateExposure.setMetadata({ gate: gateName, gateValue: String(true) });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       true
