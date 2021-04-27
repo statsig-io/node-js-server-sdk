@@ -8,7 +8,7 @@ function logGateExposure(user, gateName, gateValue, eventProcessor) {
   logStatsigInternal(
     user,
     GATE_EXPOSURE_EVENT,
-    { gate: gateName, gateValue: gateValue },
+    { gate: gateName, gateValue: String(gateValue) },
     eventProcessor
   );
 }
@@ -30,7 +30,7 @@ function logStatsigInternal(user, eventName, metadata, eventProcessor) {
   if (user != null) {
     event.setUser(user);
   }
-  
+
   if (metadata != null) {
     event.setMetadata(metadata);
   }
