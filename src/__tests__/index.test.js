@@ -36,6 +36,10 @@ describe('Verify behavior of top level index functions', () => {
       }
       return Promise.reject();
     });
+
+    // ensure Date.now() returns the same value in each test
+    let now = Date.now();
+    jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });
 
   test('Verify initialize() returns an error when a secret key is not provided', async () => {
@@ -75,20 +79,24 @@ describe('Verify behavior of top level index functions', () => {
     expect(statsig._logger).toBe(undefined);
   });
 
-  test('Verify cannot call checkGate() before initialize()', () => {
+  test('Verify cannot call checkGate() before initialize()', async () => {
     const statsig = require('../index');
-    expect.assertions(1);
-    return expect(
+    expect.assertions(2);
+
+    await expect(
       statsig.checkGate({ userID: '12345' }, 'my_gate')
     ).rejects.toEqual(new Error('Must call initialize() first.'));
+    expect(statsig._logger).toBeFalsy();
   });
 
   test('Verify cannot call getConfig() before initialize()', async () => {
     const statsig = require('../index');
-    expect.assertions(1);
-    return statsig
+    expect.assertions(2);
+
+    await statsig
       .getConfig({ userID: '12345' }, 'my_config')
       .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
+    expect(statsig._logger).toBeFalsy();
   });
 
   test('Verify multiple initialize calls resolve', async () => {
@@ -112,70 +120,102 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify cannot call checkGate() with no gate name', () => {
     const statsig = require('../index');
-    expect.assertions(1);
+    expect.assertions(2);
+
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate(null)).rejects.toEqual(
         new Error('Must pass a valid gateName to check')
       );
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
   test('Verify cannot call checkGate() with invalid gate name', () => {
     const statsig = require('../index');
-    expect.assertions(1);
+    expect.assertions(2);
 
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate({}, 12)).rejects.toEqual(
         new Error('Must pass a valid gateName to check')
       );
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
   test('Verify cannot call getConfig() with no config name', () => {
     const statsig = require('../index');
-    expect.assertions(1);
+    expect.assertions(2);
 
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({})).rejects.toEqual(
         new Error('Must pass a valid configName to check')
       );
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
   test('Verify cannot call getConfig() with invalid config name', () => {
     const statsig = require('../index');
-    expect.assertions(1);
+    expect.assertions(2);
 
+    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({}, false)).rejects.toEqual(
         new Error('Must pass a valid configName to check')
       );
+      expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
-  test('Verify checkGate returns correct value', async () => {
-    expect.assertions(1);
+  test('Verify checkGate() returns correct value and logs an exposure correctly', async () => {
+    expect.assertions(3);
 
     const statsig = require('../index');
     await statsig.initialize(secretKey);
-    return expect(
-      statsig.checkGate({ userID: 123 }, 'gate1')
-    ).resolves.toStrictEqual(true);
+
+    let user = { userID: 123 };
+    let gateName = 'gate1';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser(user);
+    gateExposure.setMetadata({ gate: gateName, gateValue: true });
+
+    await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
+      true
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify getConfig returns correct value', async () => {
-    expect.assertions(2);
+  test('Verify getConfig() returns correct value and logs an exposure correctly', async () => {
+    expect.assertions(4);
 
     const statsig = require('../index');
     await statsig.initialize(secretKey);
-    await statsig.getConfig({ userID: 123 }, 'config1').then((data) => {
+
+    let user = { userID: 123 };
+    let configName = 'config1';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    const configExposure = new LogEvent('statsig::config_exposure');
+    configExposure.setUser(user);
+    configExposure.setMetadata({ config: configName, configGroup: 'default' });
+
+    await statsig.getConfig(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(12);
       expect(data.getValue('string')).toStrictEqual('123');
     });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(configExposure);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {
