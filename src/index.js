@@ -1,5 +1,4 @@
 const fetcher = require('./utils/StatsigFetcher');
-const { ConfigSpec } = require('./ConfigSpec');
 const { DynamicConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const { logConfigExposure, logGateExposure } = require('./utils/logging');
@@ -42,31 +41,8 @@ const statsig = {
     statsig._secretKey = secretKey;
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
-
-    statsig._store = { gates: [], dynamicConfigs: [] };
-    return fetcher
-      .post(options.api + '/download_configs', secretKey, {}, 5)
-      .then((configs) => {
-        for (const c in configs) {
-          const cs = new ConfigSpec(c);
-          switch (cs.type) {
-            case 'gate':
-              statsig._store.gates.push(cs);
-            case 'dynamicConfig':
-              statsig._store.dynamicConfigs.push(cs);
-            default:
-            // Log error
-          }
-        }
-        return Promise.resolve();
-      })
-      .catch((e) => {
-        // TODO - make it so SDK still functions by calling checkgate getconfig endpoint maybe??
-        return Promise.reject(e.message);
-      })
-      .finally(() => {
-        statsig._ready = true;
-      });
+    statsig._ready = true;
+    return Promise.resolve();
   },
 
   /**
@@ -85,28 +61,19 @@ const statsig = {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     user = trimUserObjIfNeeded(user);
-    let spec = statsig._store.gates[gateName];
-    if (spec == null) {
-      return Promise.resolve(false);
-    }
-    const value = spec.evaluate(user);
-    if (value === 'HELP') {
-      return this._fetchValues('check_gate', {
-        user: user,
-        gateName: gateName,
+    return this._fetchValues('check_gate', {
+      user: user,
+      gateName: gateName,
+    })
+      .then((gate) => {
+        const value = gate.value ?? false;
+        logGateExposure(user, gateName, value, statsig._logger);
+        return Promise.resolve(value);
       })
-        .then((gate) => {
-          const value = gate.value ?? false;
-          logGateExposure(user, gateName, value, statsig._logger);
-          return Promise.resolve(value);
-        })
-        .catch(() => {
-          logGateExposure(user, gateName, false, statsig._logger);
-          return Promise.resolve(false);
-        });
-    }
-    logGateExposure(user, gateName, value, statsig._logger);
-    return Promise.resolve(value);
+      .catch(() => {
+        logGateExposure(user, gateName, false, statsig._logger);
+        return Promise.resolve(false);
+      });
   },
 
   /**
@@ -126,28 +93,19 @@ const statsig = {
     }
     user = trimUserObjIfNeeded(user);
 
-    let spec = statsig._store.dynamicConfigs[configName];
-    if (spec == null) {
-      return Promise.resolve(null);
-    }
-    const config = spec.evaluate(user);
-    if (config === 'HELP') {
-      return this._fetchValues('get_config', {
-        user: user,
-        configName: configName,
+    return this._fetchValues('get_config', {
+      user: user,
+      configName: configName,
+    })
+      .then((config) => {
+        logConfigExposure(user, configName, config.group, statsig._logger);
+        return Promise.resolve(
+          new DynamicConfig(configName, config.value, config.group)
+        );
       })
-        .then((config) => {
-          logConfigExposure(user, configName, config.group, statsig._logger);
-          return Promise.resolve(
-            new DynamicConfig(configName, config.value, config.group)
-          );
-        })
-        .catch(() => {
-          return Promise.resolve(null);
-        });
-    }
-    logConfigExposure(user, configName, config.group, statsig._logger);
-    return Promise.resolve(config);
+      .catch(() => {
+        return Promise.resolve(null);
+      });
   },
 
   /**
