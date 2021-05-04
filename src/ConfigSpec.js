@@ -6,6 +6,8 @@ var configStore = {};
 
 export const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
 
+const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
+
 export class ConfigSpec {
   constructor(specJSON) {
     this.name = specJSON.name;
@@ -31,12 +33,12 @@ export class ConfigSpec {
         return FETCH_FROM_SERVER;
       }
       if (rule.evaluate(user) === true) {
-        return this.type === 'dynamicConfig'
+        return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
           ? new DynamicConfig(this.name, rule.returnValue, rule.name)
           : true;
       }
     });
-    return this.type === 'dynamicConfig'
+    return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
       ? new DynamicConfig(this.name, this.defaultValue, 'default')
       : false;
   }
@@ -74,6 +76,7 @@ class ConfigRule {
         return false;
       }
     });
+    // TODO: use percentage and salt before returning true
     return true;
   }
 }
@@ -100,14 +103,16 @@ class ConfigCondition {
       case 'public':
         value = true;
         break;
+      case 'fail_gate':
       case 'pass_gate':
         if (target in configStore) {
           value = configStore[target].evaluate(user);
           if (value === FETCH_FROM_SERVER) {
             return FETCH_FROM_SERVER;
           }
+          return this.type.toLowerCase() === 'fail_gate' ? !value : value;
         } else {
-          value = false;
+          return false;
         }
         break;
       case 'ip_based':
@@ -131,48 +136,75 @@ class ConfigCondition {
 
     switch (this.operator.toLowerCase()) {
       // numerical
-      case 'greater_than':
+      case 'gt':
         return numberCompare((a, b) => a > b)(value, target);
-      case 'greater_than_or_equal':
+      case 'gte':
         return numberCompare((a, b) => a >= b)(value, target);
-      case 'less_than':
+      case 'lt':
         return numberCompare((a, b) => a < b)(value, target);
-      case 'less_than_or_equal':
+      case 'lte':
         return numberCompare((a, b) => a <= b)(value, target);
 
       // version
-      case 'version_greater_than':
+      case 'version_ge':
         return versionCompare((a, b) => semver.gt(a, b))(value, target);
-      case 'version_greater_than_or_equal':
+      case 'version_gte':
         return versionCompare((a, b) => semver.gte(a, b))(value, target);
-      case 'version_less_than':
+      case 'version_lt':
         return versionCompare((a, b) => semver.lt(a, b))(value, target);
-      case 'version_less_than_or_equal':
+      case 'version_lte':
         return versionCompare((a, b) => semver.lte(a, b))(value, target);
-      case 'version_equals':
+      case 'version_eq':
         return versionCompare((a, b) => semver.eq(a, b))(value, target);
-      case 'version_not_equal':
+      case 'version_neq':
         return versionCompare((a, b) => semver.neq(a, b))(value, target);
 
       // array
       case 'any':
-        if (Array.isArray(value)) {
-          return value.includes(target);
+        if (Array.isArray(target)) {
+          return target.includes(value);
         }
         return false;
       case 'none':
-        if (Array.isArray(value)) {
-          return !value.includes(target);
+        if (Array.isArray(target)) {
+          return !target.includes(value);
         }
         return false;
 
       // string
-      case 'str_starts_with':
-        return stringCompare((a, b) => a.startsWith(b))(value, target);
-      case 'str_ends_with':
-        return stringCompare((a, b) => a.endsWith(b))(value, target);
-      case 'str_contains':
-        return stringCompare((a, b) => a.includes(b))(value, target);
+      case 'str_starts_with_any':
+        if (Array.isArray(target)) {
+          target.forEach((t) => {
+            if (stringCompare((a, b) => a.startsWith(b))(value, t)) {
+              return true;
+            }
+          });
+          return false;
+        } else {
+          return stringCompare((a, b) => a.startsWith(b))(value, target);
+        }
+      case 'str_ends_with_any':
+        if (Array.isArray(target)) {
+          target.forEach((t) => {
+            if (stringCompare((a, b) => a.endsWith(b))(value, t)) {
+              return true;
+            }
+          });
+          return false;
+        } else {
+          return stringCompare((a, b) => a.endsWith(b))(value, target);
+        }
+      case 'str_contains_any':
+        if (Array.isArray(target)) {
+          target.forEach((t) => {
+            if (stringCompare((a, b) => a.includes(b))(value, t)) {
+              return true;
+            }
+          });
+          return false;
+        } else {
+          return stringCompare((a, b) => a.includes(b))(value, target);
+        }
       case 'str_matches':
         return stringCompare((a, b) => {
           try {
@@ -207,7 +239,7 @@ function getFromUser(user, field) {
 
 function getFromIP(user, field) {
   // TODO:
-  return null;
+  return FETCH_FROM_SERVER;
 }
 
 function getFromUserAgent(user, field) {
