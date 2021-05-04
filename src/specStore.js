@@ -14,12 +14,16 @@ const specStore = {
     gatesJSON.forEach((gateJSON) => {
       try {
         gates.insert(new ConfigSpec(gateJSON));
-      } catch (e) {}
+      } catch (e) {
+        // TODO: log
+      }
     });
     configsJSON.forEach((configJSON) => {
       try {
         configs.insert(new ConfigSpec(configJSON));
-      } catch (e) {}
+      } catch (e) {
+        // TODO: log
+      }
     });
     this.store = { gates, configs };
     this.ipTable = new CountryLookup();
@@ -30,7 +34,9 @@ const specStore = {
     if (this.ipTable) {
       try {
         return this.ipTable.lookupStr(ip);
-      } catch (e) {}
+      } catch (e) {
+        // TODO: log
+      }
     }
     return null;
   },
