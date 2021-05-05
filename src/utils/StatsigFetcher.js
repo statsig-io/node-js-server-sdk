@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const Dispatcher = require('./Dispatcher');
 
+const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 const fetcher = {
   init: function () {
     if (fetcher.leakyBucket == null) {
@@ -42,30 +43,30 @@ const fetcher = {
     };
     return fetch(url, params)
       .then((res) => {
-        if (!res.ok && retries > 0) {
-          throw new Error(
-            'Request to ' + url + ' failed with status ' + res.statusText
-          );
+        if (!res.ok) {
+          if (retries > 0 && retryStatusCodes.includes[res.status]) {
+            return new Promise((resolve, reject) => {
+              fetcher.pendingTimers.push(
+                setTimeout(() => {
+                  fetcher.leakyBucket[url] = Math.max(
+                    fetcher.leakyBucket[url] - 1,
+                    0
+                  );
+                  this.post(url, sdkKey, body, retries - 1, backoff * 2)
+                    .then(resolve)
+                    .catch(reject);
+                }, backoff)
+              );
+            });
+          } else {
+            return Promise.reject(
+              new Error(
+                'Request to ' + url + ' failed with status ' + res.status
+              )
+            );
+          }
         }
         return Promise.resolve(res);
-      })
-      .catch((e) => {
-        if (retries > 0) {
-          return new Promise((resolve, reject) => {
-            fetcher.pendingTimers.push(
-              setTimeout(() => {
-                fetcher.leakyBucket[url] = Math.max(
-                  fetcher.leakyBucket[url] - 1,
-                  0
-                );
-                this.post(url, sdkKey, body, retries - 1, backoff * 2)
-                  .then(resolve)
-                  .catch(reject);
-              }, backoff)
-            );
-          });
-        }
-        return Promise.reject(e);
       })
       .finally(() => {
         fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);
