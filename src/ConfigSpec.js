@@ -1,4 +1,5 @@
 const { DynamicConfig } = require('./DynamicConfig');
+const UAParser = require('ua-parser-js');
 const semver = require('semver');
 const specStore = require('./specStore');
 
@@ -247,8 +248,19 @@ function getFromIP(user, field) {
 }
 
 function getFromUserAgent(user, field) {
-  // TODO:
-  return null;
+  let ua = user?.userAgent ?? user?.custom?.userAgent;
+  if (ua == null) {
+    return null;
+  }
+  const res = new UAParser(ua);
+  let val = {
+    os_name: res.getOS().name ?? null,
+    os_version: res.getOS().version ?? null,
+    browser_name: res.getBrowser().name ?? null,
+    browser_version: res.getBrowser().versoin ?? null,
+  };
+
+  return val[field.toLowerCase()];
 }
 
 function numberCompare(fn) {
