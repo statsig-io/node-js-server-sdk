@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { DynamicConfig } = require('./DynamicConfig');
 const semver = require('semver');
 const specStore = require('./specStore');
@@ -13,13 +14,13 @@ export class ConfigSpec {
     this.salt = specJSON.salt;
     this.defaultValue = specJSON.defaultValue;
     this.enabled = specJSON.enabled;
-    this.rules = this.parseRules(specJSON.rules);
+    this.rules = this.parseRules(specJSON.rules, this.salt);
   }
 
-  parseRules(rulesJSON) {
+  parseRules(rulesJSON, salt) {
     var rules = [];
     for (let ruleJSON in rulesJSON) {
-      let rule = new ConfigRule(ruleJSON);
+      let rule = new ConfigRule(ruleJSON, salt);
       rules.push(rule);
     }
     return rules;
@@ -43,11 +44,12 @@ export class ConfigSpec {
 }
 
 class ConfigRule {
-  constructor(ruleJSON) {
+  constructor(ruleJSON, salt) {
     this.name = ruleJSON.name;
     this.passPercentage = ruleJSON.passPercentage;
     this.conditions = this.parseConditions(ruleJSON.conditions);
     this.returnValue = ruleJSON.returnValue;
+    this.salt = salt;
   }
 
   parseConditions(conditionsJSON) {
@@ -74,8 +76,13 @@ class ConfigRule {
         return false;
       }
     });
-    // TODO: use percentage and salt before returning true
-    return true;
+
+    const hash = crypto
+      .createHash('sha256')
+      .update(this.salt + '.' + this.name + '.' + user.userID)
+      .digest()
+      .readBigUInt64BE();
+    return Number(hash % BigInt(10000)) < this.passPercentage * 100;
   }
 }
 
