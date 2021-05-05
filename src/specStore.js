@@ -3,6 +3,8 @@ const CountryLookup = require('ip3country');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
 
+const SYNC_INTERVAL = 60 * 1000;
+
 const SpecStore = {
   async init(options, secretKey) {
     this.api = options.api;
@@ -29,7 +31,7 @@ const SpecStore = {
 
     this.syncTimer = setTimeout(() => {
       this.async();
-    }, 60 * 1000);
+    }, SYNC_INTERVAL);
   },
 
   async sync() {
@@ -50,7 +52,7 @@ const SpecStore = {
 
     this.syncTimer = setTimeout(() => {
       this.async();
-    }, 60 * 1000);
+    }, SYNC_INTERVAL);
   },
 
   process(specsJSON) {
