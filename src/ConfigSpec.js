@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { DynamicConfig } = require('./DynamicConfig');
 const UAParser = require('ua-parser-js');
 const semver = require('semver');
-const specStore = require('./specStore');
+const SpecStore = require('./SpecStore');
 
 export const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
 
@@ -80,7 +80,7 @@ class ConfigRule {
 
     const hash = crypto
       .createHash('sha256')
-      .update(this.salt + '.' + this.name + '.' + user.userID)
+      .update(this.salt + '.' + this.name + '.' + user?.userID)
       .digest()
       .readBigUInt64BE();
     return Number(hash % BigInt(10000)) < this.passPercentage * 100;
@@ -111,8 +111,8 @@ class ConfigCondition {
         break;
       case 'fail_gate':
       case 'pass_gate':
-        if (target in specStore) {
-          value = specStore[target].evaluate(user);
+        if (target in SpecStore?.gates) {
+          value = SpecStore?.gates[target].evaluate(user);
           if (value === FETCH_FROM_SERVER) {
             return FETCH_FROM_SERVER;
           }
@@ -249,7 +249,7 @@ function getFromIP(user, field) {
     return null;
   }
   if (field.toLowerCase() === 'country') {
-    return specStore.ip2country(ip);
+    return SpecStore.ip2country(ip);
   }
   return FETCH_FROM_SERVER;
 }
