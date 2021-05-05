@@ -257,7 +257,7 @@ function getFromUserAgent(user, field) {
     os_name: res.getOS().name ?? null,
     os_version: res.getOS().version ?? null,
     browser_name: res.getBrowser().name ?? null,
-    browser_version: res.getBrowser().versoin ?? null,
+    browser_version: res.getBrowser().version ?? null,
   };
 
   return val[field.toLowerCase()];
