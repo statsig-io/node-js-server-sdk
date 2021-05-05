@@ -1,8 +1,6 @@
 const { DynamicConfig } = require('./DynamicConfig');
 const semver = require('semver');
-
-// TODO: import this as a static store that has all config specs
-var configStore = {};
+const specStore = require('./specStore');
 
 export const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
 
@@ -105,8 +103,8 @@ class ConfigCondition {
         break;
       case 'fail_gate':
       case 'pass_gate':
-        if (target in configStore) {
-          value = configStore[target].evaluate(user);
+        if (target in specStore) {
+          value = specStore[target].evaluate(user);
           if (value === FETCH_FROM_SERVER) {
             return FETCH_FROM_SERVER;
           }
@@ -238,7 +236,13 @@ function getFromUser(user, field) {
 }
 
 function getFromIP(user, field) {
-  // TODO:
+  const ip = user?.ip ?? user?.custom?.ip;
+  if (ip == null) {
+    return null;
+  }
+  if (field.toLowerCase() === 'country') {
+    return specStore.ip2country(ip);
+  }
   return FETCH_FROM_SERVER;
 }
 
