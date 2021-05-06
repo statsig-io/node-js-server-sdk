@@ -1,6 +1,4 @@
 const { ConfigSpec } = require('../ConfigSpec');
-// @ts-ignore
-const { DynamicConfig } = require('../DynamicConfig');
 
 describe('Verify behavior of ConfigSpec', () => {
   const gateSpec = new ConfigSpec({
