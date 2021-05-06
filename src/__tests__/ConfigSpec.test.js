@@ -91,9 +91,9 @@ describe('Verify behavior of ConfigSpec', () => {
         conditions: [
           {
             type: 'user_field',
-            targetValue: 18,
+            targetValue: 9,
             operator: 'gte',
-            field: 'age',
+            field: 'level',
           },
         ],
         returnValue: {
@@ -189,9 +189,9 @@ describe('Verify behavior of ConfigSpec', () => {
 
     let cond = conds[0];
     expect(cond.type).toEqual('user_field');
-    expect(cond.targetValue).toEqual(18);
+    expect(cond.targetValue).toEqual(9);
     expect(cond.operator).toEqual('gte');
-    expect(cond.field).toEqual('age');
+    expect(cond.field).toEqual('level');
   });
 
   test('Test evaluate works for gates', () => {
@@ -231,7 +231,7 @@ describe('Verify behavior of ConfigSpec', () => {
     expect(dynamicConfigSpec.evaluate({}).get()).toEqual({});
     expect(
       // @ts-ignore
-      dynamicConfigSpec.evaluate({ userID: 'jkw', custom: { age: 30 } }).get()
+      dynamicConfigSpec.evaluate({ userID: 'jkw', custom: { level: 10 } }).get()
     ).toEqual({
       packers: {
         name: 'Green Bay Packers',
@@ -243,6 +243,6 @@ describe('Verify behavior of ConfigSpec', () => {
       },
     });
     // @ts-ignore
-    expect(dynamicConfigSpec.evaluate({ age: 15 }).get()).toEqual({});
+    expect(dynamicConfigSpec.evaluate({ level: 5 }).get()).toEqual({});
   });
 });
