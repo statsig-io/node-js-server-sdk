@@ -4,11 +4,10 @@ const UAParser = require('ua-parser-js');
 const semver = require('semver');
 const SpecStore = require('./SpecStore');
 
-export const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
-
+const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
 
-export class ConfigSpec {
+class ConfigSpec {
   constructor(specJSON) {
     this.name = specJSON.name;
     this.type = specJSON.type;
@@ -20,24 +19,27 @@ export class ConfigSpec {
 
   parseRules(rulesJSON, salt) {
     var rules = [];
-    for (let ruleJSON in rulesJSON) {
-      let rule = new ConfigRule(ruleJSON, salt);
+    for (let i = 0; i < rulesJSON.length; i++) {
+      let rule = new ConfigRule(rulesJSON[i], salt);
       rules.push(rule);
     }
     return rules;
   }
 
   evaluate(user) {
-    this.rules.forEach((rule) => {
-      if (rule.evaluate(user) === FETCH_FROM_SERVER) {
-        return FETCH_FROM_SERVER;
+    if (this.enabled) {
+      for (let i = 0; i < this.rules.length; i++) {
+        let rule = this.rules[i];
+        if (rule.evaluate(user) === FETCH_FROM_SERVER) {
+          return FETCH_FROM_SERVER;
+        }
+        if (rule.evaluate(user) === true) {
+          return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
+            ? new DynamicConfig(this.name, rule.returnValue, rule.name)
+            : true;
+        }
       }
-      if (rule.evaluate(user) === true) {
-        return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-          ? new DynamicConfig(this.name, rule.returnValue, rule.name)
-          : true;
-      }
-    });
+    }
     return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
       ? new DynamicConfig(this.name, this.defaultValue, 'default')
       : false;
@@ -51,14 +53,15 @@ class ConfigRule {
     this.conditions = this.parseConditions(ruleJSON.conditions);
     this.returnValue = ruleJSON.returnValue;
     this.salt = salt;
+    this.id = ruleJSON.id;
   }
 
   parseConditions(conditionsJSON) {
     var conditions = [];
-    for (let cJSON in conditionsJSON) {
+    conditionsJSON?.forEach((cJSON) => {
       let condition = new ConfigCondition(cJSON);
       conditions.push(condition);
-    }
+    });
     return conditions;
   }
 
@@ -69,15 +72,15 @@ class ConfigRule {
    * @returns {string | boolean}
    */
   evaluate(user) {
-    this.conditions.forEach((condition) => {
+    for (let i = 0; i < this.conditions.length; i++) {
+      let condition = this.conditions[i];
       if (condition.evaluate(user) === FETCH_FROM_SERVER) {
         return FETCH_FROM_SERVER;
       }
       if (condition.evaluate(user) === false) {
         return false;
       }
-    });
-
+    }
     const hash = crypto
       .createHash('sha256')
       .update(this.salt + '.' + this.name + '.' + user?.userID)
@@ -90,7 +93,7 @@ class ConfigRule {
 class ConfigCondition {
   constructor(conditionJSON) {
     this.type = conditionJSON.type;
-    this.targetValue = conditionJSON.value;
+    this.targetValue = conditionJSON.targetValue;
     this.operator = conditionJSON.operator;
     this.field = conditionJSON.field;
   }
@@ -107,8 +110,7 @@ class ConfigCondition {
     let target = this.targetValue;
     switch (this.type.toLowerCase()) {
       case 'public':
-        value = true;
-        break;
+        return true;
       case 'fail_gate':
       case 'pass_gate':
         if (target in SpecStore?.gates) {
@@ -120,7 +122,6 @@ class ConfigCondition {
         } else {
           return false;
         }
-        break;
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
         value = getFromUser(user, field) ?? getFromIP(user, field);
@@ -140,7 +141,7 @@ class ConfigCondition {
       return false;
     }
 
-    switch (this.operator.toLowerCase()) {
+    switch (this.operator?.toLowerCase()) {
       // numerical
       case 'gt':
         return numberCompare((a, b) => a > b)(value, target);
@@ -180,33 +181,33 @@ class ConfigCondition {
       // string
       case 'str_starts_with_any':
         if (Array.isArray(target)) {
-          target.forEach((t) => {
-            if (stringCompare((a, b) => a.startsWith(b))(value, t)) {
+          for (let i = 0; i < target.length; i++) {
+            if (stringCompare((a, b) => a.startsWith(b))(value, target[i])) {
               return true;
             }
-          });
+          }
           return false;
         } else {
           return stringCompare((a, b) => a.startsWith(b))(value, target);
         }
       case 'str_ends_with_any':
         if (Array.isArray(target)) {
-          target.forEach((t) => {
-            if (stringCompare((a, b) => a.endsWith(b))(value, t)) {
+          for (let i = 0; i < target.length; i++) {
+            if (stringCompare((a, b) => a.endsWith(b))(value, target[i])) {
               return true;
             }
-          });
+          }
           return false;
         } else {
           return stringCompare((a, b) => a.endsWith(b))(value, target);
         }
       case 'str_contains_any':
         if (Array.isArray(target)) {
-          target.forEach((t) => {
-            if (stringCompare((a, b) => a.includes(b))(value, t)) {
+          for (let i = 0; i < target.length; i++) {
+            if (stringCompare((a, b) => a.includes(b))(value, target[i])) {
               return true;
             }
-          });
+          }
           return false;
         } else {
           return stringCompare((a, b) => a.includes(b))(value, target);
@@ -240,7 +241,7 @@ function getFromUser(user, field) {
   if (typeof user !== 'object') {
     return null;
   }
-  return user[field] ?? user?.custom[field] ?? null;
+  return user?.[field] ?? user?.custom?.[field] ?? null;
 }
 
 function getFromIP(user, field) {
@@ -289,3 +290,5 @@ function stringCompare(fn) {
     return typeof a === 'string' && typeof b === 'string' && fn(a, b);
   };
 }
+
+module.exports = { ConfigSpec, FETCH_FROM_SERVER };

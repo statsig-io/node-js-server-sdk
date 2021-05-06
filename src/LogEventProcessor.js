@@ -54,7 +54,9 @@ function LogEventProcessor(options, secretKey) {
 
     if (!waitForResponse) {
       // we are exiting, fire and forget
-      fetcher.post(options.api + '/log_event', secretKey, body, 0);
+      fetcher
+        .post(options.api + '/log_event', secretKey, body, 0)
+        .catch((e) => {});
       return;
     }
 
