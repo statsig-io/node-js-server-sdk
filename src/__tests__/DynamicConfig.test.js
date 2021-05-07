@@ -46,6 +46,7 @@ describe('Verify behavior of DynamicConfig', () => {
     expect(testConfig.getValue('key_not_found', { test: 123 })).toStrictEqual({
       test: 123,
     });
+    expect(testConfig.getRuleID()).toStrictEqual('default');
   });
 
   test('Test get key not found', () => {

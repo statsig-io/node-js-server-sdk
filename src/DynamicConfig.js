@@ -4,7 +4,7 @@ const utils = require('./utils/core');
  * Returns the data for a DynamicConfig in the statsig console via typed get functions
  */
 class DynamicConfig {
-  constructor(configName, value, groupName) {
+  constructor(configName, value, ruleID) {
     if (typeof configName !== 'string' || configName.length === 0) {
       configName = '';
     }
@@ -13,7 +13,7 @@ class DynamicConfig {
     }
     this.name = configName;
     this.value = utils.clone(value);
-    this._groupName = groupName;
+    this._ruleID = ruleID;
   }
 
   /**
@@ -69,8 +69,8 @@ class DynamicConfig {
   /**
    * @ignore
    */
-  getGroupName() {
-    return this._groupName;
+  getRuleID() {
+    return this._ruleID;
   }
 }
 

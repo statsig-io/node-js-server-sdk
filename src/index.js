@@ -4,9 +4,11 @@ const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const { logConfigExposure, logGateExposure } = require('./utils/logging');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
+const SpecStore = require('./SpecStore');
 const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
+const { FETCH_FROM_SERVER } = require('./ConfigSpec');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -42,7 +44,7 @@ const statsig = {
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
     statsig._ready = true;
-    return Promise.resolve();
+    return SpecStore.init(statsig._options, statsig._secretKey);
   },
 
   /**
@@ -61,17 +63,13 @@ const statsig = {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     user = trimUserObjIfNeeded(user);
-    return this._fetchValues('check_gate', {
-      user: user,
-      gateName: gateName,
-    })
+    return this._getGateValue(user, gateName)
       .then((gate) => {
         const value = gate.value ?? false;
-        logGateExposure(user, gateName, value, statsig._logger);
+        logGateExposure(user, gateName, value, gate.rule_id, statsig._logger);
         return Promise.resolve(value);
       })
       .catch(() => {
-        logGateExposure(user, gateName, false, statsig._logger);
         return Promise.resolve(false);
       });
   },
@@ -93,15 +91,15 @@ const statsig = {
     }
     user = trimUserObjIfNeeded(user);
 
-    return this._fetchValues('get_config', {
-      user: user,
-      configName: configName,
-    })
+    return this._getConfigValue(user, configName)
       .then((config) => {
-        logConfigExposure(user, configName, config.group, statsig._logger);
-        return Promise.resolve(
-          new DynamicConfig(configName, config.value, config.group)
+        logConfigExposure(
+          user,
+          configName,
+          config.getRuleID(),
+          statsig._logger
         );
+        return Promise.resolve(config);
       })
       .catch(() => {
         return Promise.resolve(null);
@@ -184,20 +182,55 @@ const statsig = {
     statsig._ready = null;
     statsig._logger.flush(false);
     fetcher.shutdown();
+    SpecStore.shutdown();
   },
 
-  _fetchValues(endpoint, input) {
+  _getGateValue(user, gateName) {
+    let ret = SpecStore.checkGate(user, gateName);
+    if (ret !== FETCH_FROM_SERVER) {
+      return Promise.resolve(ret);
+    }
+
     return fetcher
       .dispatch(
-        statsig._options.api + '/' + endpoint,
+        statsig._options.api + '/check_gate',
         statsig._secretKey,
-        Object.assign(input, {
+        Object.assign({
+          user: user,
+          gateName: gateName,
           statsigMetadata: getStatsigMetadata(),
         }),
         5000
       )
       .then((res) => {
         return res.json();
+      });
+  },
+
+  _getConfigValue(user, configName) {
+    let ret = SpecStore.getConfig(user, configName);
+    if (ret !== FETCH_FROM_SERVER) {
+      return Promise.resolve(ret);
+    }
+
+    return fetcher
+      .dispatch(
+        statsig._options.api + '/get_config',
+        statsig._secretKey,
+        {
+          user: user,
+          configName: configName,
+          statsigMetadata: getStatsigMetadata(),
+        },
+        5000
+      )
+      .then((res) => {
+        return res.json();
+      })
+      .then((resJSON) => {
+        return Promise.resolve(
+          new DynamicConfig(configName, resJSON.value, resJSON.rule_id)
+        );
       });
   },
 };

@@ -10,7 +10,7 @@ describe('Verify behavior of ConfigSpec', () => {
     rules: [
       {
         name: 'employees',
-        id: 'test',
+        id: 'rule_id_gate',
         passPercentage: 100,
         conditions: [
           {
@@ -58,7 +58,7 @@ describe('Verify behavior of ConfigSpec', () => {
     rules: [
       {
         name: 'employees',
-        id: 'test',
+        id: 'rule_id_disabled_gate',
         passPercentage: 100,
         conditions: [
           {
@@ -135,7 +135,7 @@ describe('Verify behavior of ConfigSpec', () => {
 
     let rule = rules[0];
     expect(rule.name).toEqual('employees');
-    expect(rule.id).toEqual('test');
+    expect(rule.id).toEqual('rule_id_gate');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual(true);
     expect(rule.salt).toEqual('na');
@@ -193,19 +193,36 @@ describe('Verify behavior of ConfigSpec', () => {
   });
 
   test('Test evaluate works for gates', () => {
-    expect(gateSpec.evaluate({})).toEqual(false);
-    expect(gateSpec.evaluate({ userID: 'jkw' })).toEqual(false);
-    expect(gateSpec.evaluate({ email: 'tore@packers.com' })).toEqual(true);
-    expect(gateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })).toEqual(
-      true
-    );
-    expect(gateSpec.evaluate({ email: 'jkw@seahawks.com' })).toEqual(false);
-    expect(disabledGateSpec.evaluate({ email: 'tore@packers.com' })).toEqual(
-      false
-    );
+    expect(gateSpec.evaluate({})).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(gateSpec.evaluate({ userID: 'jkw' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(gateSpec.evaluate({ email: 'tore@packers.com' })).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(gateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(gateSpec.evaluate({ email: 'jkw@seahawks.com' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(disabledGateSpec.evaluate({ email: 'tore@packers.com' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
     expect(
       disabledGateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })
-    ).toEqual(false);
+    ).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
   });
 
   test('Pass percentage is "working"', () => {
@@ -215,7 +232,8 @@ describe('Verify behavior of ConfigSpec', () => {
         halfPassGateSpec.evaluate({
           userID: Math.random(),
           email: 'tore@packers.com',
-        })
+          // @ts-ignore
+        }).value
       ) {
         passCount++;
       }

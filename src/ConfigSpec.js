@@ -35,14 +35,14 @@ class ConfigSpec {
         }
         if (rule.evaluate(user) === true) {
           return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-            ? new DynamicConfig(this.name, rule.returnValue, rule.name)
-            : true;
+            ? new DynamicConfig(this.name, rule.returnValue, rule.id)
+            : { value: true, rule_id: rule.id };
         }
       }
     }
     return this.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
       ? new DynamicConfig(this.name, this.defaultValue, 'default')
-      : false;
+      : { value: false, rule_id: 'default' };
   }
 }
 

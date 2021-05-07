@@ -25,7 +25,6 @@ const SpecStore = {
     } catch (e) {
       // TODO: log
     }
-
     this.ipTable = new CountryLookup();
     await this.ipTable.init();
 
@@ -57,7 +56,7 @@ const SpecStore = {
 
   process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
-    specsJSON?.gates?.forEach((gateJSON) => {
+    specsJSON?.feature_gates?.forEach((gateJSON) => {
       try {
         const gate = new ConfigSpec(gateJSON);
         this.store.gates[gate.name] = gate;
@@ -65,10 +64,10 @@ const SpecStore = {
         // TODO: log
       }
     });
-    specsJSON?.configs?.forEach((configJSON) => {
+    specsJSON?.dynamic_configs?.forEach((configJSON) => {
       try {
         const config = new ConfigSpec(configJSON);
-        this.store.gates[config.name] = config;
+        this.store.configs[config.name] = config;
       } catch (e) {
         // TODO: log
       }

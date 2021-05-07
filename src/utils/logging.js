@@ -4,20 +4,20 @@ const CONFIG_EXPOSURE_EVENT = 'config_exposure';
 const GATE_EXPOSURE_EVENT = 'gate_exposure';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 
-function logGateExposure(user, gateName, gateValue, eventProcessor) {
+function logGateExposure(user, gateName, gateValue, ruleID, eventProcessor) {
   logStatsigInternal(
     user,
     GATE_EXPOSURE_EVENT,
-    { gate: gateName, gateValue: String(gateValue) },
+    { gate: gateName, gateValue: String(gateValue), ruleID: ruleID },
     eventProcessor
   );
 }
 
-function logConfigExposure(user, configName, groupName, eventProcessor) {
+function logConfigExposure(user, configName, ruleID, eventProcessor) {
   logStatsigInternal(
     user,
     CONFIG_EXPOSURE_EVENT,
-    { config: configName, configGroup: groupName },
+    { config: configName, ruleID: ruleID },
     eventProcessor
   );
 }

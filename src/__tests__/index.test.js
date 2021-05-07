@@ -1,6 +1,9 @@
+const { DynamicConfig } = require('../DynamicConfig');
+
 describe('Verify behavior of top level index functions', () => {
   const LogEvent = require('../LogEvent');
   const fetch = require('node-fetch');
+  const { FETCH_FROM_SERVER } = require('../ConfigSpec');
   jest.mock('node-fetch', () => jest.fn());
   const secretKey = 'secret-key';
   const str_64 =
@@ -16,8 +19,9 @@ describe('Verify behavior of top level index functions', () => {
           ok: true,
           json: () =>
             Promise.resolve({
-              name: 'gate1',
+              name: 'gate_server',
               value: true,
+              rule_id: 'rule_id_gate_server',
             }),
         });
       } else if (url.includes('get_config')) {
@@ -25,17 +29,39 @@ describe('Verify behavior of top level index functions', () => {
           ok: true,
           json: () =>
             Promise.resolve({
-              name: 'config1',
+              name: 'config_server',
               value: {
                 string: '123',
-                number: 12,
+                number: 123,
               },
-              group: 'default',
+              rule_id: 'rule_id_config_server',
             }),
         });
       }
       return Promise.reject();
     });
+
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+      if (gateName === 'gate_pass')
+        return { value: true, rule_id: 'rule_id_pass' };
+      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
+      return { value: false, rule_id: 'rule_id_fail' };
+    });
+    jest
+      .spyOn(SpecStore, 'getConfig')
+      .mockImplementation((user, configName) => {
+        if (configName === 'config_downloaded')
+          return new DynamicConfig(
+            configName,
+            {
+              string: '12345',
+              number: 12345,
+            },
+            'rule_id_config'
+          );
+        return FETCH_FROM_SERVER;
+      });
 
     // ensure Date.now() returns the same value in each test
     let now = Date.now();
@@ -174,19 +200,23 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify checkGate() returns correct value and logs an exposure correctly', async () => {
+  test('Verify when SpecStore fails, checkGate() returns correct value and logs an exposure correctly from server', async () => {
     expect.assertions(3);
 
     const statsig = require('../index');
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
-    let gateName = 'gate1';
+    let gateName = 'gate_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser(user);
-    gateExposure.setMetadata({ gate: gateName, gateValue: String(true) });
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(true),
+      ruleID: 'rule_id_gate_server',
+    });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       true
@@ -195,23 +225,102 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify getConfig() returns correct value and logs an exposure correctly', async () => {
+  test('Verify SpecStore returns correct value for checkGate() and logs an exposure correctly', async () => {
+    expect.assertions(3);
+
+    const statsig = require('../index');
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123 };
+    let gateName = 'gate_pass';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser(user);
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(true),
+      ruleID: 'rule_id_pass',
+    });
+
+    await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
+      true
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(gateExposure);
+  });
+
+  test('Verify SpecStore returns correct value (for failed gates) for checkGate() and logs an exposure correctly', async () => {
+    expect.assertions(3);
+
+    const statsig = require('../index');
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123 };
+    let gateName = 'gate_fail';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser(user);
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(false),
+      ruleID: 'rule_id_fail',
+    });
+
+    await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
+      false
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(gateExposure);
+  });
+
+  test('Verify when SpecStore fails to evaluate, getConfig() returns correct value and logs an exposure correctly after fetching from server', async () => {
     expect.assertions(4);
 
     const statsig = require('../index');
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
-    let configName = 'config1';
+    let configName = 'config_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
     const configExposure = new LogEvent('statsig::config_exposure');
     configExposure.setUser(user);
-    configExposure.setMetadata({ config: configName, configGroup: 'default' });
+    configExposure.setMetadata({
+      config: configName,
+      ruleID: 'rule_id_config_server',
+    });
 
     await statsig.getConfig(user, configName).then((data) => {
-      expect(data.getValue('number')).toStrictEqual(12);
+      expect(data.getValue('number')).toStrictEqual(123);
       expect(data.getValue('string')).toStrictEqual('123');
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(configExposure);
+  });
+
+  test('Verify when SpecStore evaluates successfully, getConfig() returns correct value and logs an exposure', async () => {
+    expect.assertions(4);
+
+    const statsig = require('../index');
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123 };
+    let configName = 'config_downloaded';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    const configExposure = new LogEvent('statsig::config_exposure');
+    configExposure.setUser(user);
+    configExposure.setMetadata({
+      config: configName,
+      ruleID: 'rule_id_config',
+    });
+
+    await statsig.getConfig(user, configName).then((data) => {
+      expect(data.getValue('number')).toStrictEqual(12345);
+      expect(data.getValue('string')).toStrictEqual('12345');
     });
 
     expect(spy).toHaveBeenCalledTimes(1);
