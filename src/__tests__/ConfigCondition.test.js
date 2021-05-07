@@ -29,7 +29,9 @@ describe('Test condition evaluation', () => {
     ['fail_gate',         null,             'gate_pass',       null,             user, false],
     ['fail_gate',         null,             'gate_fail',       null,             user, true],
     ['pass_gate',         'fake',           'gate_pass',       null,             user, true],
-    ['pass_gate',         null,             'fail_gate',       null,             user, false],
+    ['pass_gate',         null,             'gate_fail',       null,             user, false],
+    ['pass_gate',         null,             'gate_server',     null,             user, FETCH_FROM_SERVER],
+    ['fail_gate',         null,             'gate_server',     null,             user, FETCH_FROM_SERVER],
 
     // ip_based condition when ip is not provided
     ['ip_based',          'any',            ['US', 'CA'],      'country',        user, true],
@@ -43,7 +45,7 @@ describe('Test condition evaluation', () => {
     ['ip_based',          'none',           ['US', 'CA'],      'country',        user2, false],
     ['ip_based',          'eq',             'US',              'country',        user2, true],
     ['ip_based',          'neq',            'US',              'country',        user2, false],
-    ['ip_based',          'any',            ['US', 'CA'],      'city',           user2, server],
+    ['ip_based',          'any',            ['US', 'CA'],      'city',           user2, FETCH_FROM_SERVER],
 
     // ua_based condition when ua is not provided
     ['ua_based',          'any',            ['Android', 'iOS'],'os_name',        user, true],
@@ -120,17 +122,23 @@ describe('Test condition evaluation', () => {
     ['user_field',         'str_matches',     'Stat+.',        'company',          user, true],
 
     // compare dates - NOT implemented yet
-    ['user_field',         'before',          '2021-01-01',    'registration_date',user, server],
-    ['user_field',         'on',              '2021-01-01',    'registration_date',user, server],
-    ['user_field',         'after',           '2021-01-01',    'registration_date',user, server],
+    ['user_field',         'before',          '2021-01-01',    'registration_date',user, FETCH_FROM_SERVER],
+    ['user_field',         'on',              '2021-01-01',    'registration_date',user, FETCH_FROM_SERVER],
+    ['user_field',         'after',           '2021-01-01',    'registration_date',user, FETCH_FROM_SERVER],
 
     // some random type not implemented yet
-    ['derived_field',      'eq',          '0.25',    'd1_retention'               ,user, server],
+    ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
+
+    // new operator
+    ['user_field',         'unknown_op',      '0.25',          'bad_field',        user, false], // return false if user_field does not exist
+    ['user_field',         'unknown_op',      '0.25',          'level',            user, FETCH_FROM_SERVER],
   ]
 
   const SpecStore = require('../SpecStore');
   jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
-    return gateName === 'gate_pass';
+    if (gateName === 'gate_pass') return true;
+    if (gateName === 'gate_server') return FETCH_FROM_SERVER;
+    return false;
   });
   jest.spyOn(SpecStore, 'ip2country').mockImplementation((ip) => 'US');
 

@@ -139,6 +139,9 @@ class ConfigCondition {
     if (value == null) {
       return false;
     }
+    if (value === FETCH_FROM_SERVER) {
+      return FETCH_FROM_SERVER;
+    }
 
     switch (this.operator?.toLowerCase()) {
       // numerical
