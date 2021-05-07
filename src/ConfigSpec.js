@@ -113,18 +113,17 @@ class ConfigCondition {
         return true;
       case 'fail_gate':
       case 'pass_gate':
-        if (target in SpecStore?.gates) {
-          value = SpecStore?.gates[target].evaluate(user);
-          if (value === FETCH_FROM_SERVER) {
-            return FETCH_FROM_SERVER;
-          }
-          return this.type.toLowerCase() === 'fail_gate' ? !value : value;
-        } else {
-          return false;
+        value = SpecStore?.checkGate(user, target);
+        if (value === FETCH_FROM_SERVER) {
+          return FETCH_FROM_SERVER;
         }
+        return this.type.toLowerCase() === 'fail_gate' ? !value : value;
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
         value = getFromUser(user, field) ?? getFromIP(user, field);
+        if (value === FETCH_FROM_SERVER) {
+          return FETCH_FROM_SERVER;
+        }
         break;
       case 'ua_based':
         // this would apply to things like 'os', 'browser', etc.
@@ -213,18 +212,15 @@ class ConfigCondition {
           return stringCompare((a, b) => a.includes(b))(value, target);
         }
       case 'str_matches':
-        return stringCompare((a, b) => {
-          try {
-            return new RegExp(b).test(a);
-          } catch (e) {
-            return false;
-          }
-        })(value, target);
-
+        try {
+          return new RegExp(target).test(value);
+        } catch (e) {
+          return false;
+        }
       // strictly equals
-      case 'equals':
+      case 'eq':
         return value === target;
-      case 'not_equal':
+      case 'neq':
         return value !== target;
 
       // dates
@@ -279,16 +275,20 @@ function numberCompare(fn) {
 
 function versionCompare(fn) {
   return (a, b) => {
-    const version1 = semver.valid(a);
-    const version2 = semver.valid(b);
+    const version1 = semver.coerce(a);
+    const version2 = semver.coerce(b);
     return version1 !== null && version2 !== null && fn(version1, version2);
   };
 }
 
 function stringCompare(fn) {
   return (a, b) => {
-    return typeof a === 'string' && typeof b === 'string' && fn(a, b);
+    return (
+      typeof a === 'string' &&
+      typeof b === 'string' &&
+      fn(a.toLowerCase(), b.toLowerCase())
+    );
   };
 }
 
-module.exports = { ConfigSpec, FETCH_FROM_SERVER };
+module.exports = { ConfigSpec, ConfigCondition, FETCH_FROM_SERVER };
