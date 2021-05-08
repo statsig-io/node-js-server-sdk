@@ -90,13 +90,15 @@ declare module 'statsig-node' {
   /**
    * Returns the data for a DynamicConfig in the statsig console via typed get functions
    */
-  export interface DynamicConfig {
-    value: any;
-    getBool(name: string, defaultValue: boolean): boolean;
-    getNumber(name: string, defaultValue: number): number;
-    getString(name: string, defaultValue: string): string;
-    getArray(name: string, defaultValue: Array<any>): Array<any>;
-    getObject(name: string, defaultValue: object): object;
-    getRawValue(): any;
+  export class DynamicConfig {
+    value: object;
+    getValue(
+      key: string,
+      defaultValue: any | null
+    ): boolean | number | string | object | Array<any> | null;
+    get<T extends boolean | number | string | object | Array<any>>(
+      key: string,
+      defaultValue: T
+    ): T;
   }
 }
