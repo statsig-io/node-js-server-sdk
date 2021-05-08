@@ -85,7 +85,7 @@ describe('Verify behavior of ConfigSpec', () => {
       {
         name: 'can see teams',
         passPercentage: 100,
-        id: 'test_id',
+        id: 'rule_id_config',
         conditions: [
           {
             type: 'user_field',
@@ -107,7 +107,7 @@ describe('Verify behavior of ConfigSpec', () => {
       },
       {
         name: 'public',
-        id: 'test_public',
+        id: 'rule_id_config_public',
         passPercentage: 100,
         conditions: [
           {
@@ -167,7 +167,7 @@ describe('Verify behavior of ConfigSpec', () => {
 
     let rule = rules[0];
     expect(rule.name).toEqual('can see teams');
-    expect(rule.id).toEqual('test_id');
+    expect(rule.id).toEqual('rule_id_config');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual({
       packers: {
@@ -258,7 +258,16 @@ describe('Verify behavior of ConfigSpec', () => {
         yearFounded: 1974,
       },
     });
+    expect(
+      // @ts-ignore
+      dynamicConfigSpec
+        .evaluate({ userID: 'jkw', custom: { level: 10 } })
+        .getRuleID()
+    ).toEqual('rule_id_config');
     // @ts-ignore
     expect(dynamicConfigSpec.evaluate({ level: 5 }).get()).toEqual({});
+    expect(dynamicConfigSpec.evaluate({ level: 5 }).getRuleID()).toEqual(
+      'rule_id_config_public'
+    );
   });
 });

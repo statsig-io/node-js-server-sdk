@@ -186,7 +186,7 @@ const statsig = {
   },
 
   _getGateValue(user, gateName) {
-    let ret = SpecStore.checkGate(user, gateName);
+    const ret = SpecStore.checkGate(user, gateName);
     if (ret !== FETCH_FROM_SERVER) {
       return Promise.resolve(ret);
     }
@@ -208,7 +208,7 @@ const statsig = {
   },
 
   _getConfigValue(user, configName) {
-    let ret = SpecStore.getConfig(user, configName);
+    const ret = SpecStore.getConfig(user, configName);
     if (ret !== FETCH_FROM_SERVER) {
       return Promise.resolve(ret);
     }
