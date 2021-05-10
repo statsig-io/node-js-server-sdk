@@ -50,7 +50,7 @@ const SpecStore = {
     }
 
     this.syncTimer = setTimeout(() => {
-      this.async();
+      this.sync();
     }, SYNC_INTERVAL);
   },
 
