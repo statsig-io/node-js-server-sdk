@@ -10,7 +10,7 @@ describe('Verify behavior of ConfigSpec', () => {
     rules: [
       {
         name: 'employees',
-        id: 'test',
+        id: 'rule_id_gate',
         passPercentage: 100,
         conditions: [
           {
@@ -58,7 +58,7 @@ describe('Verify behavior of ConfigSpec', () => {
     rules: [
       {
         name: 'employees',
-        id: 'test',
+        id: 'rule_id_disabled_gate',
         passPercentage: 100,
         conditions: [
           {
@@ -85,7 +85,7 @@ describe('Verify behavior of ConfigSpec', () => {
       {
         name: 'can see teams',
         passPercentage: 100,
-        id: 'test_id',
+        id: 'rule_id_config',
         conditions: [
           {
             type: 'user_field',
@@ -107,7 +107,7 @@ describe('Verify behavior of ConfigSpec', () => {
       },
       {
         name: 'public',
-        id: 'test_public',
+        id: 'rule_id_config_public',
         passPercentage: 100,
         conditions: [
           {
@@ -135,7 +135,7 @@ describe('Verify behavior of ConfigSpec', () => {
 
     let rule = rules[0];
     expect(rule.name).toEqual('employees');
-    expect(rule.id).toEqual('test');
+    expect(rule.id).toEqual('rule_id_gate');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual(true);
     expect(rule.salt).toEqual('na');
@@ -167,7 +167,7 @@ describe('Verify behavior of ConfigSpec', () => {
 
     let rule = rules[0];
     expect(rule.name).toEqual('can see teams');
-    expect(rule.id).toEqual('test_id');
+    expect(rule.id).toEqual('rule_id_config');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual({
       packers: {
@@ -193,19 +193,36 @@ describe('Verify behavior of ConfigSpec', () => {
   });
 
   test('Test evaluate works for gates', () => {
-    expect(gateSpec.evaluate({})).toEqual(false);
-    expect(gateSpec.evaluate({ userID: 'jkw' })).toEqual(false);
-    expect(gateSpec.evaluate({ email: 'tore@packers.com' })).toEqual(true);
-    expect(gateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })).toEqual(
-      true
-    );
-    expect(gateSpec.evaluate({ email: 'jkw@seahawks.com' })).toEqual(false);
-    expect(disabledGateSpec.evaluate({ email: 'tore@packers.com' })).toEqual(
-      false
-    );
+    expect(gateSpec.evaluate({})).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(gateSpec.evaluate({ userID: 'jkw' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(gateSpec.evaluate({ email: 'tore@packers.com' })).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(gateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(gateSpec.evaluate({ email: 'jkw@seahawks.com' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(disabledGateSpec.evaluate({ email: 'tore@packers.com' })).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
     expect(
       disabledGateSpec.evaluate({ custom: { email: 'tore@nfl.com' } })
-    ).toEqual(false);
+    ).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
   });
 
   test('Pass percentage is "working"', () => {
@@ -215,7 +232,8 @@ describe('Verify behavior of ConfigSpec', () => {
         halfPassGateSpec.evaluate({
           userID: Math.random(),
           email: 'tore@packers.com',
-        })
+          // @ts-ignore
+        }).value
       ) {
         passCount++;
       }
@@ -240,7 +258,16 @@ describe('Verify behavior of ConfigSpec', () => {
         yearFounded: 1974,
       },
     });
+    expect(
+      // @ts-ignore
+      dynamicConfigSpec
+        .evaluate({ userID: 'jkw', custom: { level: 10 } })
+        .getRuleID()
+    ).toEqual('rule_id_config');
     // @ts-ignore
     expect(dynamicConfigSpec.evaluate({ level: 5 }).get()).toEqual({});
+    expect(dynamicConfigSpec.evaluate({ level: 5 }).getRuleID()).toEqual(
+      'rule_id_config_public'
+    );
   });
 });
