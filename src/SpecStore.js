@@ -29,7 +29,7 @@ const SpecStore = {
     await ip3country.init();
 
     this.syncTimer = setTimeout(() => {
-      this.async();
+      this.sync();
     }, SYNC_INTERVAL);
   },
 
