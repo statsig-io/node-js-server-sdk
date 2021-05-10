@@ -1,5 +1,5 @@
 const { ConfigSpec } = require('./ConfigSpec');
-const CountryLookup = require('ip3country');
+const ip3country = require('ip3country');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
 
@@ -25,8 +25,8 @@ const SpecStore = {
     } catch (e) {
       // TODO: log
     }
-    this.ipTable = new CountryLookup();
-    await this.ipTable.init();
+
+    await ip3country.init();
 
     this.syncTimer = setTimeout(() => {
       this.async();
@@ -93,12 +93,14 @@ const SpecStore = {
   },
 
   ip2country(ip) {
-    if (this.ipTable) {
-      try {
-        return this.ipTable.lookupStr(ip);
-      } catch (e) {
-        // TODO: log
+    try {
+      if (typeof ip === 'string') {
+        return ip3country.lookupStr(ip);
+      } else if (typeof ip === 'number') {
+        return ip3country.lookupNumeric(ip);
       }
+    } catch (e) {
+      // TODO: log
     }
     return null;
   },
