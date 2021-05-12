@@ -228,8 +228,15 @@ class ConfigCondition {
 
       // dates
       case 'before':
+        return dateCompare((a, b) => a < b)(value, target);
       case 'after':
+        return dateCompare((a, b) => a > b)(value, target);
       case 'on':
+        return dateCompare((a, b) => {
+          a?.setHours(0, 0, 0, 0);
+          b?.setHours(0, 0, 0, 0);
+          return a?.getTime() === b?.getTime();
+        })(value, target);
       default:
         return FETCH_FROM_SERVER;
     }
@@ -291,6 +298,29 @@ function stringCompare(fn) {
       typeof b === 'string' &&
       fn(a.toLowerCase(), b.toLowerCase())
     );
+  };
+}
+
+function dateCompare(fn) {
+  return (a, b) => {
+    try {
+      // Try to parse into date as a string first, if not, try unixtime
+      let dateA = new Date(a);
+      if (isNaN(dateA.getTime())) {
+        dateA = new Date(Number(a));
+      }
+
+      let dateB = new Date(b);
+      if (isNaN(dateB.getTime())) {
+        dateB = new Date(Number(b));
+      }
+      return (
+        !isNaN(dateA.getTime()) && !isNaN(dateB.getTime()) && fn(dateA, dateB)
+      );
+    } catch (e) {
+      // malformatted input, returning false
+      return false;
+    }
   };
 }
 
