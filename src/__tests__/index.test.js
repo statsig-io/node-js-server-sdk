@@ -135,12 +135,14 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
     const statsig = require('../index');
-    expect.assertions(4);
+    const SpecStore = require('../SpecStore');
+    expect.assertions(5);
     return statsig.initialize(secretKey).then(() => {
       expect(statsig._secretKey).toBe(secretKey);
       expect(statsig._logger).toBeDefined();
       expect(statsig._options.api).toBe('https://api.statsig.com/v1');
       expect(statsig._ready).toBe(true);
+      expect(SpecStore.initialized).toBe(true);
     });
   });
 

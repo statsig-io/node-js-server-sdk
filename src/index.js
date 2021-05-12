@@ -65,6 +65,9 @@ const statsig = {
     user = trimUserObjIfNeeded(user);
     return this._getGateValue(user, gateName)
       .then((gate) => {
+        if (gate == null) {
+          return Promise.resolve(false);
+        }
         const value = gate.value ?? false;
         logGateExposure(user, gateName, value, gate.rule_id, statsig._logger);
         return Promise.resolve(value);
@@ -93,12 +96,14 @@ const statsig = {
 
     return this._getConfigValue(user, configName)
       .then((config) => {
-        logConfigExposure(
-          user,
-          configName,
-          config.getRuleID(),
-          statsig._logger
-        );
+        if (config != null) {
+          logConfigExposure(
+            user,
+            configName,
+            config.getRuleID(),
+            statsig._logger
+          );
+        }
         return Promise.resolve(config);
       })
       .catch(() => {

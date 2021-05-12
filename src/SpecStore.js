@@ -6,11 +6,12 @@ const { getStatsigMetadata } = require('./utils/core');
 const SYNC_INTERVAL = 10 * 1000;
 
 const SpecStore = {
-  async init(options, secretKey) {
+  async init(options, secretKey, syncInterval = SYNC_INTERVAL) {
     this.api = options.api;
     this.secretKey = secretKey;
     this.time = Date.now();
     this.store = { gates: {}, configs: {} };
+    this.syncInterval = syncInterval;
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
@@ -21,19 +22,20 @@ const SpecStore = {
         20
       );
       const specsJSON = await response.json();
-      this.process(specsJSON);
+      this._process(specsJSON);
     } catch (e) {
       // TODO: log
     }
 
     await ip3country.init();
+    this.initialized = true;
 
     this.syncTimer = setTimeout(() => {
-      this.sync();
-    }, SYNC_INTERVAL);
+      this._sync();
+    }, this.syncInterval);
   },
 
-  async sync() {
+  async _sync() {
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
@@ -44,17 +46,17 @@ const SpecStore = {
         }
       );
       const specsJSON = await response.json();
-      this.process(specsJSON);
+      this._process(specsJSON);
     } catch (e) {
       // TODO: log
     }
 
     this.syncTimer = setTimeout(() => {
-      this.sync();
-    }, SYNC_INTERVAL);
+      this._sync();
+    }, this.syncInterval);
   },
 
-  process(specsJSON) {
+  _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
     specsJSON?.feature_gates?.forEach((gateJSON) => {
       try {
@@ -74,25 +76,28 @@ const SpecStore = {
     });
   },
 
-  // returns a boolean,
+  // returns a boolean, or null if used incorrectly (e.g. gate name does not exist or not initialized)
   // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
   checkGate(user, gateName) {
-    if (!(gateName in this.store.gates)) {
-      return false;
+    if (!this.initialized || !(gateName in this.store.gates)) {
+      return null;
     }
     return this.store.gates[gateName].evaluate(user);
   },
 
-  // returns a DynamicConfig object, null (if name does not exist),
+  // returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
   // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
   getConfig(user, configName) {
-    if (!(configName in this.store.configs)) {
+    if (!this.initialized || !(configName in this.store.configs)) {
       return null;
     }
     return this.store.configs[configName].evaluate(user);
   },
 
   ip2country(ip) {
+    if (!this.initialized) {
+      return null;
+    }
     try {
       if (typeof ip === 'string') {
         return ip3country.lookupStr(ip);
@@ -108,6 +113,7 @@ const SpecStore = {
   shutdown() {
     if (this.syncTimer != null) {
       clearTimeout(this.syncTimer);
+      this.syncTimer = null;
     }
   },
 };

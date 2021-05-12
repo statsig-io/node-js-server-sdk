@@ -1,130 +1,18 @@
 const { ConfigSpec } = require('../ConfigSpec');
+const exampleConfigSpecs = require('./jest.setup');
 
 describe('Verify behavior of ConfigSpec', () => {
-  const gateSpec = new ConfigSpec({
-    name: 'nfl',
-    type: 'feature_gate',
-    salt: 'na',
-    defaultValue: false,
-    enabled: true,
-    rules: [
-      {
-        name: 'employees',
-        id: 'rule_id_gate',
-        passPercentage: 100,
-        conditions: [
-          {
-            type: 'user_field',
-            targetValue: ['packers.com', 'nfl.com'],
-            operator: 'str_contains_any',
-            field: 'email',
-          },
-        ],
-        returnValue: true,
-      },
-    ],
-  });
-
-  const halfPassGateSpec = new ConfigSpec({
-    name: 'nfl',
-    type: 'feature_gate',
-    salt: 'na',
-    defaultValue: false,
-    enabled: true,
-    rules: [
-      {
-        name: 'employees',
-        id: 'test',
-        passPercentage: 50,
-        conditions: [
-          {
-            type: 'user_field',
-            targetValue: ['packers.com', 'nfl.com'],
-            operator: 'str_contains_any',
-            field: 'email',
-          },
-        ],
-        returnValue: true,
-      },
-    ],
-  });
-
-  const disabledGateSpec = new ConfigSpec({
-    name: 'nfl',
-    type: 'feature_gate',
-    salt: 'na',
-    defaultValue: false,
-    enabled: false,
-    rules: [
-      {
-        name: 'employees',
-        id: 'rule_id_disabled_gate',
-        passPercentage: 100,
-        conditions: [
-          {
-            type: 'user_field',
-            targetValue: ['packers.com', 'nfl.com'],
-            operator: 'str_contains_any',
-            field: 'email',
-          },
-        ],
-        returnValue: true,
-      },
-    ],
-  });
-
-  const dynamicConfigSpec = new ConfigSpec({
-    name: 'teams',
-    type: 'dynamic_config',
-    salt: 'sodium',
-    defaultValue: {
-      test: 'default',
-    },
-    enabled: true,
-    rules: [
-      {
-        name: 'can see teams',
-        passPercentage: 100,
-        id: 'rule_id_config',
-        conditions: [
-          {
-            type: 'user_field',
-            targetValue: 9,
-            operator: 'gte',
-            field: 'level',
-          },
-        ],
-        returnValue: {
-          packers: {
-            name: 'Green Bay Packers',
-            yearFounded: 1919,
-          },
-          seahawks: {
-            name: 'Seattle Seahawks',
-            yearFounded: 1974,
-          },
-        },
-      },
-      {
-        name: 'public',
-        id: 'rule_id_config_public',
-        passPercentage: 100,
-        conditions: [
-          {
-            type: 'public',
-          },
-        ],
-        returnValue: {},
-      },
-    ],
-  });
+  const gateSpec = new ConfigSpec(exampleConfigSpecs.gate);
+  const halfPassGateSpec = new ConfigSpec(exampleConfigSpecs.half_pass_gate);
+  const disabledGateSpec = new ConfigSpec(exampleConfigSpecs.disabled_gate);
+  const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   beforeEach(() => {});
 
   test('Test constructor works for feature gates', () => {
     expect(gateSpec).toBeTruthy();
     expect(gateSpec.type).toEqual('feature_gate');
-    expect(gateSpec.name).toEqual('nfl');
+    expect(gateSpec.name).toEqual('nfl_gate');
     expect(gateSpec.salt).toEqual('na');
     expect(gateSpec.enabled).toEqual(true);
     expect(gateSpec.defaultValue).toEqual(false);
@@ -259,13 +147,14 @@ describe('Verify behavior of ConfigSpec', () => {
       },
     });
     expect(
-      // @ts-ignore
       dynamicConfigSpec
         .evaluate({ userID: 'jkw', custom: { level: 10 } })
+        // @ts-ignore
         .getRuleID()
     ).toEqual('rule_id_config');
     // @ts-ignore
     expect(dynamicConfigSpec.evaluate({ level: 5 }).get()).toEqual({});
+    // @ts-ignore
     expect(dynamicConfigSpec.evaluate({ level: 5 }).getRuleID()).toEqual(
       'rule_id_config_public'
     );
