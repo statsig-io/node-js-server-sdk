@@ -39,28 +39,6 @@ describe('Verify behavior of top level index functions', () => {
       return Promise.reject();
     });
 
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
-      if (gateName === 'gate_pass')
-        return { value: true, rule_id: 'rule_id_pass' };
-      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-      return { value: false, rule_id: 'rule_id_fail' };
-    });
-    jest
-      .spyOn(SpecStore, 'getConfig')
-      .mockImplementation((user, configName) => {
-        if (configName === 'config_downloaded')
-          return new DynamicConfig(
-            configName,
-            {
-              string: '12345',
-              number: 12345,
-            },
-            'rule_id_config'
-          );
-        return FETCH_FROM_SERVER;
-      });
-
     // ensure Date.now() returns the same value in each test
     let now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
@@ -196,6 +174,13 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(3);
 
     const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+      if (gateName === 'gate_pass')
+        return { value: true, rule_id: 'rule_id_pass' };
+      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
+      return { value: false, rule_id: 'rule_id_fail' };
+    });
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
@@ -221,6 +206,13 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(3);
 
     const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+      if (gateName === 'gate_pass')
+        return { value: true, rule_id: 'rule_id_pass' };
+      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
+      return { value: false, rule_id: 'rule_id_fail' };
+    });
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
@@ -246,6 +238,13 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(3);
 
     const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+      if (gateName === 'gate_pass')
+        return { value: true, rule_id: 'rule_id_pass' };
+      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
+      return { value: false, rule_id: 'rule_id_fail' };
+    });
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
@@ -271,6 +270,11 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(4);
 
     const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'getConfig').mockImplementation(() => {
+      return FETCH_FROM_SERVER;
+    });
+
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
@@ -297,6 +301,17 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(4);
 
     const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'getConfig').mockImplementation((_, configName) => {
+      return new DynamicConfig(
+        configName,
+        {
+          string: '12345',
+          number: 12345,
+        },
+        'rule_id_config'
+      );
+    });
     await statsig.initialize(secretKey);
 
     let user = { userID: 123 };
@@ -317,6 +332,27 @@ describe('Verify behavior of top level index functions', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(configExposure);
+  });
+
+  test('that getConfig() returns an empty DynamicConfig when the config name does not exist', async () => {
+    expect.assertions(2);
+
+    const statsig = require('../index');
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'getConfig').mockImplementation(() => {
+      return null;
+    });
+    await statsig.initialize(secretKey);
+
+    const configName = 'non_existent_config';
+    let config = new DynamicConfig(configName);
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    await statsig.getConfig({}, configName).then((data) => {
+      expect(data).toEqual(config);
+    });
+
+    expect(spy).toHaveBeenCalledTimes(0);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {

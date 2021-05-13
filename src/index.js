@@ -89,7 +89,7 @@ const statsig = {
    * Checks the value of a config for a given user
    * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
    * @param {string} configName - the name of the dynamic config to get
-   * @returns {Promise<DynamicConfig | null>} - the config for the user
+   * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
    * @throws Error if the configName is not provided or not a non-empty string
    */
@@ -104,18 +104,19 @@ const statsig = {
 
     return this._getConfigValue(user, configName)
       .then((config) => {
-        if (config != null) {
-          logConfigExposure(
-            user,
-            configName,
-            config.getRuleID(),
-            statsig._logger
-          );
+        if (config == null) {
+          return new DynamicConfig(configName);
         }
+        logConfigExposure(
+          user,
+          configName,
+          config.getRuleID(),
+          statsig._logger
+        );
         return Promise.resolve(config);
       })
       .catch(() => {
-        return Promise.resolve(null);
+        return Promise.resolve(new DynamicConfig(configName));
       });
   },
 
