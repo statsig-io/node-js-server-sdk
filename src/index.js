@@ -29,6 +29,10 @@ const statsig = {
       return statsig._pendingInitPromise;
     }
 
+    if (statsig._ready === true) {
+      return Promise.resolve();
+    }
+
     if (
       typeof secretKey !== 'string' ||
       secretKey.length === 0 ||

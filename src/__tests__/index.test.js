@@ -462,7 +462,7 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('calling initialize() multiple times will only make 1 request and resolve together', async () => {
-    expect.assertions(3);
+    expect.assertions(4);
     const statsig = require('../index');
     let count = 0;
     const SpecStore = require('../SpecStore');
@@ -475,10 +475,14 @@ describe('Verify behavior of top level index functions', () => {
       });
     });
 
+    // initialize() twice simultaneously reulsts in 1 promise
     const v1 = statsig.initialize(secretKey);
     const v2 = statsig.initialize(secretKey);
     await expect(v1).resolves.not.toThrow();
     await expect(v2).resolves.not.toThrow();
+
+    // initialize() again after the first one completes resolves right away
+    await expect(statsig.initialize(secretKey)).resolves.not.toThrow();
     expect(count).toEqual(1);
   });
 });
