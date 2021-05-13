@@ -12,9 +12,7 @@ describe('Verify behavior of top level index functions', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     fetch.mockImplementation((url) => {
-      if (url.includes('initialize')) {
-        return Promise.resolve({});
-      } else if (url.includes('check_gate')) {
+      if (url.includes('check_gate')) {
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -123,14 +121,6 @@ describe('Verify behavior of top level index functions', () => {
       .getConfig({ userID: '12345' }, 'my_config')
       .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
     expect(statsig._logger).toBeFalsy();
-  });
-
-  test('Verify multiple initialize calls resolve', async () => {
-    const statsig = require('../index');
-    expect.assertions(1);
-    return statsig.initialize(secretKey).then(() => {
-      expect(statsig.initialize(secretKey)).resolves.not.toThrow();
-    });
   });
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
@@ -433,5 +423,26 @@ describe('Verify behavior of top level index functions', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       expect(statsig.isReady()).toStrictEqual(false);
     });
+  });
+
+  test('calling initialize() multiple times will only make 1 request and resolve together', async () => {
+    expect.assertions(3);
+    const statsig = require('../index');
+    let count = 0;
+    const SpecStore = require('../SpecStore');
+    jest.spyOn(SpecStore, 'init').mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          count++;
+          resolve();
+        }, 1000);
+      });
+    });
+
+    const v1 = statsig.initialize(secretKey);
+    const v2 = statsig.initialize(secretKey);
+    await expect(v1).resolves.not.toThrow();
+    await expect(v2).resolves.not.toThrow();
+    expect(count).toEqual(1);
   });
 });
