@@ -25,9 +25,10 @@ const statsig = {
    * @throws Error if a Server Secret Key is not provided
    */
   initialize(secretKey, options = {}) {
-    if (statsig._ready != null) {
-      return Promise.resolve();
+    if (statsig._pendingInitPromise) {
+      return statsig._pendingInitPromise;
     }
+
     if (
       typeof secretKey !== 'string' ||
       secretKey.length === 0 ||
@@ -43,8 +44,15 @@ const statsig = {
     statsig._secretKey = secretKey;
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
-    statsig._ready = true;
-    return SpecStore.init(statsig._options, statsig._secretKey);
+
+    statsig._pendingInitPromise = SpecStore.init(
+      statsig._options,
+      statsig._secretKey
+    ).finally(() => {
+      statsig._ready = true;
+      statsig._pendingInitPromise = null;
+    });
+    return statsig._pendingInitPromise;
   },
 
   /**
