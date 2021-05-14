@@ -1,6 +1,8 @@
 const { ConfigCondition, FETCH_FROM_SERVER } = require('../ConfigSpec');
 describe('Test condition evaluation', () => {
-  const server = FETCH_FROM_SERVER;
+  const baseTime = 1609459200000;
+  const baseTimeStr = '2021-01-01T00:00:00.000Z';
+
   const user = {
     userID: 'jkw',
     country: 'US',
@@ -8,7 +10,7 @@ describe('Test condition evaluation', () => {
       os_name: 'iOS',
       company: 'Statsig',
       level: 99,
-      registration_date: '2021-01-01'
+      registration_date: baseTimeStr
     },
   }
 
@@ -21,9 +23,6 @@ describe('Test condition evaluation', () => {
       level: 99,
     },
   }
-
-  const baseTime = 1609459200000;
-  const baseTimeStr = '2021-01-01T00:00:00.000Z';
 
   const params = [
     //type                operator          targetValue        field             user  result
@@ -125,44 +124,52 @@ describe('Test condition evaluation', () => {
     ['user_field',         'str_matches',     'Stat+.',        'company',          user, true],
 
     // compare dates
-    ['user_field',      'before',     '2021',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     '2022',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'before',     '2021-01',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     '2021-02',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'before',     '2021-01-01',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     '2021-01-02',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'before',     baseTimeStr,    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     '2021-01-01T00:01:00.000Z',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'before',     baseTime,    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     baseTime+1,    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'before',     String(baseTime),    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'before',     String(baseTime+1),    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
+    ['user_field',         'before',          '2021',         'registration_date', user, false],
+    ['user_field',         'before',          '2022',         'registration_date', user, true],
+    ['user_field',         'before',          '2021-01',      'registration_date', user, false],
+    ['user_field',         'before',          '2021-02',      'registration_date', user, true],
+    ['user_field',         'before',          '2021-01-01',   'registration_date', user, false],
+    ['user_field',         'before',          '2021-01-02',   'registration_date', user, true],
+    ['user_field',         'before',          baseTimeStr,    'registration_date', user, false],
+    ['user_field',         'before',          '2021-01-01T00:01:00.000Z', 'registration_date', user, true],
+    ['user_field',         'before',          baseTime,       'registration_date', user, false],
+    ['user_field',         'before',          baseTime+1,     'registration_date', user, true],
+    ['user_field',         'before',          String(baseTime), 'registration_date', user, false],
+    ['user_field',         'before',          String(baseTime+1), 'registration_date', user, true],
+         
+    ['user_field',         'after',          '2021',          'registration_date', user, false],
+    ['user_field',         'after',          '2020',          'registration_date', user, true],
+    ['user_field',         'after',          '2021-01',       'registration_date', user, false],
+    ['user_field',         'after',          '2020-12',       'registration_date', user, true],
+    ['user_field',         'after',          '2021-01-01',    'registration_date', user, false],
+    ['user_field',         'after',          '2020-12-31',    'registration_date', user, true],
+    ['user_field',         'after',          baseTimeStr,     'registration_date', user, false],
+    ['user_field',         'after',          '2020-12-31T11:59:00.000Z', 'registration_date', user, true],
+    ['user_field',         'after',          baseTime,        'registration_date', user, false],
+    ['user_field',         'after',          baseTime-1,      'registration_date', user, true],
+    ['user_field',         'after',          String(baseTime), 'registration_date', user, false],
+    ['user_field',         'after',          String(baseTime-1), 'registration_date', user, true],
+         
+    ['user_field',         'on',             '2021-01-01',    'registration_date', user, true],
+    ['user_field',         'on',             '2020-12-31',    'registration_date', user, false],
+    ['user_field',         'on',             baseTimeStr,     'registration_date', user, true],
+    ['user_field',         'on',             '2020-12-31T00:00:00.000Z', 'registration_date', user, false],
+    ['user_field',         'on',             baseTime,        'registration_date', user, true],
+    ['user_field',         'on',             baseTime + 24 * 3600 * 1000, 'registration_date', user, false],
+    ['user_field',         'on',             String(baseTime), 'registration_date', user, true],
+    ['user_field',         'on',             String(baseTime + 24 * 3600 * 1000), 'registration_date', user, false],
+            
+    ['user_field',         'on',             {reason: 'test_malformated_str'}, 'registration_date', {custom: {registration_date: 'just_because'}}, false],
+    ['user_field',         'on',             [1,2,3],    'registration_date', {custom: {registration_date: false}}, false],
 
-    ['user_field',      'after',     '2021',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     '2020',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'after',     '2021-01',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     '2020-12',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'after',     '2021-01-01',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     '2020-12-31',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'after',     baseTimeStr,    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     '2020-12-31T11:59:00.000Z',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'after',     baseTime,    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     baseTime-1,    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'after',     String(baseTime),    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'after',     String(baseTime-1),    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-
-    ['user_field',      'on',     '2021-01-01',    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'on',     '2020-12-31',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'on',     baseTimeStr,    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'on',     '2020-12-31T00:00:00.000Z',    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'on',     baseTime,    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'on',     baseTime + 24 * 3600 * 1000,    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-    ['user_field',      'on',     String(baseTime),    'registration_date', {custom: {registration_date: baseTimeStr}}, true],
-    ['user_field',      'on',     String(baseTime + 24 * 3600 * 1000),    'registration_date', {custom: {registration_date: baseTimeStr}}, false],
-
-    ['user_field',      'on',     {reason: 'test_malformated_str'},    'registration_date', {custom: {registration_date: 'just_because'}}, false],
-    ['user_field',      'on',     [1,2,3],    'registration_date', {custom: {registration_date: false}}, false],
-
+    ['current_time',       'after',          Date.now() + 1000, null,             user, false],
+    ['current_time',       'after',          Date.now() - 1000, null,             user, true],
+    ['current_time',       'before',         Date.now() + 1000, null,             user, true],
+    ['current_time',       'before',         Date.now() - 1000, null,             user, false],
+    ['current_time',       'on',             Date.now() + 100, null,              user, true],
+    ['current_time',       'on',             Date.now() + 24 * 3600 * 1000, null,              user, false],
+    ['current_time',       'on',             Date.now() - 24 * 3600 * 1000, null,              user, false],
+   
     // some random type not implemented yet
     ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
 

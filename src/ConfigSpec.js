@@ -132,6 +132,9 @@ class ConfigCondition {
       case 'user_field':
         value = getFromUser(user, field);
         break;
+      case 'current_time':
+        value = Date.now();
+        break;
       default:
         return FETCH_FROM_SERVER;
     }
