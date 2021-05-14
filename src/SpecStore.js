@@ -10,7 +10,6 @@ const SpecStore = {
     this.api = options.api;
     this.secretKey = secretKey;
     this.time = Date.now();
-    this.store = { gates: {}, configs: {} };
     this.syncInterval = syncInterval;
     try {
       const response = await fetcher.post(
@@ -58,22 +57,25 @@ const SpecStore = {
 
   _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
-    specsJSON?.feature_gates?.forEach((gateJSON) => {
-      try {
-        const gate = new ConfigSpec(gateJSON);
-        this.store.gates[gate.name] = gate;
-      } catch (e) {
-        // TODO: log
-      }
-    });
-    specsJSON?.dynamic_configs?.forEach((configJSON) => {
-      try {
-        const config = new ConfigSpec(configJSON);
-        this.store.configs[config.name] = config;
-      } catch (e) {
-        // TODO: log
-      }
-    });
+    if (specsJSON?.hasUpdate === true) {
+      this.store = { gates: {}, configs: {} };
+      specsJSON?.feature_gates?.forEach((gateJSON) => {
+        try {
+          const gate = new ConfigSpec(gateJSON);
+          this.store.gates[gate.name] = gate;
+        } catch (e) {
+          // TODO: log
+        }
+      });
+      specsJSON?.dynamic_configs?.forEach((configJSON) => {
+        try {
+          const config = new ConfigSpec(configJSON);
+          this.store.configs[config.name] = config;
+        } catch (e) {
+          // TODO: log
+        }
+      });
+    }
   },
 
   // returns a boolean, or null if used incorrectly (e.g. gate name does not exist or not initialized)
