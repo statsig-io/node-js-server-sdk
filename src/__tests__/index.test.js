@@ -74,11 +74,14 @@ describe('Verify behavior of top level index functions', () => {
     );
   });
 
-  test('Verify logEvent() does not log before initialize()', () => {
+  test('Verify logEvent() throws if called before initialize()', () => {
     const statsig = require('../index');
     expect.assertions(1);
-    statsig.logEvent({ userID: '12345' }, 'my_event');
-    expect(statsig._logger).toBe(undefined);
+    expect(() => {
+      statsig.logEvent({ userID: '12345' }, 'my_event');
+    }).toThrowError(
+      'statsigSDK::logEvent> Must call initialize() before logEvent().'
+    );
   });
 
   test('Verify cannot call checkGate() before initialize()', async () => {
