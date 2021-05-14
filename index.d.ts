@@ -66,6 +66,7 @@ declare module 'statsig-node' {
    * @param {string} eventName - the name of the event (name = Purchase)
    * @param {?string | number} value - the value associated with the event (value = 10)
    * @param {?Record<string, string>} metadata - other attributes associated with this event (metadata = {item_name: 'banana', currency: 'USD'})
+   * @throws Error if initialize() was not called first
    */
   export function logEvent(
     user: StatsigUser | null,

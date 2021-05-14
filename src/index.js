@@ -130,13 +130,13 @@ const statsig = {
    * @param {string} eventName - the name of the event (name = Purchase)
    * @param {?string | number} value - the value associated with the event (value = 10)
    * @param {?Record<string, string>} metadata - other attributes associated with this event (metadata = {item_name: 'banana', currency: 'USD'})
+   * @throws Error if initialize() was not called first
    */
   logEvent(user, eventName, value = null, metadata = null) {
-    if (statsig._ready !== true) {
-      console.error(
+    if (statsig._ready == null) {
+      throw new Error(
         'statsigSDK::logEvent> Must call initialize() before logEvent().'
       );
-      return;
     }
     if (typeof eventName !== 'string' || eventName.length === 0) {
       console.error(
