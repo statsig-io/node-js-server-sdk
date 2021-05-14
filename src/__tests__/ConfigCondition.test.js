@@ -163,7 +163,12 @@ describe('Test condition evaluation', () => {
     ['user_field',         'on',             [1,2,3],    'registration_date', {custom: {registration_date: false}}, false],
 
     ['current_time',       'after',          Date.now() + 1000, null,             user, false],
+    ['current_time',       'after',          Date.now() - 1000, null,             user, true],
     ['current_time',       'before',         Date.now() + 1000, null,             user, true],
+    ['current_time',       'before',         Date.now() - 1000, null,             user, false],
+    ['current_time',       'on',             Date.now() + 100, null,              user, true],
+    ['current_time',       'on',             Date.now() + 24 * 3600 * 1000, null,              user, false],
+    ['current_time',       'on',             Date.now() - 24 * 3600 * 1000, null,              user, false],
    
     // some random type not implemented yet
     ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
