@@ -11,6 +11,7 @@ const SpecStore = {
     this.secretKey = secretKey;
     this.time = Date.now();
     this.syncInterval = syncInterval;
+    this.store = { gates: {}, configs: {} };
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
@@ -57,24 +58,35 @@ const SpecStore = {
 
   _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
-    if (specsJSON?.hasUpdate === true) {
-      this.store = { gates: {}, configs: {} };
-      specsJSON?.feature_gates?.forEach((gateJSON) => {
-        try {
-          const gate = new ConfigSpec(gateJSON);
-          this.store.gates[gate.name] = gate;
-        } catch (e) {
-          // TODO: log
-        }
-      });
-      specsJSON?.dynamic_configs?.forEach((configJSON) => {
-        try {
-          const config = new ConfigSpec(configJSON);
-          this.store.configs[config.name] = config;
-        } catch (e) {
-          // TODO: log
-        }
-      });
+    if (!specsJSON?.has_updates) {
+      return;
+    }
+    let updatedGates = {};
+    let updatedConfigs = {};
+    let parseFailed = false;
+
+    for (const gateJSON of specsJSON?.feature_gates) {
+      try {
+        const gate = new ConfigSpec(gateJSON);
+        updatedGates[gate.name] = gate;
+      } catch (e) {
+        parseFailed = true;
+        break;
+      }
+    }
+    for (const configJSON of specsJSON?.dynamic_configs) {
+      try {
+        const config = new ConfigSpec(configJSON);
+        updatedConfigs[config.name] = config;
+      } catch (e) {
+        parseFailed = true;
+        break;
+      }
+    }
+
+    if (!parseFailed) {
+      this.store.gates = updatedGates;
+      this.store.configs = updatedConfigs;
     }
   },
 

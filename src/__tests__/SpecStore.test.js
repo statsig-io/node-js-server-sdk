@@ -25,6 +25,7 @@ describe('Verify behavior of SpecStore', () => {
                 exampleConfigSpecs.disabled_gate,
               ],
               dynamic_configs: [exampleConfigSpecs.config],
+              has_updates: true,
             }),
         });
       }
@@ -52,8 +53,10 @@ describe('Verify behavior of SpecStore', () => {
     expect(SpecStore.initialized).toEqual(true);
     expect(SpecStore.syncTimer).toBeTruthy();
 
+    // first sync gives updated values
     let modifiedGate = JSON.parse(JSON.stringify(exampleConfigSpecs.gate));
     modifiedGate.enabled = false;
+    const timeAfterFirstSync = Date.now() + 1000;
 
     fetch.mockImplementationOnce((url) => {
       if (url.includes('download_config_specs')) {
@@ -61,14 +64,22 @@ describe('Verify behavior of SpecStore', () => {
           ok: true,
           json: () =>
             Promise.resolve({
-              time: Date.now() + 1000,
-              feature_gates: [modifiedGate, exampleConfigSpecs.half_pass_gate],
+              time: timeAfterFirstSync,
+              feature_gates: [
+                modifiedGate,
+                exampleConfigSpecs.disabled_gate,
+                exampleConfigSpecs.half_pass_gate,
+              ],
+              dynamic_configs: [exampleConfigSpecs.config],
+              has_updates: true,
             }),
         });
       }
       return Promise.reject();
     });
     await new Promise((_) => setTimeout(_, 1500));
+
+    const storeAfterFirstSync = Object.assign(SpecStore.store);
 
     expect(Object.keys(SpecStore.store.gates).length).toEqual(3);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
@@ -84,9 +95,26 @@ describe('Verify behavior of SpecStore', () => {
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config)
     );
-    expect(SpecStore.time).toEqual(Date.now() + 1000);
+    expect(SpecStore.time).toEqual(timeAfterFirstSync);
     expect(SpecStore.initialized).toEqual(true);
     expect(SpecStore.syncTimer).toBeTruthy();
+
+    // second sync gives no updates
+    fetch.mockImplementationOnce((url) => {
+      if (url.includes('download_config_specs')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              has_updates: false,
+            }),
+        });
+      }
+      return Promise.reject();
+    });
+    await new Promise((_) => setTimeout(_, 1500));
+    expect(storeAfterFirstSync).toEqual(SpecStore.store);
+    expect(SpecStore.time).toEqual(timeAfterFirstSync);
 
     SpecStore.shutdown();
     expect(SpecStore.syncTimer).toBeNull();
