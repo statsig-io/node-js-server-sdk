@@ -58,22 +58,36 @@ const SpecStore = {
 
   _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
-    specsJSON?.feature_gates?.forEach((gateJSON) => {
+    if (!specsJSON?.has_updates) {
+      return;
+    }
+    let updatedGates = {};
+    let updatedConfigs = {};
+    let parseFailed = false;
+
+    for (const gateJSON of specsJSON?.feature_gates) {
       try {
         const gate = new ConfigSpec(gateJSON);
-        this.store.gates[gate.name] = gate;
+        updatedGates[gate.name] = gate;
       } catch (e) {
-        // TODO: log
+        parseFailed = true;
+        break;
       }
-    });
-    specsJSON?.dynamic_configs?.forEach((configJSON) => {
+    }
+    for (const configJSON of specsJSON?.dynamic_configs) {
       try {
         const config = new ConfigSpec(configJSON);
-        this.store.configs[config.name] = config;
+        updatedConfigs[config.name] = config;
       } catch (e) {
-        // TODO: log
+        parseFailed = true;
+        break;
       }
-    });
+    }
+
+    if (!parseFailed) {
+      this.store.gates = updatedGates;
+      this.store.configs = updatedConfigs;
+    }
   },
 
   // returns a boolean, or null if used incorrectly (e.g. gate name does not exist or not initialized)
