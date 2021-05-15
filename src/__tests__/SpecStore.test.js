@@ -77,7 +77,7 @@ describe('Verify behavior of SpecStore', () => {
       }
       return Promise.reject();
     });
-    await new Promise((_) => setTimeout(_, 1500));
+    await new Promise((_) => setTimeout(_, 1001));
 
     const storeAfterFirstSync = Object.assign(SpecStore.store);
 
@@ -112,7 +112,7 @@ describe('Verify behavior of SpecStore', () => {
       }
       return Promise.reject();
     });
-    await new Promise((_) => setTimeout(_, 1500));
+    await new Promise((_) => setTimeout(_, 1001));
     expect(storeAfterFirstSync).toEqual(SpecStore.store);
     expect(SpecStore.time).toEqual(timeAfterFirstSync);
 
