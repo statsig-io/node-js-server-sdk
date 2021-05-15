@@ -10,8 +10,8 @@ const SpecStore = {
     this.api = options.api;
     this.secretKey = secretKey;
     this.time = Date.now();
-    this.syncInterval = syncInterval;
     this.store = { gates: {}, configs: {} };
+    this.syncInterval = syncInterval;
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
