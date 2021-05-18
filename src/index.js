@@ -4,7 +4,7 @@ const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const { logConfigExposure, logGateExposure } = require('./utils/logging');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
-const SpecStore = require('./SpecStore');
+const Evaluator = require('./Evaluator');
 const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
@@ -49,7 +49,7 @@ const statsig = {
     statsig._options = StatsigOptions(options);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
 
-    statsig._pendingInitPromise = SpecStore.init(
+    statsig._pendingInitPromise = Evaluator.init(
       statsig._options,
       statsig._secretKey
     ).finally(() => {
@@ -200,11 +200,11 @@ const statsig = {
     statsig._ready = null;
     statsig._logger.flush(false);
     fetcher.shutdown();
-    SpecStore.shutdown();
+    Evaluator.shutdown();
   },
 
   _getGateValue(user, gateName) {
-    const ret = SpecStore.checkGate(user, gateName);
+    const ret = Evaluator.checkGate(user, gateName);
     if (ret !== FETCH_FROM_SERVER) {
       return Promise.resolve(ret);
     }
@@ -226,7 +226,7 @@ const statsig = {
   },
 
   _getConfigValue(user, configName) {
-    const ret = SpecStore.getConfig(user, configName);
+    const ret = Evaluator.getConfig(user, configName);
     if (ret !== FETCH_FROM_SERVER) {
       return Promise.resolve(ret);
     }

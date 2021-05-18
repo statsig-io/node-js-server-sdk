@@ -1,5 +1,4 @@
 const { ConfigSpec } = require('./ConfigSpec');
-const ip3country = require('ip3country');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
 
@@ -27,9 +26,7 @@ const SpecStore = {
       // TODO: log
     }
 
-    await ip3country.init();
     this.initialized = true;
-
     this.syncTimer = setTimeout(() => {
       this._sync();
     }, this.syncInterval);
@@ -88,40 +85,6 @@ const SpecStore = {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
     }
-  },
-
-  // returns a boolean, or null if used incorrectly (e.g. gate name does not exist or not initialized)
-  // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
-  checkGate(user, gateName) {
-    if (!this.initialized || !(gateName in this.store.gates)) {
-      return null;
-    }
-    return this.store.gates[gateName].evaluate(user);
-  },
-
-  // returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
-  // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
-  getConfig(user, configName) {
-    if (!this.initialized || !(configName in this.store.configs)) {
-      return null;
-    }
-    return this.store.configs[configName].evaluate(user);
-  },
-
-  ip2country(ip) {
-    if (!this.initialized) {
-      return null;
-    }
-    try {
-      if (typeof ip === 'string') {
-        return ip3country.lookupStr(ip);
-      } else if (typeof ip === 'number') {
-        return ip3country.lookupNumeric(ip);
-      }
-    } catch (e) {
-      // TODO: log
-    }
-    return null;
   },
 
   shutdown() {
