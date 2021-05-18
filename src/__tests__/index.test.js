@@ -106,14 +106,14 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
+    const Evaluator = require('../Evaluator');
     expect.assertions(5);
     return statsig.initialize(secretKey).then(() => {
       expect(statsig._secretKey).toBe(secretKey);
       expect(statsig._logger).toBeDefined();
       expect(statsig._options.api).toBe('https://api.statsig.com/v1');
       expect(statsig._ready).toBe(true);
-      expect(SpecStore.initialized).toBe(true);
+      expect(Evaluator.initialized).toBe(true);
     });
   });
 
@@ -173,12 +173,12 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify when SpecStore fails, checkGate() returns correct value and logs an exposure correctly from server', async () => {
+  test('Verify when Evaluator fails, checkGate() returns correct value and logs an exposure correctly from server', async () => {
     expect.assertions(3);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
       if (gateName === 'gate_pass')
         return { value: true, rule_id: 'rule_id_pass' };
       if (gateName === 'gate_server') return FETCH_FROM_SERVER;
@@ -205,12 +205,12 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify SpecStore returns correct value for checkGate() and logs an exposure correctly', async () => {
+  test('Verify Evaluator returns correct value for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
       if (gateName === 'gate_pass')
         return { value: true, rule_id: 'rule_id_pass' };
       if (gateName === 'gate_server') return FETCH_FROM_SERVER;
@@ -237,12 +237,12 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify SpecStore returns correct value (for failed gates) for checkGate() and logs an exposure correctly', async () => {
+  test('Verify Evaluator returns correct value (for failed gates) for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
       if (gateName === 'gate_pass')
         return { value: true, rule_id: 'rule_id_pass' };
       if (gateName === 'gate_server') return FETCH_FROM_SERVER;
@@ -269,12 +269,12 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify when SpecStore fails to evaluate, getConfig() returns correct value and logs an exposure correctly after fetching from server', async () => {
+  test('Verify when Evaluator fails to evaluate, getConfig() returns correct value and logs an exposure correctly after fetching from server', async () => {
     expect.assertions(4);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'getConfig').mockImplementation(() => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation(() => {
       return FETCH_FROM_SERVER;
     });
 
@@ -300,12 +300,12 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(configExposure);
   });
 
-  test('Verify when SpecStore evaluates successfully, getConfig() returns correct value and logs an exposure', async () => {
+  test('Verify when Evaluator evaluates successfully, getConfig() returns correct value and logs an exposure', async () => {
     expect.assertions(4);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'getConfig').mockImplementation((_, configName) => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
       return new DynamicConfig(
         configName,
         {
@@ -341,8 +341,8 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
 
     const statsig = require('../index');
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'getConfig').mockImplementation(() => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation(() => {
       return null;
     });
     await statsig.initialize(secretKey);
@@ -468,8 +468,8 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(4);
     const statsig = require('../index');
     let count = 0;
-    const SpecStore = require('../SpecStore');
-    jest.spyOn(SpecStore, 'init').mockImplementation(() => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, 'init').mockImplementation(() => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           count++;

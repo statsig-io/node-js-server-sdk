@@ -1,7 +1,6 @@
 describe('Verify behavior of SpecStore', () => {
   const exampleConfigSpecs = require('./jest.setup');
   const { ConfigSpec } = require('../ConfigSpec');
-  const { DynamicConfig } = require('../DynamicConfig');
 
   let SpecStore;
   let fetch;
@@ -118,82 +117,5 @@ describe('Verify behavior of SpecStore', () => {
 
     SpecStore.shutdown();
     expect(SpecStore.syncTimer).toBeNull();
-  });
-
-  test('checkGate() behavior', async () => {
-    // calling before initialize should return null
-    expect(
-      SpecStore.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.gate.name
-      )
-    ).toEqual(null);
-
-    await SpecStore.init({}, 'secret-api-key', 1000);
-    // check a gate that should evaluate to true
-    expect(
-      SpecStore.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.gate.name
-      )
-    ).toEqual({ value: true, rule_id: exampleConfigSpecs.gate.rules[0].id });
-
-    // should evaluate to false
-    expect(
-      SpecStore.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.gate.name
-      )
-    ).toEqual({ value: false, rule_id: 'default' });
-
-    // non-existent gate should return null
-    expect(
-      SpecStore.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.gate.name + 'non-existent-gate'
-      )
-    ).toEqual(null);
-  });
-
-  test('getConfig() behavior', async () => {
-    // calling before initialize should return null
-    expect(
-      SpecStore.getConfig(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.config.name
-      )
-    ).toEqual(null);
-
-    await SpecStore.init({}, 'secret-api-key');
-
-    // check a config that should evaluate to real return value
-    expect(
-      SpecStore.getConfig(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
-        exampleConfigSpecs.config.name
-      )
-    ).toEqual(
-      new DynamicConfig(
-        exampleConfigSpecs.config.name,
-        exampleConfigSpecs.config.rules[0].returnValue,
-        exampleConfigSpecs.config.rules[0].id
-      )
-    );
-
-    // non-existent config should return null
-    expect(
-      SpecStore.getConfig(
-        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.config.name + 'non-existent-config'
-      )
-    ).toEqual(null);
-  });
-
-  test('ip2country() behavior', async () => {
-    expect(SpecStore.ip2country('1.0.0.255')).toEqual(null);
-    await SpecStore.init({}, 'secret-api-key');
-    expect(SpecStore.ip2country('1.0.0.255')).toEqual('US');
-    expect(SpecStore.ip2country(16777471)).toEqual('US');
-    expect(SpecStore.ip2country({})).toEqual(null);
   });
 });

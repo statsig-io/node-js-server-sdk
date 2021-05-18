@@ -1,4 +1,6 @@
-const { ConfigCondition, FETCH_FROM_SERVER } = require('../ConfigSpec');
+const { ConfigSpec, ConfigCondition, FETCH_FROM_SERVER } = require('../ConfigSpec');
+const exampleConfigSpecs = require('./jest.setup');
+
 describe('Test condition evaluation', () => {
   const baseTime = 1609459200000;
   const baseTimeStr = '2021-01-01T00:00:00.000Z';
@@ -178,13 +180,18 @@ describe('Test condition evaluation', () => {
     ['user_field',         'unknown_op',      '0.25',          'level',            user, FETCH_FROM_SERVER],
   ]
 
-  const SpecStore = require('../SpecStore');
-  jest.spyOn(SpecStore, 'checkGate').mockImplementation((user, gateName) => {
+  const Evaluator = require('../Evaluator');
+  jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
     if (gateName === 'gate_pass') return true;
     if (gateName === 'gate_server') return FETCH_FROM_SERVER;
     return false;
   });
-  jest.spyOn(SpecStore, 'ip2country').mockImplementation((ip) => 'US');
+  jest.spyOn(Evaluator, 'ip2country').mockImplementation((ip) => 'US');
+
+  const gateSpec = new ConfigSpec(exampleConfigSpecs.gate);
+  const halfPassGateSpec = new ConfigSpec(exampleConfigSpecs.half_pass_gate);
+  const disabledGateSpec = new ConfigSpec(exampleConfigSpecs.disabled_gate);
+  const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
     params.forEach(p => {
@@ -195,7 +202,201 @@ describe('Test condition evaluation', () => {
         field: p[3],
       }
       const condition = new ConfigCondition(json);
-      expect(condition.evaluate(p[4])).toEqual(p[5]);
+      expect(Evaluator._evalCondition(p[4], condition)).toEqual(p[5]);
     });
+  });
+
+  it('evals gates correctly', () => {
+    expect(Evaluator._eval({}, gateSpec)).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec)).toEqual({
+      value: true,
+      rule_id: 'rule_id_gate',
+    });
+    expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec)).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+    expect(
+      Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec)
+    ).toEqual({
+      value: false,
+      rule_id: 'default',
+    });
+  });
+
+  it('implements pass percentage correctly', () => {
+    let passCount = 0;
+    for (let i = 0; i < 1000; i++) {
+      if (
+        Evaluator._eval({
+          userID: Math.random(),
+          email: 'tore@packers.com',
+          // @ts-ignore
+        }, halfPassGateSpec).value
+      ) {
+        passCount++;
+      }
+    }
+    expect(passCount).toBeLessThan(600);
+    expect(passCount).toBeGreaterThan(400);
+  });
+
+  it('evals dynamic configs correctly', () => {
+    // @ts-ignore
+    expect(Evaluator._eval({}, dynamicConfigSpec).get()).toEqual({});
+    expect(
+      // @ts-ignore
+      Evaluator._eval({ userID: 'jkw', custom: { level: 10 } }, dynamicConfigSpec).get()
+    ).toEqual({
+      packers: {
+        name: 'Green Bay Packers',
+        yearFounded: 1919,
+      },
+      seahawks: {
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      },
+    });
+    expect(
+      Evaluator
+        ._eval({ userID: 'jkw', custom: { level: 10 } }, dynamicConfigSpec)
+        // @ts-ignore
+        .getRuleID()
+    ).toEqual('rule_id_config');
+    // @ts-ignore
+    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).get()).toEqual({});
+    // @ts-ignore
+    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).getRuleID()).toEqual(
+      'rule_id_config_public'
+    );
+  });
+});
+
+describe('testing checkGate and getConfig', () => {
+  const { DynamicConfig } = require('../DynamicConfig');
+
+  let Evaluator;
+  let fetch;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.restoreAllMocks();
+
+    Evaluator = require('../Evaluator');
+    fetch = require('node-fetch');
+    jest.mock('node-fetch', () => jest.fn());
+    fetch.mockImplementation((url) => {
+      if (url.includes('download_config_specs')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              time: Date.now(),
+              feature_gates: [
+                exampleConfigSpecs.gate,
+                exampleConfigSpecs.disabled_gate,
+              ],
+              dynamic_configs: [exampleConfigSpecs.config],
+              has_updates: true,
+            }),
+        });
+      }
+      return Promise.reject();
+    });
+
+    let now = Date.now();
+    jest.spyOn(global.Date, 'now').mockImplementation(() => now);
+  });
+
+  test('checkGate() behavior', async () => {
+    // calling before initialize should return null
+    expect(
+      Evaluator.checkGate(
+        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
+        exampleConfigSpecs.gate.name
+      )
+    ).toEqual(null);
+
+    await Evaluator.init({}, 'secret-api-key', 1000);
+    // check a gate that should evaluate to true
+    expect(
+      Evaluator.checkGate(
+        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
+        exampleConfigSpecs.gate.name
+      )
+    ).toEqual({ value: true, rule_id: exampleConfigSpecs.gate.rules[0].id });
+
+    // should evaluate to false
+    expect(
+      Evaluator.checkGate(
+        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
+        exampleConfigSpecs.gate.name
+      )
+    ).toEqual({ value: false, rule_id: 'default' });
+
+    // non-existent gate should return null
+    expect(
+      Evaluator.checkGate(
+        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
+        exampleConfigSpecs.gate.name + 'non-existent-gate'
+      )
+    ).toEqual(null);
+  });
+
+  test('getConfig() behavior', async () => {
+    // calling before initialize should return null
+    expect(
+      Evaluator.getConfig(
+        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
+        exampleConfigSpecs.config.name
+      )
+    ).toEqual(null);
+
+    await Evaluator.init({}, 'secret-api-key');
+
+    // check a config that should evaluate to real return value
+    expect(
+      Evaluator.getConfig(
+        { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
+        exampleConfigSpecs.config.name
+      )
+    ).toEqual(
+      new DynamicConfig(
+        exampleConfigSpecs.config.name,
+        exampleConfigSpecs.config.rules[0].returnValue,
+        exampleConfigSpecs.config.rules[0].id
+      )
+    );
+
+    // non-existent config should return null
+    expect(
+      Evaluator.getConfig(
+        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
+        exampleConfigSpecs.config.name + 'non-existent-config'
+      )
+    ).toEqual(null);
+  });
+
+  test('ip2country() behavior', async () => {
+    expect(Evaluator.ip2country('1.0.0.255')).toEqual(null);
+    await Evaluator.init({}, 'secret-api-key');
+    expect(Evaluator.ip2country('1.0.0.255')).toEqual('US');
+    expect(Evaluator.ip2country(16777471)).toEqual('US');
+    expect(Evaluator.ip2country({})).toEqual(null);
   });
 });
