@@ -8,7 +8,7 @@ const SpecStore = {
   async init(options, secretKey, syncInterval = SYNC_INTERVAL) {
     this.api = options.api;
     this.secretKey = secretKey;
-    this.time = Date.now();
+    this.time = 0;
     this.store = { gates: {}, configs: {} };
     this.syncInterval = syncInterval;
     try {
