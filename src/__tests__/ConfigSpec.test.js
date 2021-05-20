@@ -3,8 +3,6 @@ const exampleConfigSpecs = require('./jest.setup');
 
 describe('Verify behavior of ConfigSpec', () => {
   const gateSpec = new ConfigSpec(exampleConfigSpecs.gate);
-  const halfPassGateSpec = new ConfigSpec(exampleConfigSpecs.half_pass_gate);
-  const disabledGateSpec = new ConfigSpec(exampleConfigSpecs.disabled_gate);
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   beforeEach(() => {});
@@ -26,7 +24,6 @@ describe('Verify behavior of ConfigSpec', () => {
     expect(rule.id).toEqual('rule_id_gate');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual(true);
-    expect(rule.salt).toEqual('na');
 
     let conds = rule.conditions;
     expect(Array.isArray(conds)).toEqual(true);
@@ -67,7 +64,6 @@ describe('Verify behavior of ConfigSpec', () => {
         yearFounded: 1974,
       },
     });
-    expect(rule.salt).toEqual('sodium');
 
     let conds = rule.conditions;
     expect(Array.isArray(conds)).toEqual(true);

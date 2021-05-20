@@ -57,15 +57,29 @@ const Evaluator = {
           return FETCH_FROM_SERVER;
         }
         if (this._evalRule(user, rule) === true) {
+          const pass = this._evalPassPercent(user, rule, config.salt);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-            ? new DynamicConfig(config.name, rule.returnValue, rule.id)
-            : { value: true, rule_id: rule.id };
+            ? new DynamicConfig(
+                config.name,
+                pass ? rule.returnValue : config.defaultValue,
+                rule.id
+              )
+            : { value: pass ? true : false, rule_id: rule.id };
         }
       }
     }
     return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
       ? new DynamicConfig(config.name, config.defaultValue, 'default')
       : { value: false, rule_id: 'default' };
+  },
+
+  _evalPassPercent(user, rule, salt) {
+    const hash = crypto
+      .createHash('sha256')
+      .update(salt + '.' + rule.name + '.' + user?.userID)
+      .digest()
+      .readBigUInt64BE();
+    return Number(hash % BigInt(10000)) < rule.passPercentage * 100;
   },
 
   /**
@@ -85,12 +99,7 @@ const Evaluator = {
         return false;
       }
     }
-    const hash = crypto
-      .createHash('sha256')
-      .update(rule.salt + '.' + rule.name + '.' + user?.userID)
-      .digest()
-      .readBigUInt64BE();
-    return Number(hash % BigInt(10000)) < rule.passPercentage * 100;
+    return true;
   },
 
   /**
