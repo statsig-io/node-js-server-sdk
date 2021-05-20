@@ -256,6 +256,33 @@ describe('Test condition evaluation', () => {
     expect(passCount).toBeGreaterThan(400);
   });
 
+  it('uses the correct return value and ruleID after evaluating pass percentage', () => {
+    const Evaluator = require('../Evaluator');
+    jest.spyOn(Evaluator, '_evalPassPercent').mockImplementation(() => {
+      return false;
+    });
+    const failResult = Evaluator._eval({
+      userID: Math.random(),
+      email: 'tore@packers.com',
+      // @ts-ignore
+    }, halfPassGateSpec);
+
+    expect(failResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
+    expect(failResult.value).toEqual(false);
+
+    jest.spyOn(Evaluator, '_evalPassPercent').mockImplementation(() => {
+      return true;
+    });
+    const passResult = Evaluator._eval({
+      userID: Math.random(),
+      email: 'tore@packers.com',
+      // @ts-ignore
+    }, halfPassGateSpec);
+
+    expect(passResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
+    expect(passResult.value).toEqual(true);
+  });
+
   it('evals dynamic configs correctly', () => {
     // @ts-ignore
     expect(Evaluator._eval({}, dynamicConfigSpec).get()).toEqual({});

@@ -13,7 +13,7 @@ class ConfigSpec {
   parseRules(rulesJSON, salt) {
     var rules = [];
     for (let i = 0; i < rulesJSON.length; i++) {
-      let rule = new ConfigRule(rulesJSON[i], salt);
+      let rule = new ConfigRule(rulesJSON[i]);
       rules.push(rule);
     }
     return rules;
@@ -21,12 +21,11 @@ class ConfigSpec {
 }
 
 class ConfigRule {
-  constructor(ruleJSON, salt) {
+  constructor(ruleJSON) {
     this.name = ruleJSON.name;
     this.passPercentage = ruleJSON.passPercentage;
     this.conditions = this.parseConditions(ruleJSON.conditions);
     this.returnValue = ruleJSON.returnValue;
-    this.salt = salt;
     this.id = ruleJSON.id;
   }
 
