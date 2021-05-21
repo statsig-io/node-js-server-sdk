@@ -154,7 +154,7 @@ const Evaluator = {
         return numberCompare((a, b) => a <= b)(value, target);
 
       // version
-      case 'version_ge':
+      case 'version_gt':
         return versionCompare((a, b) => semver.gt(a, b))(value, target);
       case 'version_gte':
         return versionCompare((a, b) => semver.gte(a, b))(value, target);

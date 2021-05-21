@@ -66,9 +66,9 @@ describe('Test condition evaluation', () => {
     ['ua_based',          'none',           ['12.2', '12.3'],  'os_version',     user2, false],
 
     // semver compare
-    ['ua_based',          'version_ge',     '12.1',            'os_version',     user2, true],
-    ['ua_based',          'version_ge',     '12.2',            'os_version',     user2, false],
-    ['ua_based',          'version_ge',     '12.3',            'os_version',     user2, false],
+    ['ua_based',          'version_gt',     '12.1',            'os_version',     user2, true],
+    ['ua_based',          'version_gt',     '12.2',            'os_version',     user2, false],
+    ['ua_based',          'version_gt',     '12.3',            'os_version',     user2, false],
     ['ua_based',          'version_gte',    '12.1',            'os_version',     user2, true],
     ['ua_based',          'version_gte',    '12.2',            'os_version',     user2, true],
     ['ua_based',          'version_gte',    '12.3',            'os_version',     user2, false],
