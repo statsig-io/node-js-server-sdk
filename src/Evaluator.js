@@ -76,7 +76,7 @@ const Evaluator = {
   _evalPassPercent(user, rule, salt) {
     const hash = crypto
       .createHash('sha256')
-      .update(salt + '.' + rule.name + '.' + user?.userID)
+      .update(salt + '.' + rule.name + '.' + user?.userID ?? '')
       .digest()
       .readBigUInt64BE();
     return Number(hash % BigInt(10000)) < rule.passPercentage * 100;
