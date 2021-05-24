@@ -20,7 +20,7 @@ const Evaluator = {
     this.initialized = true;
   },
 
-  // returns a boolean, or null if used incorrectly (e.g. gate name does not exist or not initialized)
+  // returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
   // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
   checkGate(user, gateName) {
     if (!this.initialized || !(gateName in SpecStore.store.gates)) {
@@ -118,10 +118,11 @@ const Evaluator = {
         return true;
       case 'fail_gate':
       case 'pass_gate':
-        value = Evaluator.checkGate(user, target);
-        if (value === FETCH_FROM_SERVER) {
+        const gateResult = Evaluator.checkGate(user, target);
+        if (gateResult === FETCH_FROM_SERVER) {
           return FETCH_FROM_SERVER;
         }
+        value = gateResult?.value;
         return condition.type.toLowerCase() === 'fail_gate' ? !value : value;
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
