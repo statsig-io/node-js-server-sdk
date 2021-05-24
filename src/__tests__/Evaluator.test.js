@@ -182,9 +182,9 @@ describe('Test condition evaluation', () => {
 
   const Evaluator = require('../Evaluator');
   jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-    if (gateName === 'gate_pass') return true;
+    if (gateName === 'gate_pass') return {value: true, rule_id: 'my_rule'};
     if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-    return false;
+    return {value: false, rule_id: 'default'};
   });
   jest.spyOn(Evaluator, 'ip2country').mockImplementation((ip) => 'US');
 
