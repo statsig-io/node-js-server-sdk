@@ -133,6 +133,16 @@ const statsig = {
    * @throws Error if initialize() was not called first
    */
   logEvent(user, eventName, value = null, metadata = null) {
+    this.logEventWithExtraOptions(user, eventName, value, metadata);
+  },
+
+  logEventWithExtraOptions(
+    user,
+    eventName,
+    value = null,
+    metadata = null,
+    extraOptions = null
+  ) {
     if (statsig._ready == null) {
       throw new Error(
         'statsigSDK::logEvent> Must call initialize() before logEvent().'
@@ -177,6 +187,11 @@ const statsig = {
     event.setUser(user);
     event.setValue(value);
     event.setMetadata(metadata);
+
+    if (typeof extraOptions?.timestamp === 'number') {
+      event.setTime(extraOptions.timestamp);
+    }
+
     statsig._logger.log(event);
   },
 

@@ -389,6 +389,23 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
+  test('Verify logEventWithExtraOptions can override timestamp', async () => {
+    const statsig = require('../index');
+    expect.assertions(1);
+    return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'log');
+      statsig.logEventWithExtraOptions(null, 'event', null, null, {
+        timestamp: 123,
+      });
+      const logEvent = new LogEvent('event');
+      logEvent.setMetadata(null);
+      logEvent.setUser(null);
+      logEvent.setValue(null);
+      logEvent.setTime(123);
+      expect(spy).toBeCalledWith(logEvent);
+    });
+  });
+
   test('Verify Event is logged without user', async () => {
     const statsig = require('../index');
     expect.assertions(1);
