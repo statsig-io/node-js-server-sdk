@@ -7,10 +7,10 @@ class ConfigSpec {
     this.salt = specJSON.salt;
     this.defaultValue = specJSON.defaultValue;
     this.enabled = specJSON.enabled;
-    this.rules = this.parseRules(specJSON.rules, this.salt);
+    this.rules = this.parseRules(specJSON.rules);
   }
 
-  parseRules(rulesJSON, salt) {
+  parseRules(rulesJSON) {
     var rules = [];
     for (let i = 0; i < rulesJSON.length; i++) {
       let rule = new ConfigRule(rulesJSON[i]);

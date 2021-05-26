@@ -53,10 +53,11 @@ const Evaluator = {
     if (config.enabled) {
       for (let i = 0; i < config.rules.length; i++) {
         let rule = config.rules[i];
-        if (this._evalRule(user, rule) === FETCH_FROM_SERVER) {
+        const result = this._evalRule(user, rule);
+        if (result === FETCH_FROM_SERVER) {
           return FETCH_FROM_SERVER;
         }
-        if (this._evalRule(user, rule) === true) {
+        if (result === true) {
           const pass = this._evalPassPercent(user, rule, config.salt);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
             ? new DynamicConfig(
@@ -64,7 +65,7 @@ const Evaluator = {
                 pass ? rule.returnValue : config.defaultValue,
                 rule.id
               )
-            : { value: pass ? true : false, rule_id: rule.id };
+            : { value: pass, rule_id: rule.id };
         }
       }
     }
@@ -91,12 +92,9 @@ const Evaluator = {
    */
   _evalRule(user, rule) {
     for (let i = 0; i < rule.conditions.length; i++) {
-      let condition = rule.conditions[i];
-      if (this._evalCondition(user, condition) === FETCH_FROM_SERVER) {
-        return FETCH_FROM_SERVER;
-      }
-      if (this._evalCondition(user, condition) === false) {
-        return false;
+      const result = this._evalCondition(user, rule.conditions[i]);
+      if (result !== true) {
+        return result;
       }
     }
     return true;
