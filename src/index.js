@@ -143,7 +143,7 @@ const statsig = {
 
   logEventObject(eventObject) {
     let eventName = eventObject.eventName;
-    let user = eventObject.user;
+    let user = eventObject.user || null;
     let value = eventObject.value || null;
     let metadata = eventObject.metadata || null;
     let time = eventObject.time || null;
