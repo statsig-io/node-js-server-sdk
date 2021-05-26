@@ -22,10 +22,6 @@ declare module 'statsig-node' {
     api?: string;
   };
 
-  export type LogEventExtraOptions = {
-    timestamp: number;
-  };
-
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
    * @param {string} secretKey - The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations
@@ -79,7 +75,7 @@ declare module 'statsig-node' {
     metadata?: Record<string, string>
   ): void;
 
-  export function logEventObject(event: LogEvent): void;
+  export function logEventObject(event: LogEventObject): void;
 
   /**
    * Checks to see if the SDK is in a ready state to check gates and configs
@@ -109,8 +105,8 @@ declare module 'statsig-node' {
     ): T;
   }
 
-  export class LogEvent {
-    eventName: string;
+  export type LogEventObject {
+    name: string;
     user: StatsigUser | null;
     value: string | number | null;
     time: number;

@@ -134,7 +134,7 @@ const statsig = {
    */
   logEvent(user, eventName, value = null, metadata = null) {
     this.logEventObject({
-      eventName: eventName,
+      name: eventName,
       user: user,
       value: value,
       metadata: metadata,
@@ -142,7 +142,7 @@ const statsig = {
   },
 
   logEventObject(event) {
-    let eventName = event.eventName;
+    let eventName = event.name;
     let user = event.user;
     let value = event.value || null;
     let metadata = event.metadata || null;

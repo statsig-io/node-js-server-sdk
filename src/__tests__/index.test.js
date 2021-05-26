@@ -389,13 +389,13 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify logEventWithExtraOptions can override timestamp', async () => {
+  test('Verify logEventObject can override timestamp', async () => {
     const statsig = require('../index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEventObject({
-        eventName: 'event',
+        name: 'event',
         time: 123,
       });
 
