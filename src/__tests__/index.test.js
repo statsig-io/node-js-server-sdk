@@ -395,7 +395,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       statsig.logEventObject({
-        name: 'event',
+        eventName: 'event',
         time: 123,
       });
 

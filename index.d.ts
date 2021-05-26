@@ -75,7 +75,7 @@ declare module 'statsig-node' {
     metadata?: Record<string, string>
   ): void;
 
-  export function logEventObject(event: LogEventObject): void;
+  export function logEventObject(eventObject: LogEventObject): void;
 
   /**
    * Checks to see if the SDK is in a ready state to check gates and configs
@@ -105,11 +105,11 @@ declare module 'statsig-node' {
     ): T;
   }
 
-  export type LogEventObject {
-    name: string;
+  export type LogEventObject = {
+    eventName: string;
     user: StatsigUser | null;
     value: string | number | null;
-    time: number;
+    time: number | null;
     metadata: Record<string, string> | null;
-  }
+  };
 }

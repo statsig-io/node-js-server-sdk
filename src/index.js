@@ -134,19 +134,19 @@ const statsig = {
    */
   logEvent(user, eventName, value = null, metadata = null) {
     this.logEventObject({
-      name: eventName,
+      eventName: eventName,
       user: user,
       value: value,
       metadata: metadata,
     });
   },
 
-  logEventObject(event) {
-    let eventName = event.name;
-    let user = event.user;
-    let value = event.value || null;
-    let metadata = event.metadata || null;
-    let time = event.time;
+  logEventObject(eventObject) {
+    let eventName = eventObject.eventName;
+    let user = eventObject.user;
+    let value = eventObject.value || null;
+    let metadata = eventObject.metadata || null;
+    let time = eventObject.time || null;
 
     if (statsig._ready == null) {
       throw new Error(
@@ -189,16 +189,16 @@ const statsig = {
       metadata = { error: 'not logged due to size too large' };
     }
 
-    let logEventObject = new LogEvent(eventName);
-    logEventObject.setUser(user);
-    logEventObject.setValue(value);
-    logEventObject.setMetadata(metadata);
+    let event = new LogEvent(eventName);
+    event.setUser(user);
+    event.setValue(value);
+    event.setMetadata(metadata);
 
     if (typeof time === 'number') {
-      logEventObject.setTime(time);
+      event.setTime(time);
     }
 
-    statsig._logger.log(logEventObject);
+    statsig._logger.log(event);
   },
 
   /**
