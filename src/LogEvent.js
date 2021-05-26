@@ -44,6 +44,16 @@ class LogEvent {
     this.metadata = clone(metadata);
   }
 
+  setTime(time) {
+    if (time != null && typeof time !== 'number') {
+      console.warn(
+        'statsigSDK>Timestamp is not set because it needs to be a number.'
+      );
+      return;
+    }
+    this.time = time;
+  }
+
   validate() {
     return typeof this.eventName === 'string' && this.eventName.length > 0;
   }

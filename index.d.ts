@@ -75,6 +75,8 @@ declare module 'statsig-node' {
     metadata?: Record<string, string>
   ): void;
 
+  export function logEventObject(eventObject: LogEventObject): void;
+
   /**
    * Checks to see if the SDK is in a ready state to check gates and configs
    * If the SDK is initializing or switching users, it is not in a ready state.
@@ -102,4 +104,12 @@ declare module 'statsig-node' {
       defaultValue: T
     ): T;
   }
+
+  export type LogEventObject = {
+    eventName: string;
+    user: StatsigUser | null;
+    value: string | number | null;
+    time: number | null;
+    metadata: Record<string, string> | null;
+  };
 }
