@@ -394,9 +394,11 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEventWithExtraOptions(null, 'event', null, null, {
-        timestamp: 123,
+      statsig.logEventObject({
+        eventName: 'event',
+        time: 123,
       });
+
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
       logEvent.setUser(null);

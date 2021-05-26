@@ -133,16 +133,21 @@ const statsig = {
    * @throws Error if initialize() was not called first
    */
   logEvent(user, eventName, value = null, metadata = null) {
-    this.logEventWithExtraOptions(user, eventName, value, metadata);
+    this.logEventObject({
+      eventName: eventName,
+      user: user,
+      value: value,
+      metadata: metadata,
+    });
   },
 
-  logEventWithExtraOptions(
-    user,
-    eventName,
-    value = null,
-    metadata = null,
-    extraOptions = null
-  ) {
+  logEventObject(event) {
+    let eventName = event.eventName;
+    let user = event.user;
+    let value = event.value || null;
+    let metadata = event.metadata || null;
+    let time = event.time;
+
     if (statsig._ready == null) {
       throw new Error(
         'statsigSDK::logEvent> Must call initialize() before logEvent().'
@@ -183,16 +188,17 @@ const statsig = {
       );
       metadata = { error: 'not logged due to size too large' };
     }
-    let event = new LogEvent(eventName);
-    event.setUser(user);
-    event.setValue(value);
-    event.setMetadata(metadata);
 
-    if (typeof extraOptions?.timestamp === 'number') {
-      event.setTime(extraOptions.timestamp);
+    let logEventObject = new LogEvent(eventName);
+    logEventObject.setUser(user);
+    logEventObject.setValue(value);
+    logEventObject.setMetadata(metadata);
+
+    if (typeof time === 'number') {
+      logEventObject.setTime(time);
     }
 
-    statsig._logger.log(event);
+    statsig._logger.log(logEventObject);
   },
 
   /**
