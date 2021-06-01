@@ -67,7 +67,7 @@ function LogEventProcessor(options, secretKey) {
           null,
           'log_event_failed',
           { error: e?.message || 'log_event_failed' },
-          this
+          this,
         );
       });
   };

@@ -13,7 +13,7 @@ class LogEvent {
   setUser(user) {
     if (user != null && typeof user !== 'object') {
       console.warn(
-        'statsigSDK> User is not set because it needs to be an object.'
+        'statsigSDK> User is not set because it needs to be an object.',
       );
       return;
     }
@@ -27,7 +27,7 @@ class LogEvent {
       typeof value !== 'number'
     ) {
       console.warn(
-        'statsigSDK> Value is not set because it needs to be of type string or number.'
+        'statsigSDK> Value is not set because it needs to be of type string or number.',
       );
       return;
     }
@@ -37,7 +37,7 @@ class LogEvent {
   setMetadata(metadata) {
     if (metadata != null && typeof metadata !== 'object') {
       console.warn(
-        'statsigSDK> Metadata is not set because it needs to be an object.'
+        'statsigSDK> Metadata is not set because it needs to be an object.',
       );
       return;
     }
@@ -47,7 +47,7 @@ class LogEvent {
   setTime(time) {
     if (time != null && typeof time !== 'number') {
       console.warn(
-        'statsigSDK>Timestamp is not set because it needs to be a number.'
+        'statsigSDK>Timestamp is not set because it needs to be a number.',
       );
       return;
     }

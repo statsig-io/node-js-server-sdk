@@ -40,13 +40,13 @@ describe('Verify behavior of SpecStore', () => {
     expect(Object.keys(SpecStore.store.gates).length).toEqual(2);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
     expect(SpecStore.store.gates[exampleConfigSpecs.gate.name]).toEqual(
-      new ConfigSpec(exampleConfigSpecs.gate)
+      new ConfigSpec(exampleConfigSpecs.gate),
     );
     expect(
-      SpecStore.store.gates[exampleConfigSpecs.disabled_gate.name]
+      SpecStore.store.gates[exampleConfigSpecs.disabled_gate.name],
     ).toEqual(new ConfigSpec(exampleConfigSpecs.disabled_gate));
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
-      new ConfigSpec(exampleConfigSpecs.config)
+      new ConfigSpec(exampleConfigSpecs.config),
     );
     expect(SpecStore.time).toEqual(Date.now());
     expect(SpecStore.initialized).toEqual(true);
@@ -83,16 +83,16 @@ describe('Verify behavior of SpecStore', () => {
     expect(Object.keys(SpecStore.store.gates).length).toEqual(3);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
     expect(SpecStore.store.gates[exampleConfigSpecs.gate.name]).toEqual(
-      new ConfigSpec(modifiedGate)
+      new ConfigSpec(modifiedGate),
     );
     expect(
-      SpecStore.store.gates[exampleConfigSpecs.disabled_gate.name]
+      SpecStore.store.gates[exampleConfigSpecs.disabled_gate.name],
     ).toEqual(new ConfigSpec(exampleConfigSpecs.disabled_gate));
     expect(
-      SpecStore.store.gates[exampleConfigSpecs.half_pass_gate.name]
+      SpecStore.store.gates[exampleConfigSpecs.half_pass_gate.name],
     ).toEqual(new ConfigSpec(exampleConfigSpecs.half_pass_gate));
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
-      new ConfigSpec(exampleConfigSpecs.config)
+      new ConfigSpec(exampleConfigSpecs.config),
     );
     expect(SpecStore.time).toEqual(timeAfterFirstSync);
     expect(SpecStore.initialized).toEqual(true);

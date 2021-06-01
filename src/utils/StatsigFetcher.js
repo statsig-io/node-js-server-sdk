@@ -24,8 +24,8 @@ const fetcher = {
     if (counter != null && counter >= 1000) {
       return Promise.reject(
         new Error(
-          'Request failed because you are making the same request too frequently.'
-        )
+          'Request failed because you are making the same request too frequently.',
+        ),
       );
     }
     if (counter == null) {
@@ -50,19 +50,19 @@ const fetcher = {
                 setTimeout(() => {
                   fetcher.leakyBucket[url] = Math.max(
                     fetcher.leakyBucket[url] - 1,
-                    0
+                    0,
                   );
                   this.post(url, sdkKey, body, retries - 1, backoff * 2)
                     .then(resolve)
                     .catch(reject);
-                }, backoff)
+                }, backoff),
               );
             });
           } else {
             return Promise.reject(
               new Error(
-                'Request to ' + url + ' failed with status ' + res.status
-              )
+                'Request to ' + url + ' failed with status ' + res.status,
+              ),
             );
           }
         }

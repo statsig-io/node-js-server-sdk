@@ -63,7 +63,7 @@ const Evaluator = {
             ? new DynamicConfig(
                 config.name,
                 pass ? rule.returnValue : config.defaultValue,
-                rule.id
+                rule.id,
               )
             : { value: pass, rule_id: rule.id };
         }

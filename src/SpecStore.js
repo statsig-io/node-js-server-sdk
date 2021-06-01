@@ -18,7 +18,7 @@ const SpecStore = {
         {
           statsigMetadata: getStatsigMetadata(),
         },
-        20
+        20,
       );
       const specsJSON = await response.json();
       this._process(specsJSON);
@@ -40,7 +40,7 @@ const SpecStore = {
         {
           statsigMetadata: getStatsigMetadata(),
           sinceTime: this.time,
-        }
+        },
       );
       const specsJSON = await response.json();
       this._process(specsJSON);

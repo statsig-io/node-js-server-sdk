@@ -31,7 +31,7 @@ declare module 'statsig-node' {
    */
   export function initialize(
     secretKey: string,
-    options?: StatsigOptions
+    options?: StatsigOptions,
   ): Promise<void>;
 
   /**
@@ -44,7 +44,7 @@ declare module 'statsig-node' {
    */
   export function checkGate(
     user: StatsigUser,
-    gateName: string
+    gateName: string,
   ): Promise<boolean>;
 
   /**
@@ -57,7 +57,7 @@ declare module 'statsig-node' {
    */
   export function getConfig(
     user: StatsigUser,
-    configName: string
+    configName: string,
   ): Promise<DynamicConfig>;
 
   /**
@@ -72,7 +72,7 @@ declare module 'statsig-node' {
     user: StatsigUser | null,
     name: string,
     value?: string | number,
-    metadata?: Record<string, string>
+    metadata?: Record<string, string>,
   ): void;
 
   export function logEventObject(eventObject: LogEventObject): void;
@@ -97,11 +97,11 @@ declare module 'statsig-node' {
     value: object;
     getValue(
       key: string,
-      defaultValue: any | null
+      defaultValue: any | null,
     ): boolean | number | string | object | Array<any> | null;
     get<T extends boolean | number | string | object | Array<any>>(
       key: string,
-      defaultValue: T
+      defaultValue: T,
     ): T;
   }
 

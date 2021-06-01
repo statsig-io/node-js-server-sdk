@@ -18,7 +18,7 @@ describe('Verify behavior of DynamicConfig', () => {
       numberStr3: '3.3.3',
       arr: [1, 2, 'three'],
     },
-    'default'
+    'default',
   );
 
   beforeEach(() => {
@@ -148,7 +148,7 @@ describe('Verify behavior of DynamicConfig', () => {
     expect(dummyConfig.getValue()).toEqual({});
     expect(dummyConfig.getValue('test_field')).toEqual(null);
     expect(dummyConfig.getValue('str', 'default_value')).toEqual(
-      'default_value'
+      'default_value',
     );
     expect(dummyConfig.getValue('bool', true)).toEqual(true);
     expect(dummyConfig.getValue('number', 1.234)).toEqual(1.234);

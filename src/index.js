@@ -40,8 +40,8 @@ const statsig = {
     ) {
       return Promise.reject(
         new Error(
-          'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
-        )
+          'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+        ),
       );
     }
     statsig._ready = false;
@@ -51,7 +51,7 @@ const statsig = {
 
     statsig._pendingInitPromise = Evaluator.init(
       statsig._options,
-      statsig._secretKey
+      statsig._secretKey,
     ).finally(() => {
       statsig._ready = true;
       statsig._pendingInitPromise = null;
@@ -115,7 +115,7 @@ const statsig = {
           user,
           configName,
           config.getRuleID(),
-          statsig._logger
+          statsig._logger,
         );
         return Promise.resolve(config);
       })
@@ -150,18 +150,18 @@ const statsig = {
 
     if (statsig._ready == null) {
       throw new Error(
-        'statsigSDK::logEvent> Must call initialize() before logEvent().'
+        'statsigSDK::logEvent> Must call initialize() before logEvent().',
       );
     }
     if (typeof eventName !== 'string' || eventName.length === 0) {
       console.error(
-        'statsigSDK::logEvent> Must provide a valid string for the eventName.'
+        'statsigSDK::logEvent> Must provide a valid string for the eventName.',
       );
       return;
     }
     if (!isUserIdentifiable(user)) {
       console.warn(
-        'statsigSDK::logEvent> A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.'
+        'statsigSDK::logEvent> A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.',
       );
     }
     user = trimUserObjIfNeeded(user);
@@ -169,7 +169,7 @@ const statsig = {
       console.warn(
         'statsigSDK::logEvent> eventName is too long, trimming to ' +
           MAX_VALUE_SIZE +
-          '.'
+          '.',
       );
       eventName = eventName.substring(0, MAX_VALUE_SIZE);
     }
@@ -177,14 +177,14 @@ const statsig = {
       console.warn(
         'statsigSDK::logEvent> value is too long, trimming to ' +
           MAX_VALUE_SIZE +
-          '.'
+          '.',
       );
       value = value.substring(0, MAX_VALUE_SIZE);
     }
 
     if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
       console.warn(
-        'statsigSDK::logEvent> metadata is too big. Dropping the metadata.'
+        'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
       );
       metadata = { error: 'not logged due to size too large' };
     }
@@ -239,7 +239,7 @@ const statsig = {
           gateName: gateName,
           statsigMetadata: getStatsigMetadata(),
         }),
-        5000
+        5000,
       )
       .then((res) => {
         return res.json();
@@ -261,14 +261,14 @@ const statsig = {
           configName: configName,
           statsigMetadata: getStatsigMetadata(),
         },
-        5000
+        5000,
       )
       .then((res) => {
         return res.json();
       })
       .then((resJSON) => {
         return Promise.resolve(
-          new DynamicConfig(configName, resJSON.value, resJSON.rule_id)
+          new DynamicConfig(configName, resJSON.value, resJSON.rule_id),
         );
       });
   },
@@ -288,7 +288,7 @@ function trimUserObjIfNeeded(user) {
   if (user == null) return user;
   if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
-      'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE
+      'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
     );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
   }
@@ -296,12 +296,12 @@ function trimUserObjIfNeeded(user) {
     user.custom = {};
     if (shouldTrimParam(user, MAX_OBJ_SIZE)) {
       console.warn(
-        'statsigSDK> User object is too large, only keeping the user ID.'
+        'statsigSDK> User object is too large, only keeping the user ID.',
       );
       user = { userID: user.userID };
     } else {
       console.warn(
-        'statsigSDK> User object is too large, dropping the custom property.'
+        'statsigSDK> User object is too large, dropping the custom property.',
       );
     }
   }

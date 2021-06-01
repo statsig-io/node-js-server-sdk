@@ -9,7 +9,7 @@ function logGateExposure(user, gateName, gateValue, ruleID, eventProcessor) {
     user,
     GATE_EXPOSURE_EVENT,
     { gate: gateName, gateValue: String(gateValue), ruleID: ruleID },
-    eventProcessor
+    eventProcessor,
   );
 }
 
@@ -18,7 +18,7 @@ function logConfigExposure(user, configName, ruleID, eventProcessor) {
     user,
     CONFIG_EXPOSURE_EVENT,
     { config: configName, ruleID: ruleID },
-    eventProcessor
+    eventProcessor,
   );
 }
 

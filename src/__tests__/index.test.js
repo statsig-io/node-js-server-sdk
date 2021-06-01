@@ -49,8 +49,8 @@ describe('Verify behavior of top level index functions', () => {
     // @ts-ignore intentionally testing incorrect param type
     return expect(statsig.initialize()).rejects.toEqual(
       new Error(
-        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
-      )
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+      ),
     );
   });
 
@@ -58,19 +58,19 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     return expect(statsig.initialize('')).rejects.toEqual(
       new Error(
-        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
-      )
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+      ),
     );
   });
 
   test('Verify initialize() returns an error when a client key is provided', async () => {
     const statsig = require('../index');
     return expect(
-      statsig.initialize('client-abcdefg1234567890')
+      statsig.initialize('client-abcdefg1234567890'),
     ).rejects.toEqual(
       new Error(
-        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk'
-      )
+        'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+      ),
     );
   });
 
@@ -80,7 +80,7 @@ describe('Verify behavior of top level index functions', () => {
     expect(() => {
       statsig.logEvent({ userID: '12345' }, 'my_event');
     }).toThrowError(
-      'statsigSDK::logEvent> Must call initialize() before logEvent().'
+      'statsigSDK::logEvent> Must call initialize() before logEvent().',
     );
   });
 
@@ -89,7 +89,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
 
     await expect(
-      statsig.checkGate({ userID: '12345' }, 'my_gate')
+      statsig.checkGate({ userID: '12345' }, 'my_gate'),
     ).rejects.toEqual(new Error('Must call initialize() first.'));
     expect(statsig._logger).toBeFalsy();
   });
@@ -125,7 +125,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate(null)).rejects.toEqual(
-        new Error('Must pass a valid gateName to check')
+        new Error('Must pass a valid gateName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -139,7 +139,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate({}, 12)).rejects.toEqual(
-        new Error('Must pass a valid gateName to check')
+        new Error('Must pass a valid gateName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -153,7 +153,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({})).rejects.toEqual(
-        new Error('Must pass a valid configName to check')
+        new Error('Must pass a valid configName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -167,7 +167,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({}, false)).rejects.toEqual(
-        new Error('Must pass a valid configName to check')
+        new Error('Must pass a valid configName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -199,7 +199,7 @@ describe('Verify behavior of top level index functions', () => {
     });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
-      true
+      true,
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(gateExposure);
@@ -231,7 +231,7 @@ describe('Verify behavior of top level index functions', () => {
     });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
-      true
+      true,
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(gateExposure);
@@ -263,7 +263,7 @@ describe('Verify behavior of top level index functions', () => {
     });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
-      false
+      false,
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(gateExposure);
@@ -312,7 +312,7 @@ describe('Verify behavior of top level index functions', () => {
           string: '12345',
           number: 12345,
         },
-        'rule_id_config'
+        'rule_id_config',
       );
     });
     await statsig.initialize(secretKey);

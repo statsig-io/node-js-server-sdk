@@ -37,7 +37,7 @@ class Dispatcher {
         markCompleted(entry);
         entry.rejecter(err);
         return err;
-      }
+      },
     );
 
     return dispatcherPromise;
