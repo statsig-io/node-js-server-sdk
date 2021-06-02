@@ -1,8 +1,11 @@
 const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
 const LogEvent = require('./LogEvent');
-const { logStatsigInternal } = require('./utils/logging');
 const fetcher = require('./utils/StatsigFetcher');
+
+const CONFIG_EXPOSURE_EVENT = 'config_exposure';
+const GATE_EXPOSURE_EVENT = 'gate_exposure';
+const INTERNAL_EVENT_PREFIX = 'statsig::';
 
 function LogEventProcessor(options, secretKey) {
   const processor = {};
@@ -63,13 +66,47 @@ function LogEventProcessor(options, secretKey) {
     fetcher
       .post(options.api + '/log_event', secretKey, body, 13, 10000)
       .catch((e) => {
-        logStatsigInternal(
-          null,
-          'log_event_failed',
-          { error: e?.message || 'log_event_failed' },
-          this,
-        );
+        processor.logStatsigInternal(null, 'log_event_failed', {
+          error: e?.message || 'log_event_failed',
+        });
       });
+  };
+
+  processor.logStatsigInternal = function (user, eventName, metadata) {
+    let event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
+    if (user != null) {
+      event.setUser(user);
+    }
+
+    if (metadata != null) {
+      event.setMetadata(metadata);
+    }
+
+    if (metadata?.error != null) {
+      processor.log(event, eventName + metadata.error);
+    } else {
+      processor.log(event);
+    }
+  };
+
+  processor.logGateExposure = function (
+    user,
+    gateName,
+    gateValue,
+    ruleID = '',
+  ) {
+    processor.logStatsigInternal(user, GATE_EXPOSURE_EVENT, {
+      gate: gateName,
+      gateValue: String(gateValue),
+      ruleID: ruleID,
+    });
+  };
+
+  processor.logConfigExposure = function (user, configName, ruleID = '') {
+    processor.logStatsigInternal(user, CONFIG_EXPOSURE_EVENT, {
+      config: configName,
+      ruleID: ruleID,
+    });
   };
 
   function resetFlushTimeout() {

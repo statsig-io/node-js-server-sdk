@@ -1,7 +1,6 @@
 const fetcher = require('./utils/StatsigFetcher');
 const { DynamicConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
-const { logConfigExposure, logGateExposure } = require('./utils/logging');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
 const Evaluator = require('./Evaluator');
@@ -77,14 +76,12 @@ const statsig = {
     user = trimUserObjIfNeeded(user);
     return this._getGateValue(user, gateName)
       .then((gate) => {
-        if (gate == null) {
-          return Promise.resolve(false);
-        }
-        const value = gate.value ?? false;
-        logGateExposure(user, gateName, value, gate.rule_id, statsig._logger);
+        const value = gate?.value ?? false;
+        statsig._logger.logGateExposure(user, gateName, value, gate.rule_id);
         return Promise.resolve(value);
       })
       .catch(() => {
+        statsig._logger.logGateExposure(user, gateName, false);
         return Promise.resolve(false);
       });
   },
@@ -109,17 +106,13 @@ const statsig = {
     return this._getConfigValue(user, configName)
       .then((config) => {
         if (config == null) {
-          return new DynamicConfig(configName);
+          config = new DynamicConfig(configName);
         }
-        logConfigExposure(
-          user,
-          configName,
-          config.getRuleID(),
-          statsig._logger,
-        );
+        statsig._logger.logConfigExposure(user, configName, config.getRuleID());
         return Promise.resolve(config);
       })
       .catch(() => {
+        statsig._logger.logConfigExposure(user, configName);
         return Promise.resolve(new DynamicConfig(configName));
       });
   },

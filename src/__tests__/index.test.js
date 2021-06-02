@@ -355,7 +355,7 @@ describe('Verify behavior of top level index functions', () => {
       expect(data).toEqual(config);
     });
 
-    expect(spy).toHaveBeenCalledTimes(0);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {
