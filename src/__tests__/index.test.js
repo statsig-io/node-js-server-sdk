@@ -401,7 +401,7 @@ describe('Verify behavior of top level index functions', () => {
 
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
-      logEvent.setUser(null);
+      logEvent.setUser({});
       logEvent.setValue(null);
       logEvent.setTime(123);
       expect(spy).toBeCalledWith(logEvent);

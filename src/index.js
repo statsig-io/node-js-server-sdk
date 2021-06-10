@@ -278,7 +278,13 @@ function shouldTrimParam(obj, size) {
 }
 
 function normalizeUser(user) {
-  if (user == null) return user;
+  user = trimUserObjIfNeeded(user);
+  user['statsigEnvironment'] = statsig._options?.environment;
+  return user;
+}
+
+function trimUserObjIfNeeded(user) {
+  if (user == null) return {};
   if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
       'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
@@ -298,7 +304,6 @@ function normalizeUser(user) {
       );
     }
   }
-  user['statsigEnvironment'] = statsig._options?.environment;
   return user;
 }
 
