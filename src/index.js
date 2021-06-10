@@ -8,7 +8,6 @@ const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
 const { FETCH_FROM_SERVER } = require('./ConfigSpec');
-const { getConfig } = require('./Evaluator');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
