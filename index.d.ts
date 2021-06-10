@@ -24,14 +24,9 @@ declare module 'statsig-node' {
   };
 
   export type StatsigEnvironment = {
-    tier?: EnvironmentTier;
+    tier?: 'production' | 'staging' | 'development';
+    [key: string]: string;
   };
-
-  export enum EnvironmentTier {
-    Development = 'development',
-    Staging = 'staging',
-    Production = 'production',
-  }
 
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
