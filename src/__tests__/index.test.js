@@ -106,6 +106,16 @@ describe('Verify behavior of top level index functions', () => {
     expect(statsig._logger).toBeFalsy();
   });
 
+  test('Verify cannot call getExperiment() before initialize()', async () => {
+    const statsig = require('../index');
+    expect.assertions(2);
+
+    await statsig
+      .getExperiment({ userID: '12345' }, 'my_exp')
+      .catch((e) => expect(e.message).toMatch('Must call initialize() first.'));
+    expect(statsig._logger).toBeFalsy();
+  });
+
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
@@ -147,9 +157,9 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify cannot call getConfig() with no config name', () => {
+  test('Verify cannot call getConfig() or getExperiment() with no config name', () => {
     const statsig = require('../index');
-    expect.assertions(2);
+    expect.assertions(3);
 
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
@@ -157,19 +167,27 @@ describe('Verify behavior of top level index functions', () => {
       expect(statsig.getConfig({})).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
       );
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.getExperiment({})).rejects.toEqual(
+        new Error('Must pass a valid experimentName to check'),
+      );
       expect(spy).toHaveBeenCalledTimes(0);
     });
   });
 
   test('Verify cannot call getConfig() with invalid config name', () => {
     const statsig = require('../index');
-    expect.assertions(2);
+    expect.assertions(3);
 
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({}, false)).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
+      );
+      // @ts-ignore intentionally testing incorrect param type
+      expect(statsig.getExperiment({}, false)).rejects.toEqual(
+        new Error('Must pass a valid experimentName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -278,8 +296,8 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify when Evaluator fails to evaluate, getConfig() returns correct value and logs an exposure correctly after fetching from server', async () => {
-    expect.assertions(4);
+  test('Verify when Evaluator fails to evaluate, getConfig() and getExperiment() return correct value and logs an exposure correctly after fetching from server', async () => {
+    expect.assertions(6);
 
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
@@ -305,12 +323,17 @@ describe('Verify behavior of top level index functions', () => {
       expect(data.getValue('string')).toStrictEqual('123');
     });
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    await statsig.getExperiment(user, configName).then((data) => {
+      expect(data.getValue('number')).toStrictEqual(123);
+      expect(data.getValue('string')).toStrictEqual('123');
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
     expect(spy).toHaveBeenCalledWith(configExposure);
   });
 
-  test('Verify when Evaluator evaluates successfully, getConfig() returns correct value and logs an exposure', async () => {
-    expect.assertions(4);
+  test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
+    expect.assertions(6);
 
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
@@ -342,12 +365,17 @@ describe('Verify behavior of top level index functions', () => {
       expect(data.getValue('string')).toStrictEqual('12345');
     });
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    await statsig.getExperiment(user, configName).then((data) => {
+      expect(data.getValue('number')).toStrictEqual(12345);
+      expect(data.getValue('string')).toStrictEqual('12345');
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
     expect(spy).toHaveBeenCalledWith(configExposure);
   });
 
-  test('that getConfig() returns an empty DynamicConfig when the config name does not exist', async () => {
-    expect.assertions(2);
+  test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
+    expect.assertions(3);
 
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
@@ -364,7 +392,11 @@ describe('Verify behavior of top level index functions', () => {
       expect(data).toEqual(config);
     });
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    await statsig.getExperiment({}, configName).then((data) => {
+      expect(data).toEqual(config);
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {

@@ -8,6 +8,7 @@ const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
 const { FETCH_FROM_SERVER } = require('./ConfigSpec');
+const { getConfig } = require('./Evaluator');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -115,6 +116,26 @@ const statsig = {
         statsig._logger.logConfigExposure(user, configName);
         return Promise.resolve(new DynamicConfig(configName));
       });
+  },
+
+  /**
+   * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
+   * @param {string} experimentName - the name of the experiment to get
+   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config
+   * @throws Error if initialize() was not called first
+   * @throws Error if the experimentName is not provided or not a non-empty string
+   */
+  getExperiment(user, experimentName) {
+    if (statsig._ready !== true) {
+      return Promise.reject(new Error('Must call initialize() first.'));
+    }
+    if (typeof experimentName !== 'string' || experimentName.length === 0) {
+      return Promise.reject(
+        new Error('Must pass a valid experimentName to check'),
+      );
+    }
+    return this.getConfig(user, experimentName);
   },
 
   /**
