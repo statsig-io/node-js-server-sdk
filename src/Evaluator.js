@@ -136,6 +136,9 @@ const Evaluator = {
       case 'user_field':
         value = getFromUser(user, field);
         break;
+      case 'environment_field':
+        value = getFromEnvironment(user, field);
+        break;
       case 'current_time':
         value = Date.now();
         break;
@@ -177,15 +180,9 @@ const Evaluator = {
 
       // array
       case 'any':
-        if (Array.isArray(target)) {
-          return target.includes(value);
-        }
-        return false;
+        return arrayContains(target, value);
       case 'none':
-        if (Array.isArray(target)) {
-          return !target.includes(value);
-        }
-        return false;
+        return !arrayContains(target, value);
 
       // string
       case 'str_starts_with_any':
@@ -270,7 +267,12 @@ function getFromUser(user, field) {
   if (typeof user !== 'object') {
     return null;
   }
-  return user?.[field] ?? user?.custom?.[field] ?? null;
+  return (
+    user?.[field] ??
+    user?.[field.toLowerCase()] ??
+    user?.custom?.[field] ??
+    user?.custom?.[field.toLowerCase]
+  );
 }
 
 function getFromIP(user, field) {
@@ -298,6 +300,13 @@ function getFromUserAgent(user, field) {
   };
 
   return val[field.toLowerCase()];
+}
+
+function getFromEnvironment(user, field) {
+  return (
+    user?.statsigEnvironment?.[field] ??
+    user?.statsigEnvironment?.[field.toLowerCase()]
+  );
 }
 
 function numberCompare(fn) {
@@ -345,6 +354,25 @@ function dateCompare(fn) {
       return false;
     }
   };
+}
+
+function arrayContains(array, value) {
+  if (!Array.isArray(array)) {
+    return false;
+  }
+  for (let i = 0; i < array.length; i++) {
+    if (
+      typeof array[i] === 'string' &&
+      typeof value === 'string' &&
+      array[i].toLowerCase() === value.toLowerCase()
+    ) {
+      return true;
+    }
+    if (array[i] === value) {
+      return true;
+    }
+  }
+  return false;
 }
 
 module.exports = Evaluator;

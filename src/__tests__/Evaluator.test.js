@@ -14,6 +14,9 @@ describe('Test condition evaluation', () => {
       level: 99,
       registration_date: baseTimeStr
     },
+    statsigEnvironment: {
+      tier: 'production'
+    }
   }
 
   const user2 = {
@@ -24,6 +27,9 @@ describe('Test condition evaluation', () => {
       company: 'Statsig',
       level: 99,
     },
+    statsigEnvironment: {
+      tier: 'staging'
+    }
   }
 
   const params = [
@@ -163,6 +169,12 @@ describe('Test condition evaluation', () => {
             
     ['user_field',         'on',             {reason: 'test_malformated_str'}, 'registration_date', {custom: {registration_date: 'just_because'}}, false],
     ['user_field',         'on',             [1,2,3],    'registration_date', {custom: {registration_date: false}}, false],
+
+    // environment_field
+    ['environment_field',  'any',            ['production', 'Staging'], 'tier',   user,   true],
+    ['environment_field',  'any',            ['production', 'Staging'], 'tier',   user2,  true],
+    ['environment_field',  'any',            ['production'],            'tier',   user2,  false],
+    ['environment_field',  'none',           ['production'],            'tier',   user2,  true],
 
     ['current_time',       'after',          Date.now() + 1000, null,             user, false],
     ['current_time',       'after',          Date.now() - 1000, null,             user, true],

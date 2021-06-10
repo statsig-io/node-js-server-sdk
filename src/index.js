@@ -298,6 +298,7 @@ function trimUserObjIfNeeded(user) {
       );
     }
   }
+  user['statsigEnvironment'] = statsig._options?.environment;
   return user;
 }
 
