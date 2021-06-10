@@ -183,6 +183,12 @@ describe('Test condition evaluation', () => {
     ['current_time',       'on',             Date.now() + 100, null,              user, true],
     ['current_time',       'on',             Date.now() + 24 * 3600 * 1000, null,              user, false],
     ['current_time',       'on',             Date.now() - 24 * 3600 * 1000, null,              user, false],
+
+    // user bucket
+    ['user_bucket',        'lt',              1000,            null,              { userID: 1},  false, { salt:'himalayan salt' }],
+    ['user_bucket',        'lt',              1000,            null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'gt',              8800,            null,              { userID: 1},  true, { salt:'himalayan salt' }],
+    ['user_bucket',        'gt',              8800,            null,              { userID: 18}, false,  { salt:'himalayan salt' }],
    
     // some random type not implemented yet
     ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
@@ -212,6 +218,7 @@ describe('Test condition evaluation', () => {
         operator: p[1],
         targetValue: p[2],
         field: p[3],
+        addtionalValues: p[6], // optional and does not exist for most conditions
       }
       const condition = new ConfigCondition(json);
       expect(Evaluator._evalCondition(p[4], condition)).toEqual(p[5]);

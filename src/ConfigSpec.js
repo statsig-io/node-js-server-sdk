@@ -45,6 +45,7 @@ class ConfigCondition {
     this.targetValue = conditionJSON.targetValue;
     this.operator = conditionJSON.operator;
     this.field = conditionJSON.field;
+    this.additionalValues = conditionJSON.additionalValues;
   }
 }
 
