@@ -73,7 +73,7 @@ const statsig = {
     if (typeof gateName !== 'string' || gateName.length === 0) {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
-    user = trimUserObjIfNeeded(user);
+    user = normalizeUser(user);
     return this._getGateValue(user, gateName)
       .then((gate) => {
         const value = gate?.value ?? false;
@@ -101,7 +101,7 @@ const statsig = {
     if (typeof configName !== 'string' || configName.length === 0) {
       return Promise.reject(new Error('Must pass a valid configName to check'));
     }
-    user = trimUserObjIfNeeded(user);
+    user = normalizeUser(user);
 
     return this._getConfigValue(user, configName)
       .then((config) => {
@@ -157,7 +157,7 @@ const statsig = {
         'statsigSDK::logEvent> A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.',
       );
     }
-    user = trimUserObjIfNeeded(user);
+    user = normalizeUser(user);
     if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
       console.warn(
         'statsigSDK::logEvent> eventName is too long, trimming to ' +
@@ -277,7 +277,7 @@ function shouldTrimParam(obj, size) {
   return false;
 }
 
-function trimUserObjIfNeeded(user) {
+function normalizeUser(user) {
   if (user == null) return user;
   if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
