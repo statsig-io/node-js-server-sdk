@@ -25,6 +25,7 @@ declare module 'statsig-node' {
 
   export type StatsigEnvironment = {
     tier?: 'production' | 'staging' | 'development';
+    [key: string]: string;
   };
 
   /**
