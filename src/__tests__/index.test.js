@@ -2,7 +2,6 @@ const { DynamicConfig } = require('../DynamicConfig');
 
 describe('Verify behavior of top level index functions', () => {
   const LogEvent = require('../LogEvent');
-  const fetch = require('node-fetch');
   const { FETCH_FROM_SERVER } = require('../ConfigSpec');
   jest.mock('node-fetch', () => jest.fn());
   const secretKey = 'secret-key';
@@ -11,6 +10,9 @@ describe('Verify behavior of top level index functions', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.resetModules();
+
+    const fetch = require('node-fetch');
     fetch.mockImplementation((url) => {
       if (url.includes('check_gate')) {
         return Promise.resolve({
@@ -121,8 +123,8 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
 
-    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate(null)).rejects.toEqual(
         new Error('Must pass a valid gateName to check'),
@@ -135,8 +137,8 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
 
-    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate({}, 12)).rejects.toEqual(
         new Error('Must pass a valid gateName to check'),
@@ -149,8 +151,8 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
 
-    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({})).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
@@ -163,8 +165,8 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     expect.assertions(2);
 
-    const spy = jest.spyOn(statsig._logger, 'log');
     return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({}, false)).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
@@ -248,14 +250,21 @@ describe('Verify behavior of top level index functions', () => {
       if (gateName === 'gate_server') return FETCH_FROM_SERVER;
       return { value: false, rule_id: 'rule_id_fail' };
     });
-    await statsig.initialize(secretKey);
+
+    // also set and verify environment is passed on to user as statsigEnvironment
+    await statsig.initialize(secretKey, {
+      environment: { tier: 'production' },
+    });
 
     let user = { userID: 123 };
     let gateName = 'gate_fail';
 
     const spy = jest.spyOn(statsig._logger, 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
-    gateExposure.setUser(user);
+    gateExposure.setUser({
+      userID: 123,
+      statsigEnvironment: { tier: 'production' },
+    });
     gateExposure.setMetadata({
       gate: gateName,
       gateValue: String(false),
@@ -401,7 +410,7 @@ describe('Verify behavior of top level index functions', () => {
 
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
-      logEvent.setUser(null);
+      logEvent.setUser({});
       logEvent.setValue(null);
       logEvent.setTime(123);
       expect(spy).toBeCalledWith(logEvent);
@@ -473,6 +482,7 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify shutdown makes the SDK not ready', async () => {
     const statsig = require('../index');
+    const fetch = require('node-fetch');
     expect.assertions(2);
     fetch.mockImplementation(() => Promise.resolve({}));
     return statsig.initialize(secretKey).then(() => {

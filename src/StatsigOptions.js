@@ -4,11 +4,13 @@ module.exports = function StatsigOptions(inputOptions) {
   if (inputOptions == null || inputOptions == {}) {
     return {
       api: DEFAULT_API,
+      environment: null,
     };
   }
 
   const statsigOptions = {
     api: getString('api', DEFAULT_API),
+    environment: inputOptions['environment'],
   };
 
   function getString(index, defaultValue) {
