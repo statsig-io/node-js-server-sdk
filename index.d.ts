@@ -69,7 +69,7 @@ declare module 'statsig-node' {
   /**
    * Gets the experiment for a given user
    * @param {StatsigUser} user - the user to evaluate for the experiment
-   * @param {string} configName - the name of the experiment to get
+   * @param {string} experimentName - the name of the experiment to get
    * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
    * @throws Error if the experimentName is not provided or not a non-empty string
