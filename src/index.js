@@ -11,6 +11,7 @@ const { FETCH_FROM_SERVER } = require('./ConfigSpec');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
+let hasLoggedNoUserIdWarning = false;
 
 /**
  * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
@@ -152,9 +153,10 @@ const statsig = {
       );
       return;
     }
-    if (!isUserIdentifiable(user)) {
+    if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
+      hasLoggedNoUserIdWarning = true;
       console.warn(
-        'statsigSDK::logEvent> A user object with a valid userID was not provided. Event will be logged but not associated with an identifiable user.',
+        'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
       );
     }
     user = trimUserObjIfNeeded(user);
