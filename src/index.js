@@ -119,6 +119,26 @@ const statsig = {
   },
 
   /**
+   * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
+   * @param {string} experimentName - the name of the experiment to get
+   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config
+   * @throws Error if initialize() was not called first
+   * @throws Error if the experimentName is not provided or not a non-empty string
+   */
+  getExperiment(user, experimentName) {
+    if (statsig._ready !== true) {
+      return Promise.reject(new Error('Must call initialize() first.'));
+    }
+    if (typeof experimentName !== 'string' || experimentName.length === 0) {
+      return Promise.reject(
+        new Error('Must pass a valid experimentName to check'),
+      );
+    }
+    return this.getConfig(user, experimentName);
+  },
+
+  /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment
    * @param {typedefs.StatsigUser} user - the user associated with this event
    * @param {string} eventName - the name of the event (name = Purchase)

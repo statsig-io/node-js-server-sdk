@@ -67,6 +67,19 @@ declare module 'statsig-node' {
   ): Promise<DynamicConfig>;
 
   /**
+   * Gets the experiment for a given user
+   * @param {StatsigUser} user - the user to evaluate for the experiment
+   * @param {string} experimentName - the name of the experiment to get
+   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
+   * @throws Error if initialize() was not called first
+   * @throws Error if the experimentName is not provided or not a non-empty string
+   */
+  export function getExperiment(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig>;
+
+  /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment
    * @param {StatsigUser} user - the user associated with this event
    * @param {string} eventName - the name of the event (name = Purchase)
