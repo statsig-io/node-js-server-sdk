@@ -1,7 +1,7 @@
 const DEFAULT_API = 'https://api.statsig.com/v1';
 
 module.exports = function StatsigOptions(inputOptions) {
-  if (inputOptions == null || inputOptions == {}) {
+  if (inputOptions == null) {
     return {
       api: DEFAULT_API,
       bootstrapValues: null,
