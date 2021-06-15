@@ -1,7 +1,6 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
-const StatsigOptions = require('./StatsigOptions');
 
 const SYNC_INTERVAL = 10 * 1000;
 
@@ -51,7 +50,12 @@ const SpecStore = {
       const processResult = this._process(JSON.parse(specsString));
       if (processResult) {
         this.bootstrapValues = specsString;
-        this?.rulesUpdatedCallback(specsString, this.time);
+        if (
+          this.rulesUpdatedCallback != null &&
+          typeof this.rulesUpdatedCallback === 'function'
+        ) {
+          this.rulesUpdatedCallback(specsString, this.time);
+        }
       }
     } catch (e) {
       // TODO: log
@@ -62,7 +66,7 @@ const SpecStore = {
     }, this.syncInterval);
   },
 
-  // returns a boolean indicating whether specsJSON was successfully parsed
+  // returns a boolean indicating whether specsJSON has was successfully parsed
   _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
     if (!specsJSON?.has_updates) {
