@@ -12,20 +12,22 @@ describe('Verify behavior of SpecStore', () => {
     SpecStore = require('../SpecStore');
     fetch = require('node-fetch');
     jest.mock('node-fetch', () => jest.fn());
+
+    const jsonResponse = {
+      time: Date.now(),
+      feature_gates: [
+        exampleConfigSpecs.gate,
+        exampleConfigSpecs.disabled_gate,
+      ],
+      dynamic_configs: [exampleConfigSpecs.config],
+      has_updates: true,
+    };
     fetch.mockImplementation((url) => {
       if (url.includes('download_config_specs')) {
         return Promise.resolve({
           ok: true,
-          json: () =>
-            Promise.resolve({
-              time: Date.now(),
-              feature_gates: [
-                exampleConfigSpecs.gate,
-                exampleConfigSpecs.disabled_gate,
-              ],
-              dynamic_configs: [exampleConfigSpecs.config],
-              has_updates: true,
-            }),
+          json: () => Promise.resolve(jsonResponse),
+          text: () => Promise.resolve(JSON.stringify(jsonResponse)),
         });
       }
       return Promise.reject();
@@ -57,21 +59,22 @@ describe('Verify behavior of SpecStore', () => {
     modifiedGate.enabled = false;
     const timeAfterFirstSync = Date.now() + 1000;
 
+    const updatedJSONResponse = {
+      time: timeAfterFirstSync,
+      feature_gates: [
+        modifiedGate,
+        exampleConfigSpecs.disabled_gate,
+        exampleConfigSpecs.half_pass_gate,
+      ],
+      dynamic_configs: [exampleConfigSpecs.config],
+      has_updates: true,
+    };
     fetch.mockImplementationOnce((url) => {
       if (url.includes('download_config_specs')) {
         return Promise.resolve({
           ok: true,
-          json: () =>
-            Promise.resolve({
-              time: timeAfterFirstSync,
-              feature_gates: [
-                modifiedGate,
-                exampleConfigSpecs.disabled_gate,
-                exampleConfigSpecs.half_pass_gate,
-              ],
-              dynamic_configs: [exampleConfigSpecs.config],
-              has_updates: true,
-            }),
+          json: () => Promise.resolve(updatedJSONResponse),
+          text: () => Promise.resolve(JSON.stringify(updatedJSONResponse)),
         });
       }
       return Promise.reject();

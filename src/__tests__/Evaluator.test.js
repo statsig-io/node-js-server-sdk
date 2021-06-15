@@ -346,20 +346,22 @@ describe('testing checkGate and getConfig', () => {
     Evaluator = require('../Evaluator');
     fetch = require('node-fetch');
     jest.mock('node-fetch', () => jest.fn());
+
+    const jsonResponse = {
+      time: Date.now(),
+      feature_gates: [
+        exampleConfigSpecs.gate,
+        exampleConfigSpecs.disabled_gate,
+      ],
+      dynamic_configs: [exampleConfigSpecs.config],
+      has_updates: true,
+    };
     fetch.mockImplementation((url) => {
       if (url.includes('download_config_specs')) {
         return Promise.resolve({
           ok: true,
-          json: () =>
-            Promise.resolve({
-              time: Date.now(),
-              feature_gates: [
-                exampleConfigSpecs.gate,
-                exampleConfigSpecs.disabled_gate,
-              ],
-              dynamic_configs: [exampleConfigSpecs.config],
-              has_updates: true,
-            }),
+          json: () => Promise.resolve(jsonResponse),
+          text: () => Promise.resolve(JSON.stringify(jsonResponse)),
         });
       }
       return Promise.reject();
