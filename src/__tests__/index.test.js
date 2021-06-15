@@ -1,4 +1,5 @@
 const { DynamicConfig } = require('../DynamicConfig');
+const exampleConfigSpecs = require('./jest.setup');
 
 describe('Verify behavior of top level index functions', () => {
   const LogEvent = require('../LogEvent');
@@ -531,5 +532,87 @@ describe('Verify behavior of top level index functions', () => {
     // initialize() again after the first one completes resolves right away
     await expect(statsig.initialize(secretKey)).resolves.not.toThrow();
     expect(count).toEqual(1);
+  });
+
+  test('statsigoptions bootstrapValues is being used to bootstrap rules', async () => {
+    const statsig = require('../index');
+    const fetch = require('node-fetch');
+    fetch.mockImplementation(() => Promise.reject({}));
+
+    const jsonResponse = {
+      time: Date.now(),
+      feature_gates: [
+        exampleConfigSpecs.gate,
+        exampleConfigSpecs.disabled_gate,
+      ],
+      dynamic_configs: [exampleConfigSpecs.config],
+      has_updates: true,
+    };
+
+    await statsig.initialize(secretKey, {
+      bootstrapValues: JSON.stringify(jsonResponse),
+    });
+
+    let passGate = await statsig.checkGate(
+      { email: 'tore@nfl.com' },
+      exampleConfigSpecs.gate.name,
+    );
+    let failGate = await statsig.checkGate(
+      { email: 'tore@gmail.com' },
+      exampleConfigSpecs.gate.name,
+    );
+    expect(passGate).toBe(true);
+    expect(failGate).toBe(false);
+  });
+
+  test('statsigoptions bootstrapValues is replacecd with a newer value when fetch completes and updatedRulesCallback is called', async () => {
+    const statsig = require('../index');
+    const fetch = require('node-fetch');
+    expect.assertions(4);
+
+    const newTime = Date.now() + 1000;
+    const jsonResponse = {
+      time: newTime,
+      feature_gates: [
+        exampleConfigSpecs.gate,
+        exampleConfigSpecs.disabled_gate,
+      ],
+      dynamic_configs: [exampleConfigSpecs.config],
+      has_updates: true,
+    };
+
+    fetch.mockImplementation((url) => {
+      if (url.includes('download_config_specs')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify(jsonResponse)),
+          has_update: true,
+        });
+      }
+      return Promise.reject();
+    });
+
+    await statsig.initialize(secretKey, {
+      bootstrapValues: JSON.stringify({
+        time: Date.now(),
+        feature_gates: [exampleConfigSpecs.disabled_gate],
+        has_updates: true,
+      }),
+      rulesUpdatedCallback: (json, time) => {
+        expect(time).toEqual(newTime);
+        expect(json).toEqual(JSON.stringify(jsonResponse));
+      },
+    });
+
+    let passGate = await statsig.checkGate(
+      { email: 'tore@nfl.com' },
+      exampleConfigSpecs.gate.name,
+    );
+    let failGate = await statsig.checkGate(
+      { email: 'tore@gmail.com' },
+      exampleConfigSpecs.gate.name,
+    );
+    expect(passGate).toBe(true);
+    expect(failGate).toBe(false);
   });
 });

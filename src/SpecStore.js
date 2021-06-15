@@ -76,6 +76,12 @@ const SpecStore = {
     let updatedConfigs = {};
     let parseFailed = false;
 
+    let gateArray = specsJSON?.feature_gates;
+    let configArray = specsJSON?.dynamic_configs;
+    if (!Array.isArray(gateArray) || !Array.isArray(configArray)) {
+      return false;
+    }
+
     for (const gateJSON of specsJSON?.feature_gates) {
       try {
         const gate = new ConfigSpec(gateJSON);
