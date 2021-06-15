@@ -4,13 +4,17 @@ module.exports = function StatsigOptions(inputOptions) {
   if (inputOptions == null || inputOptions == {}) {
     return {
       api: DEFAULT_API,
+      bootstrapValues: null,
       environment: null,
+      rulesUpdatedCallback: null,
     };
   }
 
   const statsigOptions = {
     api: getString('api', DEFAULT_API),
-    environment: inputOptions['environment'],
+    bootstrapValues: getString('bootstrapValues', null),
+    environment: getObject('environment', null),
+    rulesUpdatedCallback: getFunction('rulesUpdatedCallback'),
   };
 
   function getString(index, defaultValue) {
@@ -19,6 +23,22 @@ module.exports = function StatsigOptions(inputOptions) {
       return defaultValue;
     }
     return str;
+  }
+
+  function getObject(index, defaultValue) {
+    const obj = inputOptions[index];
+    if (obj == null || typeof obj !== 'object') {
+      return defaultValue;
+    }
+    return obj;
+  }
+
+  function getFunction(index) {
+    const func = inputOptions[index];
+    if (func == null || typeof func !== 'function') {
+      return null;
+    }
+    return func;
   }
 
   return statsigOptions;

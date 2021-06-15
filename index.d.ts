@@ -20,7 +20,9 @@ declare module 'statsig-node' {
    */
   export type StatsigOptions = {
     api?: string;
+    bootstrapValues?: string;
     environment?: StatsigEnvironment;
+    rulesUpdatedCallback?: { (rulesJSON: string, time: number): void };
   };
 
   export type StatsigEnvironment = {

@@ -19,9 +19,21 @@
  */
 
 /**
+ * Callback function to be executed when the rules have been updated.
+ *
+ * @callback rulesUpdatedCallback
+ * @param {string} [rulesJSON]
+ * @param {number} [time]
+ * @returns {void}
+ */
+
+/**
  * An object of properties for initializing the sdk with advanced options
  * @typedef {Object.<string, *>} StatsigOptions
  * @property {string} [api]
+ * @property {Object.<string, string>} [environment]
+ * @property {string} [bootstrapValues]
+ * @property {rulesUpdatedCallback} [rulesUpdatedCallback]
  * @memberof typedefs
  */
 

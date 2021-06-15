@@ -1,38 +1,43 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
+const StatsigOptions = require('./StatsigOptions');
 
 const SYNC_INTERVAL = 10 * 1000;
 
 const SpecStore = {
   async init(options, secretKey, syncInterval = SYNC_INTERVAL) {
     this.api = options.api;
+    this.bootstrapValues = options.bootstrapValues;
+    this.rulesUpdatedCallback = options.rulesUpdatedCallback;
     this.secretKey = secretKey;
     this.time = 0;
     this.store = { gates: {}, configs: {} };
     this.syncInterval = syncInterval;
-    try {
-      const response = await fetcher.post(
-        this.api + '/download_config_specs',
-        this.secretKey,
-        {
-          statsigMetadata: getStatsigMetadata(),
-        },
-        20,
-      );
-      const specsJSON = await response.json();
-      this._process(specsJSON);
-    } catch (e) {
-      // TODO: log
+
+    var specsJSON = null;
+    if (options?.bootstrapValues != null) {
+      try {
+        specsJSON = JSON.parse(options.bootstrapValues);
+      } catch (e) {
+        console.error(
+          'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
+        );
+      }
+    }
+
+    // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
+    // need to wait for _syncValues() to finish before returning.
+    if (specsJSON != null && this._process(specsJSON)) {
+      this._syncValues();
+    } else {
+      await this._syncValues();
     }
 
     this.initialized = true;
-    this.syncTimer = setTimeout(() => {
-      this._sync();
-    }, this.syncInterval);
   },
 
-  async _sync() {
+  async _syncValues() {
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
@@ -42,21 +47,26 @@ const SpecStore = {
           sinceTime: this.time,
         },
       );
-      const specsJSON = await response.json();
-      this._process(specsJSON);
+      const specsString = await response.text();
+      const processResult = this._process(JSON.parse(specsString));
+      if (processResult) {
+        this.bootstrapValues = specsString;
+        this?.rulesUpdatedCallback(specsString, this.time);
+      }
     } catch (e) {
       // TODO: log
     }
 
     this.syncTimer = setTimeout(() => {
-      this._sync();
+      this._syncValues();
     }, this.syncInterval);
   },
 
+  // returns a boolean indicating whether specsJSON was successfully parsed
   _process(specsJSON) {
     this.time = specsJSON.time ?? this.time;
     if (!specsJSON?.has_updates) {
-      return;
+      return false;
     }
     let updatedGates = {};
     let updatedConfigs = {};
@@ -85,6 +95,8 @@ const SpecStore = {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
     }
+
+    return !parseFailed;
   },
 
   shutdown() {
