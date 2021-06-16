@@ -164,25 +164,43 @@ describe('Verify behavior of top level index functions', () => {
 
     await statsig.initialize(secretKey);
     await expect(statsig.checkGate(null, 'test_gate')).rejects.toEqual(
-      new Error('Must pass a valid user with a userID'),
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
     );
     await expect(
       statsig.checkGate({ email: '123@gmail.com' }, 'test_gate'),
-    ).rejects.toEqual(new Error('Must pass a valid user with a userID'));
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
 
     await expect(statsig.getConfig(null, 'test_config')).rejects.toEqual(
-      new Error('Must pass a valid user with a userID'),
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
     );
     await expect(
       statsig.getConfig({ email: '123@gmail.com' }, 'test_config'),
-    ).rejects.toEqual(new Error('Must pass a valid user with a userID'));
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
 
     await expect(statsig.getExperiment(null, 'test_exp')).rejects.toEqual(
-      new Error('Must pass a valid user with a userID'),
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
     );
     await expect(
       statsig.getExperiment({ email: '123@gmail.com' }, 'test_exp'),
-    ).rejects.toEqual(new Error('Must pass a valid user with a userID'));
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
   });
 
   test('Verify cannot call getConfig() or getExperiment() with no config name', () => {

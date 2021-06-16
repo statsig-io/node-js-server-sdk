@@ -75,7 +75,11 @@ const statsig = {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
     if (!isUserValid(user)) {
-      return Promise.reject(new Error('Must pass a valid user with a userID'));
+      return Promise.reject(
+        new Error(
+          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        ),
+      );
     }
     user = normalizeUser(user);
     return this._getGateValue(user, gateName)
@@ -106,7 +110,11 @@ const statsig = {
       return Promise.reject(new Error('Must pass a valid configName to check'));
     }
     if (!isUserValid(user)) {
-      return Promise.reject(new Error('Must pass a valid user with a userID'));
+      return Promise.reject(
+        new Error(
+          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        ),
+      );
     }
     user = normalizeUser(user);
 
