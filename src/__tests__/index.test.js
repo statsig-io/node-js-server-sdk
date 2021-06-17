@@ -151,11 +151,56 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
-      expect(statsig.checkGate({}, 12)).rejects.toEqual(
+      expect(statsig.checkGate({ userID: '123' }, 12)).rejects.toEqual(
         new Error('Must pass a valid gateName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
+  });
+
+  test('cannot call checkGate(), getConfig(), or getExperiment() with no user or userID', async () => {
+    const statsig = require('../index');
+    expect.assertions(6);
+
+    await statsig.initialize(secretKey);
+    await expect(statsig.checkGate(null, 'test_gate')).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+    await expect(
+      statsig.checkGate({ email: '123@gmail.com' }, 'test_gate'),
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+
+    await expect(statsig.getConfig(null, 'test_config')).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+    await expect(
+      statsig.getConfig({ email: '123@gmail.com' }, 'test_config'),
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+
+    await expect(statsig.getExperiment(null, 'test_exp')).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+    await expect(
+      statsig.getExperiment({ email: '123@gmail.com' }, 'test_exp'),
+    ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
   });
 
   test('Verify cannot call getConfig() or getExperiment() with no config name', () => {
@@ -165,11 +210,11 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
-      expect(statsig.getConfig({})).rejects.toEqual(
+      expect(statsig.getConfig({ userID: '123' })).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
       );
       // @ts-ignore intentionally testing incorrect param type
-      expect(statsig.getExperiment({})).rejects.toEqual(
+      expect(statsig.getExperiment({ userID: '123' })).rejects.toEqual(
         new Error('Must pass a valid experimentName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
@@ -183,11 +228,11 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
       // @ts-ignore intentionally testing incorrect param type
-      expect(statsig.getConfig({}, false)).rejects.toEqual(
+      expect(statsig.getConfig({ userID: '123' }, false)).rejects.toEqual(
         new Error('Must pass a valid configName to check'),
       );
       // @ts-ignore intentionally testing incorrect param type
-      expect(statsig.getExperiment({}, false)).rejects.toEqual(
+      expect(statsig.getExperiment({ userID: '123' }, false)).rejects.toEqual(
         new Error('Must pass a valid experimentName to check'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
@@ -401,13 +446,15 @@ describe('Verify behavior of top level index functions', () => {
     let config = new DynamicConfig(configName);
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    await statsig.getConfig({}, configName).then((data) => {
+    await statsig.getConfig({ userID: '12345' }, configName).then((data) => {
       expect(data).toEqual(config);
     });
 
-    await statsig.getExperiment({}, configName).then((data) => {
-      expect(data).toEqual(config);
-    });
+    await statsig
+      .getExperiment({ userID: '12345' }, configName)
+      .then((data) => {
+        expect(data).toEqual(config);
+      });
 
     expect(spy).toHaveBeenCalledTimes(2);
   });
@@ -586,11 +633,11 @@ describe('Verify behavior of top level index functions', () => {
     });
 
     let passGate = await statsig.checkGate(
-      { email: 'tore@nfl.com' },
+      { userID: '12345', email: 'tore@nfl.com' },
       exampleConfigSpecs.gate.name,
     );
     let failGate = await statsig.checkGate(
-      { email: 'tore@gmail.com' },
+      { userID: '12345', email: 'tore@gmail.com' },
       exampleConfigSpecs.gate.name,
     );
     expect(passGate).toBe(true);
@@ -637,11 +684,11 @@ describe('Verify behavior of top level index functions', () => {
     });
 
     let passGate = await statsig.checkGate(
-      { email: 'tore@nfl.com' },
+      { userID: '123', email: 'tore@nfl.com' },
       exampleConfigSpecs.gate.name,
     );
     let failGate = await statsig.checkGate(
-      { email: 'tore@gmail.com' },
+      { userID: '123', email: 'tore@gmail.com' },
       exampleConfigSpecs.gate.name,
     );
     expect(passGate).toBe(true);

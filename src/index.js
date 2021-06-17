@@ -74,6 +74,13 @@ const statsig = {
     if (typeof gateName !== 'string' || gateName.length === 0) {
       return Promise.reject(new Error('Must pass a valid gateName to check'));
     }
+    if (!isUserValid(user)) {
+      return Promise.reject(
+        new Error(
+          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        ),
+      );
+    }
     user = normalizeUser(user);
     return this._getGateValue(user, gateName)
       .then((gate) => {
@@ -102,6 +109,13 @@ const statsig = {
     if (typeof configName !== 'string' || configName.length === 0) {
       return Promise.reject(new Error('Must pass a valid configName to check'));
     }
+    if (!isUserValid(user)) {
+      return Promise.reject(
+        new Error(
+          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        ),
+      );
+    }
     user = normalizeUser(user);
 
     return this._getConfigValue(user, configName)
@@ -127,9 +141,6 @@ const statsig = {
    * @throws Error if the experimentName is not provided or not a non-empty string
    */
   getExperiment(user, experimentName) {
-    if (statsig._ready !== true) {
-      return Promise.reject(new Error('Must call initialize() first.'));
-    }
     if (typeof experimentName !== 'string' || experimentName.length === 0) {
       return Promise.reject(
         new Error('Must pass a valid experimentName to check'),
@@ -297,6 +308,14 @@ function shouldTrimParam(obj, size) {
   }
   if (typeof obj === 'number') return obj.toString().length > size;
   return false;
+}
+
+function isUserValid(user) {
+  return (
+    user != null &&
+    typeof user === 'object' &&
+    (typeof user.userID === 'string' || typeof user.userID === 'number')
+  );
 }
 
 function normalizeUser(user) {
