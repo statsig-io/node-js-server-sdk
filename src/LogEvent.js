@@ -21,6 +21,9 @@ class LogEvent {
   }
 
   setValue(value) {
+    if (value == null) {
+      return;
+    }
     if (typeof value === 'object') {
       this.value = JSON.stringify(value);
     } else if (typeof value === 'number') {
