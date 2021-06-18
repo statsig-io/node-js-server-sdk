@@ -21,17 +21,16 @@ class LogEvent {
   }
 
   setValue(value) {
-    if (
-      value != null &&
-      typeof value !== 'string' &&
-      typeof value !== 'number'
-    ) {
-      console.warn(
-        'statsigSDK> Value is not set because it needs to be of type string or number.',
-      );
+    if (value == null) {
       return;
     }
-    this.value = value;
+    if (typeof value === 'object') {
+      this.value = JSON.stringify(value);
+    } else if (typeof value === 'number') {
+      this.value = value;
+    } else {
+      this.value = value.toString();
+    }
   }
 
   setMetadata(metadata) {
