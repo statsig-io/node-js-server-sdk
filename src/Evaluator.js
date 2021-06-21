@@ -7,7 +7,6 @@ const {
   ConfigCondition,
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
-const semver = require('semver');
 const SpecStore = require('./SpecStore');
 const UAParser = require('ua-parser-js');
 
@@ -168,17 +167,29 @@ const Evaluator = {
 
       // version
       case 'version_gt':
-        return versionCompare((a, b) => semver.gt(a, b))(value, target);
+        return versionCompareHelper((result) => result > 0)(
+          versionCompare(value, target),
+        );
       case 'version_gte':
-        return versionCompare((a, b) => semver.gte(a, b))(value, target);
+        return versionCompareHelper((result) => result >= 0)(
+          versionCompare(value, target),
+        );
       case 'version_lt':
-        return versionCompare((a, b) => semver.lt(a, b))(value, target);
+        return versionCompareHelper((result) => result < 0)(
+          versionCompare(value, target),
+        );
       case 'version_lte':
-        return versionCompare((a, b) => semver.lte(a, b))(value, target);
+        return versionCompareHelper((result) => result <= 0)(
+          versionCompare(value, target),
+        );
       case 'version_eq':
-        return versionCompare((a, b) => semver.eq(a, b))(value, target);
+        return versionCompareHelper((result) => result === 0)(
+          versionCompare(value, target),
+        );
       case 'version_neq':
-        return versionCompare((a, b) => semver.neq(a, b))(value, target);
+        return versionCompareHelper((result) => result !== 0)(
+          versionCompare(value, target),
+        );
 
       // array
       case 'any':
@@ -326,12 +337,56 @@ function numberCompare(fn) {
   };
 }
 
-function versionCompare(fn) {
-  return (a, b) => {
-    const version1 = semver.coerce(a);
-    const version2 = semver.coerce(b);
-    return version1 !== null && version2 !== null && fn(version1, version2);
+function versionCompareHelper(fn) {
+  return (result) => {
+    return result === false ? false : fn(result);
   };
+}
+
+// Compare two version strings without the extensions.
+// returns -1, 0, or 1 if first is smaller than, equal to, or larger than second.
+// returns false if any of the version strings is not valid.
+function versionCompare(first, second) {
+  const version1 = removeVersionExtension(first);
+  const version2 = removeVersionExtension(second);
+  if (version1.length === 0 || version2.length === 0) {
+    return false;
+  }
+
+  const parts1 = version1.split('.');
+  const parts2 = version2.split('.');
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    if (parts1[i] === undefined) {
+      parts1[i] = '0';
+    }
+    if (parts2[i] === undefined) {
+      parts2[i] = '0';
+    }
+    const n1 = Number(parts1[i]);
+    const n2 = Number(parts2[i]);
+    if (
+      typeof n1 !== 'number' ||
+      typeof n2 !== 'number' ||
+      isNaN(n1) ||
+      isNaN(n2)
+    ) {
+      return false;
+    }
+    if (n1 < n2) {
+      return -1;
+    } else if (n1 > n2) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+function removeVersionExtension(version) {
+  const hyphenIndex = version.indexOf('-');
+  if (hyphenIndex >= 0) {
+    return version.substr(0, hyphenIndex);
+  }
+  return version;
 }
 
 function stringCompare(fn) {
