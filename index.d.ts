@@ -11,7 +11,7 @@ declare module 'statsig-node' {
     userAgent?: string;
     country?: string;
     locale?: string;
-    clientVersion?: string;
+    appVersion?: string;
     custom?: Record<string, string | number | boolean | Array<string>>;
   };
 

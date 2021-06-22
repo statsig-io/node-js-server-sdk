@@ -39,6 +39,7 @@ const fetcher = {
       headers: {
         'Content-type': 'application/json; charset=UTF-8',
         'STATSIG-API-KEY': sdkKey,
+        'STATSIG-CLIENT-TIME': Date.now(),
       },
     };
     return fetch(url, params)

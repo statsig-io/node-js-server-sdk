@@ -21,6 +21,14 @@
 </dd>
 </dl>
 
+## Typedefs
+
+<dl>
+<dt><a href="#rulesUpdatedCallback">rulesUpdatedCallback</a> ⇒ <code>void</code></dt>
+<dd><p>Callback function to be executed when the rules have been updated.</p>
+</dd>
+</dl>
+
 <a name="DynamicConfig"></a>
 
 ## DynamicConfig
@@ -86,7 +94,7 @@ A dictionary of additional fields can be provided under the "custom" field
 | [userAgent] | <code>string</code> | 
 | [country] | <code>string</code> | 
 | [locale] | <code>string</code> | 
-| [clientVersion] | <code>string</code> | 
+| [appVersion] | <code>string</code> | 
 | [custom] | <code>Object.&lt;string, (string\|number\|boolean\|Array.&lt;string&gt;)&gt;</code> | 
 
 <a name="typedefs.StatsigOptions"></a>
@@ -100,6 +108,9 @@ An object of properties for initializing the sdk with advanced options
 | Name | Type |
 | --- | --- |
 | [api] | <code>string</code> | 
+| [environment] | <code>Object.&lt;string, string&gt;</code> | 
+| [bootstrapValues] | <code>string</code> | 
+| [rulesUpdatedCallback] | [<code>rulesUpdatedCallback</code>](#rulesUpdatedCallback) | 
 
 <a name="statsig"></a>
 
@@ -111,7 +122,8 @@ The global statsig class for interacting with gates, configs, experiments config
 * [statsig](#statsig)
     * [.initialize(secretKey, [options])](#statsig.initialize) ⇒ <code>Promise.&lt;void&gt;</code>
     * [.checkGate(user, gateName)](#statsig.checkGate) ⇒ <code>Promise.&lt;boolean&gt;</code>
-    * [.getConfig(user, configName)](#statsig.getConfig) ⇒ <code>Promise.&lt;(DynamicConfig\|null)&gt;</code>
+    * [.getConfig(user, configName)](#statsig.getConfig) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
+    * [.getExperiment(user, experimentName)](#statsig.getExperiment) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
     * [.logEvent(user, eventName, value, metadata)](#statsig.logEvent)
     * [.isReady()](#statsig.isReady) ⇒ <code>boolean</code>
     * [.shutdown()](#statsig.shutdown)
@@ -153,11 +165,11 @@ Check the value of a gate configured in the statsig console
 
 <a name="statsig.getConfig"></a>
 
-### statsig.getConfig(user, configName) ⇒ <code>Promise.&lt;(DynamicConfig\|null)&gt;</code>
+### statsig.getConfig(user, configName) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
 Checks the value of a config for a given user
 
 **Kind**: static method of [<code>statsig</code>](#statsig)  
-**Returns**: <code>Promise.&lt;(DynamicConfig\|null)&gt;</code> - - the config for the user  
+**Returns**: [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig) - - the config for the user  
 **Throws**:
 
 - Error if initialize() was not called first
@@ -169,12 +181,34 @@ Checks the value of a config for a given user
 | user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user to evaluate for the dyamic config |
 | configName | <code>string</code> | the name of the dynamic config to get |
 
+<a name="statsig.getExperiment"></a>
+
+### statsig.getExperiment(user, experimentName) ⇒ [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig)
+Checks the value of a config for a given user
+
+**Kind**: static method of [<code>statsig</code>](#statsig)  
+**Returns**: [<code>Promise.&lt;DynamicConfig&gt;</code>](#DynamicConfig) - - the experiment for the user, represented by a Dynamic Config  
+**Throws**:
+
+- Error if initialize() was not called first
+- Error if the experimentName is not provided or not a non-empty string
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| user | [<code>StatsigUser</code>](#typedefs.StatsigUser) | the user to evaluate for the dyamic config |
+| experimentName | <code>string</code> | the name of the experiment to get |
+
 <a name="statsig.logEvent"></a>
 
 ### statsig.logEvent(user, eventName, value, metadata)
 Log an event for data analysis and alerting or to measure the impact of an experiment
 
 **Kind**: static method of [<code>statsig</code>](#statsig)  
+**Throws**:
+
+- Error if initialize() was not called first
+
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -198,3 +232,15 @@ Informs the statsig SDK that the server is closing or shutting down
 so the SDK can clean up internal state
 
 **Kind**: static method of [<code>statsig</code>](#statsig)  
+<a name="rulesUpdatedCallback"></a>
+
+## rulesUpdatedCallback ⇒ <code>void</code>
+Callback function to be executed when the rules have been updated.
+
+**Kind**: global typedef  
+
+| Param | Type |
+| --- | --- |
+| [rulesJSON] | <code>string</code> | 
+| [time] | <code>number</code> | 
+
