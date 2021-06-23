@@ -584,7 +584,7 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(statsig._logger, 'flush');
       statsig.shutdown();
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(statsig.isReady()).toStrictEqual(false);
+      expect(statsig._ready).toBeFalsy();
     });
   });
 
