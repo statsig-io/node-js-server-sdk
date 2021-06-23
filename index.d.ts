@@ -99,13 +99,6 @@ declare module 'statsig-node' {
   export function logEventObject(eventObject: LogEventObject): void;
 
   /**
-   * Checks to see if the SDK is in a ready state to check gates and configs
-   * If the SDK is initializing or switching users, it is not in a ready state.
-   * @returns {boolean} if the SDK is ready
-   */
-  export function isReady(): boolean;
-
-  /**
    * Informs the statsig SDK that the client is closing or shutting down
    * so the SDK can clean up internal state
    */

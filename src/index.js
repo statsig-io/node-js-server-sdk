@@ -228,15 +228,6 @@ const statsig = {
   },
 
   /**
-   * Checks to see if the SDK is in a ready state to check gates and configs
-   * If the SDK is initializing or switching users, it is not in a ready state.
-   * @returns {boolean} if the SDK is ready
-   */
-  isReady: function () {
-    return statsig._ready === true;
-  },
-
-  /**
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state
    */
