@@ -189,10 +189,14 @@ describe('Test condition evaluation', () => {
     ['current_time',       'on',             Date.now() - 24 * 3600 * 1000, null,              user, false],
 
     // user bucket
-    ['user_bucket',        'lt',              1000,            null,              { userID: 1},  false, { salt:'himalayan salt' }],
-    ['user_bucket',        'lt',              1000,            null,              { userID: 18}, true,  { salt:'himalayan salt' }],
-    ['user_bucket',        'gt',              8800,            null,              { userID: 1},  true, { salt:'himalayan salt' }],
-    ['user_bucket',        'gt',              8800,            null,              { userID: 18}, false,  { salt:'himalayan salt' }],
+    ['user_bucket',        'lt',              981,            null,              { userID: 1},  true, { salt:'himalayan salt' }],
+    ['user_bucket',        'lt',              229,            null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'gt',              980,            null,              { userID: 1},  false, { salt:'himalayan salt' }],
+    ['user_bucket',        'gt',              229,            null,              { userID: 18}, false,  { salt:'himalayan salt' }],
+    ['user_bucket',        'any',             [228, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'any',             [229, 333, 555],null,              { userID: 18}, false,  { salt:'himalayan salt' }],
+    ['user_bucket',        'none',            [229, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    // ['user_bucket',        '',                []]
    
     // some random type not implemented yet
     ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],

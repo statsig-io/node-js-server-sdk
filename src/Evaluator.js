@@ -11,6 +11,8 @@ const SpecStore = require('./SpecStore');
 const UAParser = require('ua-parser-js');
 
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
+const CONDITION_SEGMENT_COUNT = 10 * 1000;
+const USER_BUCKET_COUNT = 1000;
 
 const Evaluator = {
   async init(options, secretKey) {
@@ -74,10 +76,12 @@ const Evaluator = {
   },
 
   _evalPassPercent(user, rule, salt) {
-    const bucket = computeUserHashBucket(
+    const hash = computeUserHash(
       salt + '.' + rule.name + '.' + user?.userID ?? '',
     );
-    return bucket < rule.passPercentage * 100;
+    return (
+      Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
+    );
   },
 
   /**
@@ -141,7 +145,8 @@ const Evaluator = {
         break;
       case 'user_bucket':
         const salt = condition.additionalValues?.salt;
-        value = computeUserHashBucket(salt + '.' + user?.userID ?? '');
+        const userHash = computeUserHash(salt + '.' + user?.userID ?? '');
+        value = Number(userHash % BigInt(USER_BUCKET_COUNT));
         break;
       default:
         return FETCH_FROM_SERVER;
@@ -276,13 +281,12 @@ const Evaluator = {
   },
 };
 
-function computeUserHashBucket(userHash) {
-  const hash = crypto
+function computeUserHash(userHash) {
+  return crypto
     .createHash('sha256')
     .update(userHash)
     .digest()
     .readBigUInt64BE();
-  return Number(hash % BigInt(10000));
 }
 
 function getFromUser(user, field) {
