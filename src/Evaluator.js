@@ -11,6 +11,8 @@ const SpecStore = require('./SpecStore');
 const UAParser = require('ua-parser-js');
 
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
+const CONDITION_SEGMENT_COUNT = 10 * 1000;
+const USER_BUCKET_COUNT = 1000;
 
 const Evaluator = {
   async init(options, secretKey) {
@@ -77,7 +79,9 @@ const Evaluator = {
     const hash = computeUserHash(
       salt + '.' + rule.name + '.' + user?.userID ?? '',
     );
-    return Number(hash % BigInt(10000)) < rule.passPercentage * 100;
+    return (
+      Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
+    );
   },
 
   /**
@@ -142,7 +146,7 @@ const Evaluator = {
       case 'user_bucket':
         const salt = condition.additionalValues?.salt;
         const userHash = computeUserHash(salt + '.' + user?.userID ?? '');
-        value = Number(userHash % BigInt(1000));
+        value = Number(userHash % BigInt(USER_BUCKET_COUNT));
         break;
       default:
         return FETCH_FROM_SERVER;
