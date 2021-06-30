@@ -74,10 +74,10 @@ const Evaluator = {
   },
 
   _evalPassPercent(user, rule, salt) {
-    const bucket = computeUserHashBucket(
+    const hash = computeUserHash(
       salt + '.' + rule.name + '.' + user?.userID ?? '',
     );
-    return bucket < rule.passPercentage * 100;
+    return Number(hash % BigInt(10000)) < rule.passPercentage * 100;
   },
 
   /**
@@ -141,7 +141,8 @@ const Evaluator = {
         break;
       case 'user_bucket':
         const salt = condition.additionalValues?.salt;
-        value = computeUserHashBucket(salt + '.' + user?.userID ?? '');
+        const userHash = computeUserHash(salt + '.' + user?.userID ?? '');
+        value = Number(userHash % BigInt(1000));
         break;
       default:
         return FETCH_FROM_SERVER;
@@ -276,13 +277,12 @@ const Evaluator = {
   },
 };
 
-function computeUserHashBucket(userHash) {
-  const hash = crypto
+function computeUserHash(userHash) {
+  return crypto
     .createHash('sha256')
     .update(userHash)
     .digest()
     .readBigUInt64BE();
-  return Number(hash % BigInt(10000));
 }
 
 function getFromUser(user, field) {
