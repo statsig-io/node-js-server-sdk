@@ -34,7 +34,7 @@ if (secret) {
           'STATSIG-CLIENT-TIME': Date.now(),
         },
       };
-      await fetch('http://localhost:3006/v1/rulesets_e2e_test', params)
+      await fetch('http://api.statsig.com/v1/rulesets_e2e_test', params)
         .then((res) => {
           return res.json();
         })
