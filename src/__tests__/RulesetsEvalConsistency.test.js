@@ -16,7 +16,8 @@ if (!secret) {
   } catch {}
 }
 
-let testData;
+let prodTestData;
+let stagingTestData;
 
 if (secret) {
   describe('Verify e2e behavior consistency of Statsig', () => {
@@ -39,19 +40,26 @@ if (secret) {
           return res.json();
         })
         .then((json) => {
-          testData = json.data;
+          prodTestData = json.data;
+        });
+      await fetch('http://latest.api.statsig.com/v1/rulesets_e2e_test', params)
+        .then((res) => {
+          return res.json();
+        })
+        .then((json) => {
+          stagingTestData = json.data;
         });
     });
 
-    test('server and SDK evaluates gates to the same results', async () => {
+    test('server and SDK evaluates gates to the same results on production', async () => {
       const totalChecks =
-        testData.length *
-        (Object.keys(testData[0].feature_gates).length +
-          Object.keys(testData[0].dynamic_configs).length);
+        prodTestData.length *
+        (Object.keys(prodTestData[0].feature_gates).length +
+          Object.keys(prodTestData[0].dynamic_configs).length);
       expect.assertions(totalChecks);
 
       await statsig.initialize(secret);
-      const promises = testData.map(async (data) => {
+      const promises = prodTestData.map(async (data) => {
         const user = data.user;
         const gates = data.feature_gates;
         const configs = data.dynamic_configs;
@@ -67,6 +75,31 @@ if (secret) {
       });
       await Promise.all(promises);
     });
+  });
+
+  test('server and SDK evaluates gates to the same results on staging', async () => {
+    const totalChecks =
+      stagingTestData.length *
+      (Object.keys(stagingTestData[0].feature_gates).length +
+        Object.keys(stagingTestData[0].dynamic_configs).length);
+    expect.assertions(totalChecks);
+
+    await statsig.initialize(secret);
+    const promises = stagingTestData.map(async (data) => {
+      const user = data.user;
+      const gates = data.feature_gates;
+      const configs = data.dynamic_configs;
+      for (const name in gates) {
+        const sdkValue = await statsig.checkGate(user, name);
+        expect(sdkValue).toEqual(gates[name]);
+      }
+
+      for (const name in configs) {
+        const sdkValue = await statsig.getConfig(user, name);
+        expect(sdkValue.value).toMatchObject(configs[name].value);
+      }
+    });
+    await Promise.all(promises);
   });
 } else {
   describe('', () => {
