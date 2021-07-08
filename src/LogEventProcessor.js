@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
 const LogEvent = require('./LogEvent');
 const fetcher = require('./utils/StatsigFetcher');
