@@ -259,7 +259,6 @@ describe('Verify behavior of top level index functions', () => {
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser({
       userID: 123,
-      statsigEnvironment: null,
     });
     gateExposure.setMetadata({
       gate: gateName,
@@ -294,7 +293,6 @@ describe('Verify behavior of top level index functions', () => {
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser({
       userID: 123,
-      statsigEnvironment: null,
     });
     gateExposure.setMetadata({
       gate: gateName,
@@ -366,7 +364,6 @@ describe('Verify behavior of top level index functions', () => {
     const configExposure = new LogEvent('statsig::config_exposure');
     configExposure.setUser({
       userID: 123,
-      statsigEnvironment: null,
     });
     configExposure.setMetadata({
       config: configName,
@@ -411,7 +408,6 @@ describe('Verify behavior of top level index functions', () => {
     const configExposure = new LogEvent('statsig::config_exposure');
     configExposure.setUser({
       userID: 123,
-      statsigEnvironment: null,
     });
     configExposure.setMetadata({
       config: configName,
@@ -502,9 +498,7 @@ describe('Verify behavior of top level index functions', () => {
 
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
-      logEvent.setUser({
-        statsigEnvironment: null,
-      });
+      logEvent.setUser({});
       logEvent.setValue(null);
       logEvent.setTime(123);
       expect(spy).toBeCalledWith(logEvent);
@@ -567,7 +561,6 @@ describe('Verify behavior of top level index functions', () => {
         userID: str_64,
         email: 'jest@statsig.com',
         custom: {},
-        statsigEnvironment: null,
       });
       trimmedEvent.setValue(str_64.substring(0, 64));
       trimmedEvent.setMetadata({ error: 'not logged due to size too large' });
