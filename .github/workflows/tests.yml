@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '10 * * * *'
+    - cron: '0 16 * * *'
 
 jobs:
   jest:

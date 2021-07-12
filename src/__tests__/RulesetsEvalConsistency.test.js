@@ -35,7 +35,7 @@ if (secret) {
         },
       };
       const fetchProdPromise = fetch(
-        'http://api.statsig.com/v1/rulesets_e2e_test',
+        'https://api.statsig.com/v1/rulesets_e2e_test',
         params,
       )
         .then((res) => res.json())
@@ -43,7 +43,7 @@ if (secret) {
           prodTestData = json.data;
         });
       const fetchStagingPromise = fetch(
-        'http://latest.api.statsig.com/v1/rulesets_e2e_test',
+        'https://latest.api.statsig.com/v1/rulesets_e2e_test',
         params,
       )
         .then((res) => res.json())
@@ -68,7 +68,6 @@ if (secret) {
       (Object.keys(testData[0].feature_gates).length +
         Object.keys(testData[0].dynamic_configs).length);
     expect.assertions(totalChecks);
-
     await statsig.initialize(secret);
     const promises = testData.map(async (data) => {
       const user = data.user;

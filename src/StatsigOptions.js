@@ -1,15 +1,6 @@
 const DEFAULT_API = 'https://api.statsig.com/v1';
 
 module.exports = function StatsigOptions(inputOptions) {
-  if (inputOptions == null) {
-    return {
-      api: DEFAULT_API,
-      bootstrapValues: null,
-      environment: null,
-      rulesUpdatedCallback: null,
-    };
-  }
-
   const statsigOptions = {
     api: getString('api', DEFAULT_API),
     bootstrapValues: getString('bootstrapValues', null),

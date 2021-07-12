@@ -311,7 +311,9 @@ function isUserValid(user) {
 
 function normalizeUser(user) {
   user = trimUserObjIfNeeded(user);
-  user['statsigEnvironment'] = statsig._options?.environment;
+  if (statsig._options?.environment != null) {
+    user['statsigEnvironment'] = statsig._options?.environment;
+  }
   return user;
 }
 
