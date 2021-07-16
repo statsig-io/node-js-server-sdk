@@ -77,7 +77,7 @@ const Evaluator = {
 
   _evalPassPercent(user, rule, salt) {
     const hash = computeUserHash(
-      salt + '.' + rule.name + '.' + user?.userID ?? '',
+      salt + '.' + rule.id + '.' + user?.userID ?? '',
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
