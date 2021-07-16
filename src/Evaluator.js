@@ -62,10 +62,10 @@ const Evaluator = {
           const pass = this._evalPassPercent(user, rule, config.salt);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
             ? new DynamicConfig(
-                config.name,
-                pass ? rule.returnValue : config.defaultValue,
-                rule.id,
-              )
+              config.name,
+              pass ? rule.returnValue : config.defaultValue,
+              rule.id,
+            )
             : { value: pass, rule_id: rule.id };
         }
       }
@@ -201,6 +201,10 @@ const Evaluator = {
         return arrayContains(target, value);
       case 'none':
         return !arrayContains(target, value);
+      case 'any_case_sensitive':
+        return arrayContainsCaseSensitive(target, value);
+      case 'none_case_sensitive':
+        return !arrayContainsCaseSensitive(target, value);
 
       // string
       case 'str_starts_with_any':
@@ -438,6 +442,18 @@ function arrayContains(array, value) {
     ) {
       return true;
     }
+    if (array[i] === value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function arrayContainsCaseSensitive(array, value) {
+  if (!Array.isArray(array)) {
+    return false;
+  }
+  for (let i = 0; i < array.length; i++) {
     if (array[i] === value) {
       return true;
     }

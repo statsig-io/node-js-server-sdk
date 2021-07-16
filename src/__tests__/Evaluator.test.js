@@ -204,6 +204,16 @@ describe('Test condition evaluation', () => {
     // new operator
     ['user_field',         'unknown_op',      '0.25',          'bad_field',        user, false], // return false if user_field does not exist
     ['user_field',         'unknown_op',      '0.25',          'level',            user, FETCH_FROM_SERVER],
+
+    // any/none case sensitivity
+    ['user_field',         'any_case_sensitive', ['Statsig', 'Take.app'],   'company',   user,  true],
+    ['user_field',         'any_case_sensitive', ['statsig', 'take.app'],   'company',   user,  false],
+    ['user_field',         'any', ['Statsig', 'Take.app'],   'company',   user,  true],
+    ['user_field',         'any', ['statsig', 'take.app'],   'company',   user,  true],
+    ['user_field',         'none_case_sensitive', ['Statsig', 'Take.app'],   'company',   user,  false],
+    ['user_field',         'none_case_sensitive', ['statsig', 'take.app'],   'company',   user,  true],
+    ['user_field',         'none', ['Statsig', 'Take.app'],   'company',   user,  false],
+    ['user_field',         'none', ['statsig', 'take.app'],   'company',   user,  false],
   ]
 
   const Evaluator = require('../Evaluator');
