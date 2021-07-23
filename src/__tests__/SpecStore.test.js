@@ -50,7 +50,7 @@ describe('Verify behavior of SpecStore', () => {
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config),
     );
-    expect(SpecStore.time).toEqual(Date.now());
+    expect(SpecStore.time).toBeCloseTo(Date.now());
     expect(SpecStore.initialized).toEqual(true);
     expect(SpecStore.syncTimer).toBeTruthy();
 
