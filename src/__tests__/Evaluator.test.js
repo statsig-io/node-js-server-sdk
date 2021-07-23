@@ -68,8 +68,6 @@ describe('Test condition evaluation', () => {
     ['ua_based',          'none',           ['Android', 'iOS'],'os_name',        user2, false],
     ['ua_based',          'eq',             'iOS',             'os_name',        user2, true],
     ['ua_based',          'neq',            'iOS',             'os_name',        user2, false],
-    ['ua_based',          'any',            ['12.2', '12.3'],  'os_version',     user2, true],
-    ['ua_based',          'none',           ['12.2', '12.3'],  'os_version',     user2, false],
 
     // version compare
     ['ua_based',          'version_gt',     '12.1',            'os_version',     user2, true],

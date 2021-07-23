@@ -8,7 +8,7 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
-const UAParser = require('ua-parser-js');
+const UAParser = require('useragent')
 
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -198,13 +198,13 @@ const Evaluator = {
 
       // array
       case 'any':
-        return arrayContains(target, value);
+        return arrayContains(target, value, true);
       case 'none':
-        return !arrayContains(target, value);
+        return !arrayContains(target, value, true);
       case 'any_case_sensitive':
-        return arrayContainsCaseSensitive(target, value);
+        return arrayContains(target, value, false);
       case 'none_case_sensitive':
-        return !arrayContainsCaseSensitive(target, value);
+        return !arrayContains(target, value, false);
 
       // string
       case 'str_starts_with_any':
@@ -321,15 +321,23 @@ function getFromUserAgent(user, field) {
   if (ua == null) {
     return null;
   }
-  const res = new UAParser(ua);
-  let val = {
-    os_name: res.getOS().name ?? null,
-    os_version: res.getOS().version ?? null,
-    browser_name: res.getBrowser().name ?? null,
-    browser_version: res.getBrowser().version ?? null,
-  };
-
-  return val[field.toLowerCase()];
+  const res = UAParser.parse(ua);
+  switch (field.toLowerCase()) {
+    case "os_name":
+    case "osname":
+      return res.os.family ?? null;
+    case "os_version":
+    case "osversion":
+      return res.os.toVersion() ?? null;
+    case "browser_name":
+    case "browsername":
+      return res.family ?? null;
+    case "browser_version":
+    case "browserversion":
+      return res.toVersion() ?? null
+    default:
+      return null
+  }
 }
 
 function getFromEnvironment(user, field) {
@@ -430,30 +438,19 @@ function dateCompare(fn) {
   };
 }
 
-function arrayContains(array, value) {
+function arrayContains(array, value, ignoreCase) {
   if (!Array.isArray(array)) {
     return false;
   }
   for (let i = 0; i < array.length; i++) {
     if (
+      ignoreCase &&
       typeof array[i] === 'string' &&
       typeof value === 'string' &&
       array[i].toLowerCase() === value.toLowerCase()
     ) {
       return true;
     }
-    if (array[i] === value) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function arrayContainsCaseSensitive(array, value) {
-  if (!Array.isArray(array)) {
-    return false;
-  }
-  for (let i = 0; i < array.length; i++) {
     if (array[i] === value) {
       return true;
     }
