@@ -1,8 +1,6 @@
 # Statsig
 
-[![npm version](https://badge.fury.io/js/statsig-node.svg)](https://badge.fury.io/js/statsig-node)
-
-[![tests](https://github.com/statsig-io/private-node-js-server-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/statsig-io/private-node-js-server-sdk/actions/workflows/tests.yml)
+[![npm version](https://badge.fury.io/js/statsig-node.svg)](https://badge.fury.io/js/statsig-node) [![tests](https://github.com/statsig-io/private-node-js-server-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/statsig-io/private-node-js-server-sdk/actions/workflows/tests.yml)
 
 ## Statsig Node Server SDK
 
