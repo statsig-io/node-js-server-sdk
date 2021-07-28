@@ -59,7 +59,7 @@ const Evaluator = {
           return FETCH_FROM_SERVER;
         }
         if (result === true) {
-          const pass = this._evalPassPercent(user, rule, config.salt);
+          const pass = this._evalPassPercent(user, rule, config);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
             ? new DynamicConfig(
               config.name,
@@ -75,9 +75,9 @@ const Evaluator = {
       : { value: false, rule_id: 'default' };
   },
 
-  _evalPassPercent(user, rule, salt) {
+  _evalPassPercent(user, rule, config) {
     const hash = computeUserHash(
-      salt + '.' + rule.id + '.' + user?.userID ?? '',
+      config.salt + '.' + (rule.salt ?? rule.id) + '.' + user?.userID ?? '',
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
