@@ -108,6 +108,9 @@ describe('Test condition evaluation', () => {
     ['user_field',         'lte',           99,               'level',             user, true],
     ['user_field',         'lte',           100,              'level',             user, true],
 
+    // non-existent user field
+    ['user_field',         'none',          ['v1', 'test'],    'fake',              user, true],
+
     // string comparison on user_field
     ['user_field',         'str_starts_with_any', ['Stat'],    'company',          user, true],
     ['user_field',         'str_starts_with_any', ['Statsig'], 'company',          user, true],
@@ -194,13 +197,11 @@ describe('Test condition evaluation', () => {
     ['user_bucket',        'any',             [228, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
     ['user_bucket',        'any',             [229, 333, 555],null,              { userID: 18}, false,  { salt:'himalayan salt' }],
     ['user_bucket',        'none',            [229, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
-    // ['user_bucket',        '',                []]
    
     // some random type not implemented yet
     ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
 
     // new operator
-    ['user_field',         'unknown_op',      '0.25',          'bad_field',        user, false], // return false if user_field does not exist
     ['user_field',         'unknown_op',      '0.25',          'level',            user, FETCH_FROM_SERVER],
 
     // any/none case sensitivity
@@ -237,6 +238,10 @@ describe('Test condition evaluation', () => {
         addtionalValues: p[6], // optional and does not exist for most conditions
       }
       const condition = new ConfigCondition(json);
+      const result = Evaluator._evalCondition(p[4], condition);
+      if (result !== p[5]) {
+        console.log(`Evaluation test failed for condition ${JSON.stringify(json)} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${result}`);
+      }
       expect(Evaluator._evalCondition(p[4], condition)).toEqual(p[5]);
     });
   });
