@@ -27,6 +27,7 @@ class ConfigRule {
     this.conditions = this.parseConditions(ruleJSON.conditions);
     this.returnValue = ruleJSON.returnValue;
     this.id = ruleJSON.id;
+    this.salt = ruleJSON.salt;
   }
 
   parseConditions(conditionsJSON) {
