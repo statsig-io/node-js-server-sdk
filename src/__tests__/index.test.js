@@ -572,7 +572,6 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     const fetch = require('node-fetch');
     expect.assertions(2);
-    fetch.mockImplementation(() => Promise.resolve({}));
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'flush');
       statsig.shutdown();

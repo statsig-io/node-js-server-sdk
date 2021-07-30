@@ -44,30 +44,21 @@ const fetcher = {
     };
     return fetch(url, params)
       .then((res) => {
-        if (!res.ok) {
-          if (retries > 0 && retryStatusCodes.includes[res.status]) {
-            return new Promise((resolve, reject) => {
-              fetcher.pendingTimers.push(
-                setTimeout(() => {
-                  fetcher.leakyBucket[url] = Math.max(
-                    fetcher.leakyBucket[url] - 1,
-                    0,
-                  );
-                  this.post(url, sdkKey, body, retries - 1, backoff * 2)
-                    .then(resolve)
-                    .catch(reject);
-                }, backoff),
-              );
-            });
-          } else {
-            return Promise.reject(
-              new Error(
-                'Request to ' + url + ' failed with status ' + res.status,
-              ),
-            );
-          }
+        if (!res.ok || (retries > 0 && retryStatusCodes.includes(res.status))) {
+          return this._retry(url, sdkKey, body, retries, backoff);
+        } else if (!res.ok) {
+          return Promise.reject(
+            new Error(
+              'Request to ' + url + ' failed with status ' + res.status,
+            ),
+          );
         }
         return Promise.resolve(res);
+      })
+      .catch(() => {
+        if (retries > 0) {
+          return this._retry(url, sdkKey, body, retries, backoff);
+        }
       })
       .finally(() => {
         fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);
@@ -85,6 +76,19 @@ const fetcher = {
     if (fetcher.dispatcher != null) {
       fetcher.dispatcher._shutdown();
     }
+  },
+
+  _retry: function (url, sdkKey, body, retries, backoff) {
+    return new Promise((resolve, reject) => {
+      fetcher.pendingTimers.push(
+        setTimeout(() => {
+          fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);
+          this.post(url, sdkKey, body, retries - 1, backoff * 10)
+            .then(resolve)
+            .catch(reject);
+        }, backoff),
+      );
+    });
   },
 };
 

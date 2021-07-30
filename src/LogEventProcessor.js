@@ -11,7 +11,9 @@ function LogEventProcessor(options, secretKey) {
   let flushBatchSize = 500;
   let flushInterval = 60 * 1000;
   let queue = [];
-  let flushTimer = null;
+  let flushTimer = setInterval(function () {
+    processor.flush();
+  }, flushInterval);
   let loggedErrors = new Set();
 
   processor.log = function (event, errorKey = null) {
@@ -34,14 +36,12 @@ function LogEventProcessor(options, secretKey) {
 
     if (queue.length >= flushBatchSize) {
       processor.flush();
-    } else if (queue.length === 1) {
-      resetFlushTimeout();
     }
   };
 
   processor.flush = function (waitForResponse = true) {
-    if (flushTimer != null) {
-      clearTimeout(flushTimer);
+    if (!waitForResponse) {
+      clearInterval(flushTimer);
     }
 
     if (queue.length === 0) {
@@ -63,7 +63,7 @@ function LogEventProcessor(options, secretKey) {
     }
 
     fetcher
-      .post(options.api + '/log_event', secretKey, body, 13, 10000)
+      .post(options.api + '/log_event', secretKey, body, 5, 10000)
       .catch((e) => {
         processor.logStatsigInternal(null, 'log_event_failed', {
           error: e?.message || 'log_event_failed',
@@ -107,16 +107,6 @@ function LogEventProcessor(options, secretKey) {
       ruleID: ruleID,
     });
   };
-
-  function resetFlushTimeout() {
-    if (flushTimer != null) {
-      clearTimeout(flushTimer);
-    }
-
-    flushTimer = setTimeout(function () {
-      processor.flush();
-    }, flushInterval);
-  }
 
   return processor;
 }
