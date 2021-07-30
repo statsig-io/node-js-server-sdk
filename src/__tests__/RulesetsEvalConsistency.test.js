@@ -23,11 +23,12 @@ if (secret) {
     });
 
     [
-      'https://api.statsig.com/v1',
-      'https://us-west-2.api.statsig.com/v1',
-      'https://us-east-2.api.statsig.com/v1',
-      'https://ap-south-1.api.statsig.com/v1',
-      'https://latest.api.statsig.com/v1'
+      'http://localhost:3006/v1',
+      // 'https://api.statsig.com/v1',
+      // 'https://us-west-2.api.statsig.com/v1',
+      // 'https://us-east-2.api.statsig.com/v1',
+      // 'https://ap-south-1.api.statsig.com/v1',
+      // 'https://latest.api.statsig.com/v1'
     ].map(url => test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
       await _validateServerSDKConsistency(url);
     }));
