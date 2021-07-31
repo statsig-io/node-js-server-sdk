@@ -23,7 +23,6 @@ if (secret) {
     });
 
     [
-      'http://localhost:3006/v1',
       'https://api.statsig.com/v1',
       'https://us-west-2.api.statsig.com/v1',
       'https://us-east-2.api.statsig.com/v1',
