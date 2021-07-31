@@ -152,9 +152,6 @@ const Evaluator = {
         return FETCH_FROM_SERVER;
     }
 
-    if (value == null) {
-      return false;
-    }
     if (value === FETCH_FROM_SERVER) {
       return FETCH_FROM_SERVER;
     }
@@ -363,6 +360,9 @@ function versionCompareHelper(fn) {
 // returns -1, 0, or 1 if first is smaller than, equal to, or larger than second.
 // returns false if any of the version strings is not valid.
 function versionCompare(first, second) {
+  if (typeof first !== 'string' || typeof second !== 'string') {
+    return false;
+  }
   const version1 = removeVersionExtension(first);
   const version2 = removeVersionExtension(second);
   if (version1.length === 0 || version2.length === 0) {
@@ -417,6 +417,9 @@ function stringCompare(fn) {
 
 function dateCompare(fn) {
   return (a, b) => {
+    if (a == null || b == null) {
+      return false;
+    }
     try {
       // Try to parse into date as a string first, if not, try unixtime
       let dateA = new Date(a);
