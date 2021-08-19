@@ -126,9 +126,6 @@ const Evaluator = {
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
         value = getFromUser(user, field) ?? getFromIP(user, field);
-        if (value === FETCH_FROM_SERVER) {
-          return FETCH_FROM_SERVER;
-        }
         break;
       case 'ua_based':
         // this would apply to things like 'os', 'browser', etc.
@@ -298,23 +295,22 @@ function getFromUser(user, field) {
     user?.[field] ??
     user?.[field.toLowerCase()] ??
     user?.custom?.[field] ??
-    user?.custom?.[field.toLowerCase]
+    user?.custom?.[field.toLowerCase()] ??
+    user?.privateAttributes?.[field] ??
+    user?.privateAttributes?.[field.toLowerCase()]
   );
 }
 
 function getFromIP(user, field) {
-  const ip = user?.ip ?? user?.custom?.ip;
-  if (ip == null) {
+  const ip = getFromUser(user, 'ip');
+  if (ip == null || field !== 'country') {
     return null;
   }
-  if (field.toLowerCase() === 'country') {
-    return Evaluator.ip2country(ip);
-  }
-  return FETCH_FROM_SERVER;
+  return Evaluator.ip2country(ip);
 }
 
 function getFromUserAgent(user, field) {
-  let ua = user?.userAgent ?? user?.custom?.userAgent;
+  const ua = getFromUser(user, 'userAgent');
   if (ua == null) {
     return null;
   }
