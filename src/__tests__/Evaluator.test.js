@@ -11,11 +11,13 @@ describe('Test condition evaluation', () => {
     custom: {
       os_name: 'iOS',
       company: 'Statsig',
-      level: 99,
-      registration_date: baseTimeStr
     },
     statsigEnvironment: {
       tier: 'production'
+    },
+    privateAttributes: {
+      level: 99,
+      registration_date: baseTimeStr
     }
   }
 
@@ -55,7 +57,7 @@ describe('Test condition evaluation', () => {
     ['ip_based',          'none',           ['US', 'CA'],      'country',        user2, false],
     ['ip_based',          'eq',             'US',              'country',        user2, true],
     ['ip_based',          'neq',            'US',              'country',        user2, false],
-    ['ip_based',          'any',            ['US', 'CA'],      'city',           user2, FETCH_FROM_SERVER],
+    ['ip_based',          'any',            ['US', 'CA'],      'city',           user2, false],
 
     // ua_based condition when ua is not provided
     ['ua_based',          'any',            ['Android', 'iOS'],'os_name',        user, true],

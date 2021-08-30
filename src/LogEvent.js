@@ -18,6 +18,7 @@ class LogEvent {
       return;
     }
     this.user = clone(user);
+    this.user.privateAttributes = null;
   }
 
   setValue(value) {

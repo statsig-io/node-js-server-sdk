@@ -252,7 +252,7 @@ describe('Verify behavior of top level index functions', () => {
     });
     await statsig.initialize(secretKey);
 
-    let user = { userID: 123 };
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
@@ -286,7 +286,7 @@ describe('Verify behavior of top level index functions', () => {
     });
     await statsig.initialize(secretKey);
 
-    let user = { userID: 123 };
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_pass';
 
     const spy = jest.spyOn(statsig._logger, 'log');
@@ -324,7 +324,7 @@ describe('Verify behavior of top level index functions', () => {
       environment: { tier: 'production' },
     });
 
-    let user = { userID: 123 };
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_fail';
 
     const spy = jest.spyOn(statsig._logger, 'log');
@@ -357,7 +357,7 @@ describe('Verify behavior of top level index functions', () => {
 
     await statsig.initialize(secretKey);
 
-    let user = { userID: 123 };
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
@@ -401,7 +401,7 @@ describe('Verify behavior of top level index functions', () => {
     });
     await statsig.initialize(secretKey);
 
-    let user = { userID: 123 };
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
@@ -494,11 +494,12 @@ describe('Verify behavior of top level index functions', () => {
       statsig.logEventObject({
         eventName: 'event',
         time: 123,
+        user: {userID: '123', privateAttributes: { secret: 'do not log' }}
       });
 
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
-      logEvent.setUser({});
+      logEvent.setUser({userID: '123'});
       logEvent.setValue(null);
       logEvent.setTime(123);
       expect(spy).toBeCalledWith(logEvent);
