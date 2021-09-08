@@ -68,7 +68,6 @@ const SpecStore = {
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
   _process(specsJSON) {
-    this.time = specsJSON.time ?? this.time;
     if (!specsJSON?.has_updates) {
       return false;
     }
@@ -104,6 +103,7 @@ const SpecStore = {
     if (!parseFailed) {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
+      this.time = specsJSON.time ?? this.time;
     }
 
     return !parseFailed;
