@@ -27,10 +27,12 @@ if (secret) {
       'https://us-west-2.api.statsig.com/v1',
       'https://us-east-2.api.statsig.com/v1',
       'https://ap-south-1.api.statsig.com/v1',
-      'https://latest.api.statsig.com/v1'
-    ].map(url => test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-      await _validateServerSDKConsistency(url);
-    }));
+      'https://latest.api.statsig.com/v1',
+    ].map((url) =>
+      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
+        await _validateServerSDKConsistency(url);
+      }),
+    );
   });
 } else {
   describe('', () => {
@@ -62,8 +64,8 @@ async function _validateServerSDKConsistency(api) {
   expect.assertions(totalChecks);
 
   const statsig = require('../index');
-    await statsig.initialize(secret, {api: api});
-  
+  await statsig.initialize(secret, { api: api });
+
   const promises = testData.map(async (data) => {
     const user = data.user;
     const gates = data.feature_gates;
@@ -71,7 +73,9 @@ async function _validateServerSDKConsistency(api) {
     for (const name in gates) {
       const sdkValue = await statsig.checkGate(user, name);
       if (sdkValue !== gates[name]) {
-        console.log(`Test failed for gate ${name}. Server got ${gates[name]}, SDK got ${sdkValue}`);
+        console.log(
+          `Test failed for gate ${name}. Server got ${gates[name]}, SDK got ${sdkValue}`,
+        );
       }
       expect(sdkValue).toEqual(gates[name]);
     }

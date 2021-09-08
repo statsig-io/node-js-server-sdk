@@ -239,16 +239,13 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify when Evaluator fails, checkGate() returns correct value and logs an exposure correctly from server', async () => {
-    expect.assertions(3);
+  test('Verify when Evaluator fails, checkGate() returns correct value and does not lot an exposure', async () => {
+    expect.assertions(2);
 
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-      if (gateName === 'gate_pass')
-        return { value: true, rule_id: 'rule_id_pass' };
-      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-      return { value: false, rule_id: 'rule_id_fail' };
+      return FETCH_FROM_SERVER;
     });
     await statsig.initialize(secretKey);
 
@@ -256,21 +253,11 @@ describe('Verify behavior of top level index functions', () => {
     let gateName = 'gate_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    const gateExposure = new LogEvent('statsig::gate_exposure');
-    gateExposure.setUser({
-      userID: 123,
-    });
-    gateExposure.setMetadata({
-      gate: gateName,
-      gateValue: String(true),
-      ruleID: 'rule_id_gate_server',
-    });
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       true,
     );
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith(gateExposure);
+    expect(spy).toHaveBeenCalledTimes(0);
   });
 
   test('Verify Evaluator returns correct value for checkGate() and logs an exposure correctly', async () => {
@@ -346,8 +333,8 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify when Evaluator fails to evaluate, getConfig() and getExperiment() return correct value and logs an exposure correctly after fetching from server', async () => {
-    expect.assertions(6);
+  test('Verify when Evaluator fails to evaluate, getConfig() and getExperiment() return correct value and do not log exposures', async () => {
+    expect.assertions(5);
 
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
@@ -361,14 +348,6 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_server';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    const configExposure = new LogEvent('statsig::config_exposure');
-    configExposure.setUser({
-      userID: 123,
-    });
-    configExposure.setMetadata({
-      config: configName,
-      ruleID: 'rule_id_config_server',
-    });
 
     await statsig.getConfig(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(123);
@@ -380,8 +359,7 @@ describe('Verify behavior of top level index functions', () => {
       expect(data.getValue('string')).toStrictEqual('123');
     });
 
-    expect(spy).toHaveBeenCalledTimes(2);
-    expect(spy).toHaveBeenCalledWith(configExposure);
+    expect(spy).toHaveBeenCalledTimes(0);
   });
 
   test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
@@ -494,12 +472,12 @@ describe('Verify behavior of top level index functions', () => {
       statsig.logEventObject({
         eventName: 'event',
         time: 123,
-        user: {userID: '123', privateAttributes: { secret: 'do not log' }}
+        user: { userID: '123', privateAttributes: { secret: 'do not log' } },
       });
 
       const logEvent = new LogEvent('event');
       logEvent.setMetadata(null);
-      logEvent.setUser({userID: '123'});
+      logEvent.setUser({ userID: '123' });
       logEvent.setValue(null);
       logEvent.setTime(123);
       expect(spy).toBeCalledWith(logEvent);

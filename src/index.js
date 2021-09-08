@@ -82,16 +82,9 @@ const statsig = {
       );
     }
     user = normalizeUser(user);
-    return this._getGateValue(user, gateName)
-      .then((gate) => {
-        const value = gate?.value ?? false;
-        statsig._logger.logGateExposure(user, gateName, value, gate.rule_id);
-        return Promise.resolve(value);
-      })
-      .catch(() => {
-        statsig._logger.logGateExposure(user, gateName, false);
-        return Promise.resolve(false);
-      });
+    return this._getGateValue(user, gateName).then((gate) => {
+      return gate.value;
+    });
   },
 
   /**
@@ -118,18 +111,7 @@ const statsig = {
     }
     user = normalizeUser(user);
 
-    return this._getConfigValue(user, configName)
-      .then((config) => {
-        if (config == null) {
-          config = new DynamicConfig(configName);
-        }
-        statsig._logger.logConfigExposure(user, configName, config.getRuleID());
-        return Promise.resolve(config);
-      })
-      .catch(() => {
-        statsig._logger.logConfigExposure(user, configName);
-        return Promise.resolve(new DynamicConfig(configName));
-      });
+    return this._getConfigValue(user, configName);
   },
 
   /**
@@ -242,8 +224,16 @@ const statsig = {
   },
 
   _getGateValue(user, gateName) {
-    const ret = Evaluator.checkGate(user, gateName);
+    let ret = Evaluator.checkGate(user, gateName);
+    if (ret == null) {
+      ret = {
+        value: false,
+        rule_id: '',
+      };
+    }
     if (ret !== FETCH_FROM_SERVER) {
+      const value = ret.value;
+      statsig._logger.logGateExposure(user, gateName, value, ret.rule_id);
       return Promise.resolve(ret);
     }
 
@@ -264,9 +254,13 @@ const statsig = {
   },
 
   _getConfigValue(user, configName) {
-    const ret = Evaluator.getConfig(user, configName);
-    if (ret !== FETCH_FROM_SERVER) {
-      return Promise.resolve(ret);
+    let config = Evaluator.getConfig(user, configName);
+    if (config == null) {
+      config = new DynamicConfig(configName);
+    }
+    if (config !== FETCH_FROM_SERVER) {
+      statsig._logger.logConfigExposure(user, configName, config.getRuleID());
+      return Promise.resolve(config);
     }
 
     return fetcher
