@@ -8,7 +8,7 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
-const UAParser = require('useragent')
+const UAParser = require('useragent');
 
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -62,10 +62,10 @@ const Evaluator = {
           const pass = this._evalPassPercent(user, rule, config);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
             ? new DynamicConfig(
-              config.name,
-              pass ? rule.returnValue : config.defaultValue,
-              rule.id,
-            )
+                config.name,
+                pass ? rule.returnValue : config.defaultValue,
+                rule.id,
+              )
             : { value: pass, rule_id: rule.id };
         }
       }
@@ -152,8 +152,8 @@ const Evaluator = {
     if (value === FETCH_FROM_SERVER) {
       return FETCH_FROM_SERVER;
     }
-
-    switch (condition.operator?.toLowerCase()) {
+    const op = condition.operator?.toLowerCase();
+    switch (op) {
       // numerical
       case 'gt':
         return numberCompare((a, b) => a > b)(value, target);
@@ -224,16 +224,13 @@ const Evaluator = {
           return stringCompare((a, b) => a.endsWith(b))(value, target);
         }
       case 'str_contains_any':
-        if (Array.isArray(target)) {
-          for (let i = 0; i < target.length; i++) {
-            if (stringCompare((a, b) => a.includes(b))(value, target[i])) {
-              return true;
-            }
+      case 'str_contains_none':
+        for (let i = 0; i < target.length; i++) {
+          if (stringCompare((a, b) => a.includes(b))(value, target[i])) {
+            return op === 'str_contains_any';
           }
-          return false;
-        } else {
-          return stringCompare((a, b) => a.includes(b))(value, target);
         }
+        return op === 'str_contains_none';
       case 'str_matches':
         try {
           return new RegExp(target).test(value);
@@ -316,20 +313,20 @@ function getFromUserAgent(user, field) {
   }
   const res = UAParser.parse(ua);
   switch (field.toLowerCase()) {
-    case "os_name":
-    case "osname":
+    case 'os_name':
+    case 'osname':
       return res.os.family ?? null;
-    case "os_version":
-    case "osversion":
+    case 'os_version':
+    case 'osversion':
       return res.os.toVersion() ?? null;
-    case "browser_name":
-    case "browsername":
+    case 'browser_name':
+    case 'browsername':
       return res.family ?? null;
-    case "browser_version":
-    case "browserversion":
-      return res.toVersion() ?? null
+    case 'browser_version':
+    case 'browserversion':
+      return res.toVersion() ?? null;
     default:
-      return null
+      return null;
   }
 }
 

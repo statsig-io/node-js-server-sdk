@@ -74,7 +74,9 @@ async function _validateServerSDKConsistency(api) {
       const sdkValue = await statsig.checkGate(user, name);
       if (sdkValue !== gates[name]) {
         console.log(
-          `Test failed for gate ${name}. Server got ${gates[name]}, SDK got ${sdkValue}`,
+          `Test failed for gate ${name}. Server got ${
+            gates[name]
+          }, SDK got ${sdkValue} for ${JSON.stringify(user)}`,
         );
       }
       expect(sdkValue).toEqual(gates[name]);
