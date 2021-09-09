@@ -439,15 +439,10 @@ function arrayContains(array, value, ignoreCase) {
     return false;
   }
   for (let i = 0; i < array.length; i++) {
-    if (
-      ignoreCase &&
-      typeof array[i] === 'string' &&
-      typeof value === 'string' &&
-      array[i].toLowerCase() === value.toLowerCase()
-    ) {
+    if (ignoreCase && String(array[i]).toLowerCase() === String(value).toLowerCase()) {
       return true;
     }
-    if (array[i] === value) {
+    if (String(array[i]) === String(value)) {
       return true;
     }
   }
