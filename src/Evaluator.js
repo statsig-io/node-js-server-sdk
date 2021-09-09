@@ -192,48 +192,26 @@ const Evaluator = {
 
       // array
       case 'any':
-        return arrayContains(target, value, true);
+        return arrayAny(value, target, stringCompare(true, (a, b) => a === b));
       case 'none':
-        return !arrayContains(target, value, true);
+        return !arrayAny(value, target, stringCompare(true, (a, b) => a === b));
       case 'any_case_sensitive':
-        return arrayContains(target, value, false);
+        return arrayAny(value, target,  stringCompare(false, (a, b) => a === b));
       case 'none_case_sensitive':
-        return !arrayContains(target, value, false);
+        return !arrayAny(value, target, stringCompare(false, (a, b) => a === b));
 
       // string
       case 'str_starts_with_any':
-        if (Array.isArray(target)) {
-          for (let i = 0; i < target.length; i++) {
-            if (stringCompare((a, b) => a.startsWith(b))(value, target[i])) {
-              return true;
-            }
-          }
-          return false;
-        } else {
-          return stringCompare((a, b) => a.startsWith(b))(value, target);
-        }
+        return arrayAny(value, target, stringCompare(true, (a, b) => a.startsWith(b)));
       case 'str_ends_with_any':
-        if (Array.isArray(target)) {
-          for (let i = 0; i < target.length; i++) {
-            if (stringCompare((a, b) => a.endsWith(b))(value, target[i])) {
-              return true;
-            }
-          }
-          return false;
-        } else {
-          return stringCompare((a, b) => a.endsWith(b))(value, target);
-        }
+        return arrayAny(value, target, stringCompare(true, (a, b) => a.endsWith(b)));
       case 'str_contains_any':
+        return arrayAny(value, target, stringCompare(true, (a, b) => a.includes(b)));
       case 'str_contains_none':
-        for (let i = 0; i < target.length; i++) {
-          if (stringCompare((a, b) => a.includes(b))(value, target[i])) {
-            return op === 'str_contains_any';
-          }
-        }
-        return op === 'str_contains_none';
+        return !arrayAny(value, target, stringCompare(true, (a, b) => a.includes(b)));
       case 'str_matches':
         try {
-          return new RegExp(target).test(value);
+          return new RegExp(target).test(String(value));
         } catch (e) {
           return false;
         }
@@ -398,13 +376,9 @@ function removeVersionExtension(version) {
   return version;
 }
 
-function stringCompare(fn) {
+function stringCompare(ignoreCase, fn) {
   return (a, b) => {
-    return (
-      typeof a === 'string' &&
-      typeof b === 'string' &&
-      fn(a.toLowerCase(), b.toLowerCase())
-    );
+    return ignoreCase ? fn(String(a).toLowerCase(), String(b).toLowerCase()) : fn(String(a), String(b));
   };
 }
 
@@ -434,15 +408,12 @@ function dateCompare(fn) {
   };
 }
 
-function arrayContains(array, value, ignoreCase) {
+function arrayAny(value, array, fn) {
   if (!Array.isArray(array)) {
     return false;
   }
   for (let i = 0; i < array.length; i++) {
-    if (ignoreCase && String(array[i]).toLowerCase() === String(value).toLowerCase()) {
-      return true;
-    }
-    if (String(array[i]) === String(value)) {
+    if (fn(value, array[i])) {
       return true;
     }
   }
