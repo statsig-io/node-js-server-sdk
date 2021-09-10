@@ -378,6 +378,9 @@ function removeVersionExtension(version) {
 
 function stringCompare(ignoreCase, fn) {
   return (a, b) => {
+    if (a == null || b == null) {
+      return false;
+    }
     return ignoreCase ? fn(String(a).toLowerCase(), String(b).toLowerCase()) : fn(String(a), String(b));
   };
 }
