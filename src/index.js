@@ -229,11 +229,17 @@ const statsig = {
       ret = {
         value: false,
         rule_id: '',
+        secondary_exposures: [],
       };
     }
     if (ret !== FETCH_FROM_SERVER) {
-      const value = ret.value;
-      statsig._logger.logGateExposure(user, gateName, value, ret.rule_id);
+      statsig._logger.logGateExposure(
+        user,
+        gateName,
+        ret.value,
+        ret.rule_id,
+        ret.secondary_exposures,
+      );
       return Promise.resolve(ret);
     }
 
@@ -259,7 +265,12 @@ const statsig = {
       config = new DynamicConfig(configName);
     }
     if (config !== FETCH_FROM_SERVER) {
-      statsig._logger.logConfigExposure(user, configName, config.getRuleID());
+      statsig._logger.logConfigExposure(
+        user,
+        configName,
+        config.getRuleID(),
+        config._getSecondaryExposures(),
+      );
       return Promise.resolve(config);
     }
 

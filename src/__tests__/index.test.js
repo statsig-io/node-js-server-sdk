@@ -286,6 +286,7 @@ describe('Verify behavior of top level index functions', () => {
       gateValue: String(true),
       ruleID: 'rule_id_pass',
     });
+    gateExposure.setSecondaryExposures([]);
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       true,
@@ -325,6 +326,7 @@ describe('Verify behavior of top level index functions', () => {
       gateValue: String(false),
       ruleID: 'rule_id_fail',
     });
+    gateExposure.setSecondaryExposures([]);
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       false,
@@ -391,6 +393,7 @@ describe('Verify behavior of top level index functions', () => {
       config: configName,
       ruleID: 'rule_id_config',
     });
+    configExposure.setSecondaryExposures([]);
 
     await statsig.getConfig(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(12345);
