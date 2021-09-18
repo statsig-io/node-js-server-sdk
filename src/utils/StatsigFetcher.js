@@ -44,7 +44,7 @@ const fetcher = {
     };
     return fetch(url, params)
       .then((res) => {
-        if (!res.ok || (retries > 0 && retryStatusCodes.includes(res.status))) {
+        if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
           return this._retry(url, sdkKey, body, retries, backoff);
         } else if (!res.ok) {
           return Promise.reject(
