@@ -282,14 +282,14 @@ describe('Test condition evaluation', () => {
     });
     expect(Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec)).toEqual({
       value: false,
-      rule_id: 'default',
+      rule_id: 'disabled',
       secondary_exposures: []
     });
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec)
     ).toEqual({
       value: false,
-      rule_id: 'default',
+      rule_id: 'disabled',
       secondary_exposures: []
     });
   });

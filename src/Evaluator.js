@@ -79,9 +79,10 @@ const Evaluator = {
         }
       }
     }
+    const ruleID = config.enabled ? 'default' : 'disabled';
     return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-      ? new DynamicConfig(config.name, config.defaultValue, 'default', [])
-      : { value: false, rule_id: 'default', secondary_exposures: [] };
+      ? new DynamicConfig(config.name, config.defaultValue, ruleID, secondary_exposures)
+      : { value: false, rule_id: ruleID, secondary_exposures: secondary_exposures };
   },
 
   _evalPassPercent(user, rule, config) {
