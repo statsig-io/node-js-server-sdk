@@ -23,7 +23,6 @@ if (secret) {
     });
 
     [
-      // 'http://localhost:3006/v1',
       'https://api.statsig.com/v1',
       'https://us-west-2.api.statsig.com/v1',
       'https://us-east-2.api.statsig.com/v1',
@@ -61,8 +60,8 @@ async function _validateServerSDKConsistency(api) {
   const totalChecks =
     testData.length *
     (Object.keys(testData[0].feature_gates).length +
-      Object.keys(testData[0].dynamic_configs).length);
-  expect.assertions(totalChecks * 3);
+      Object.keys(testData[0].dynamic_configs).length) * 3;
+  expect.assertions(totalChecks);
 
   const statsig = require('../index');
   const Evaluator = require('../Evaluator');
