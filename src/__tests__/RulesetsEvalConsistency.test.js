@@ -23,6 +23,7 @@ if (secret) {
     });
 
     [
+      // 'http://localhost:3006/v1',
       'https://api.statsig.com/v1',
       'https://us-west-2.api.statsig.com/v1',
       'https://us-east-2.api.statsig.com/v1',
@@ -61,32 +62,76 @@ async function _validateServerSDKConsistency(api) {
     testData.length *
     (Object.keys(testData[0].feature_gates).length +
       Object.keys(testData[0].dynamic_configs).length);
-  expect.assertions(totalChecks);
+  expect.assertions(totalChecks * 3);
 
   const statsig = require('../index');
+  const Evaluator = require('../Evaluator');
   await statsig.initialize(secret, { api: api });
 
   const promises = testData.map(async (data) => {
     const user = data.user;
-    const gates = data.feature_gates;
+    const gates = data.feature_gates_v2;
     const configs = data.dynamic_configs;
     for (const name in gates) {
-      const sdkValue = await statsig.checkGate(user, name);
-      if (sdkValue !== gates[name]) {
+      const sdkResult = await Evaluator.checkGate(user, name);
+      const serverResult = gates[name];
+      const sameExposure = compareSecondaryExposures(sdkResult.secondary_exposures, serverResult.secondary_exposures);
+      if (sdkResult.value !== serverResult.value || sdkResult.rule_id !== serverResult.rule_id || !sameExposure) {
         console.log(
           `Test failed for gate ${name}. Server got ${
-            gates[name]
-          }, SDK got ${sdkValue} for ${JSON.stringify(user)}`,
+            JSON.stringify(serverResult)
+          }, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
         );
       }
-      expect(sdkValue).toEqual(gates[name]);
+      
+      expect(sdkResult.value).toEqual(serverResult.value);
+      expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
+      expect(sameExposure).toBe(true);
     }
 
     for (const name in configs) {
-      const sdkValue = await statsig.getConfig(user, name);
-      expect(sdkValue.value).toMatchObject(configs[name].value);
+      const sdkResult = await Evaluator.getConfig(user, name);
+      const serverResult = configs[name];
+      const sameExposure = compareSecondaryExposures(sdkResult._getSecondaryExposures(), serverResult.secondary_exposures);
+      if (JSON.stringify(sdkResult.getValue()) !== JSON.stringify(serverResult.value) || sdkResult.getRuleID() !== serverResult.rule_id || !sameExposure) {
+        console.log(
+          `Test failed for config ${name}. Server got ${
+            JSON.stringify(serverResult)
+          }, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
+        );
+      }
+
+      expect(sdkResult.getValue()).toMatchObject(serverResult.value);
+      expect(sdkResult.getRuleID()).toEqual(serverResult.rule_id);
+      expect(sameExposure).toBe(true);
     }
   });
   await Promise.all(promises);
   console.log(`Successfully completed ${totalChecks} checks for ${api}`);
+}
+
+function compareSecondaryExposures(expo1, expo2) {
+  if (expo1 == null && expo2 == null) {
+    return true;
+  }
+  if (!Array.isArray(expo1) || !Array.isArray(expo2) || expo1.length !== expo2.length) {
+    return false;
+  }
+  var obj1 = expo1.reduce(function(res, cur) {
+    res[cur.gate] = cur;
+    return res;
+  }, {});
+  var obj2 = expo2.reduce(function(res, cur) {
+    res[cur.gate] = cur;
+    return res;
+  }, {});
+
+  for (const gateName in obj1) {
+    const gate1 = obj1[gateName];
+    const gate2 = obj2[gateName];
+    if (gate1.gateValue !== gate2.gateValue || gate1.ruleID !== gate2.ruleID) {
+      return false;
+    }
+  }
+  return true;
 }
