@@ -241,10 +241,16 @@ describe('Test condition evaluation', () => {
       }
       const condition = new ConfigCondition(json);
       const result = Evaluator._evalCondition(p[4], condition);
-      if (result !== p[5]) {
-        console.log(`Evaluation test failed for condition ${JSON.stringify(json)} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${result}`);
+      if (result.value !== p[5]) {
+        console.log(`Evaluation test failed for condition ${JSON.stringify(json)} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${result.value}`);
       }
-      expect(Evaluator._evalCondition(p[4], condition)).toEqual(p[5]);
+      expect(result.value).toEqual(p[5]);
+      if (p[2] === 'gate_pass') {
+        expect(result.secondary_exposures).toEqual([{ gate: 'gate_pass', gateValue: 'true', ruleID: 'my_rule' }]);
+      }
+      if (p[2] === 'gate_fail') {
+        expect(result.secondary_exposures).toEqual([{ gate: 'gate_fail', gateValue: 'false', ruleID: 'default' }]);
+      }
     });
   });
 
@@ -252,32 +258,39 @@ describe('Test condition evaluation', () => {
     expect(Evaluator._eval({}, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
+      secondary_exposures: []
     });
     expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
+      secondary_exposures: []
     });
     expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual({
       value: true,
       rule_id: 'rule_id_gate',
+      secondary_exposures: []
     });
     expect(Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec)).toEqual({
       value: true,
       rule_id: 'rule_id_gate',
+      secondary_exposures: []
     });
     expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
+      secondary_exposures: []
     });
     expect(Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec)).toEqual({
       value: false,
       rule_id: 'default',
+      secondary_exposures: []
     });
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec)
     ).toEqual({
       value: false,
       rule_id: 'default',
+      secondary_exposures: []
     });
   });
 
@@ -410,7 +423,7 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.gate.name
       )
-    ).toEqual({ value: true, rule_id: exampleConfigSpecs.gate.rules[0].id });
+    ).toEqual({ value: true, rule_id: exampleConfigSpecs.gate.rules[0].id, secondary_exposures: [] });
 
     // should evaluate to false
     expect(
@@ -418,7 +431,7 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name
       )
-    ).toEqual({ value: false, rule_id: 'default' });
+    ).toEqual({ value: false, rule_id: 'default', secondary_exposures: [] });
 
     // non-existent gate should return null
     expect(

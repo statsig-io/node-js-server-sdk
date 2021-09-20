@@ -267,7 +267,13 @@ describe('Verify behavior of top level index functions', () => {
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
       if (gateName === 'gate_pass')
-        return { value: true, rule_id: 'rule_id_pass' };
+        return {
+          value: true,
+          rule_id: 'rule_id_pass',
+          secondary_exposures: [
+            { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
+          ],
+        };
       if (gateName === 'gate_server') return FETCH_FROM_SERVER;
       return { value: false, rule_id: 'rule_id_fail' };
     });
@@ -286,6 +292,9 @@ describe('Verify behavior of top level index functions', () => {
       gateValue: String(true),
       ruleID: 'rule_id_pass',
     });
+    gateExposure.setSecondaryExposures([
+      { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
+    ]);
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       true,
@@ -325,6 +334,7 @@ describe('Verify behavior of top level index functions', () => {
       gateValue: String(false),
       ruleID: 'rule_id_fail',
     });
+    gateExposure.setSecondaryExposures([]);
 
     await expect(statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       false,
@@ -391,6 +401,7 @@ describe('Verify behavior of top level index functions', () => {
       config: configName,
       ruleID: 'rule_id_config',
     });
+    configExposure.setSecondaryExposures([]);
 
     await statsig.getConfig(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(12345);

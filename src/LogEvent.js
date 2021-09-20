@@ -54,6 +54,10 @@ class LogEvent {
     this.time = time;
   }
 
+  setSecondaryExposures(exposures) {
+    this.secondaryExposures = Array.isArray(exposures) ? exposures : [];
+  }
+
   validate() {
     return typeof this.eventName === 'string' && this.eventName.length > 0;
   }
@@ -65,6 +69,7 @@ class LogEvent {
       time: this.time,
       user: this.user,
       value: this.value,
+      secondaryExposures: this.secondaryExposures,
     };
   }
 }

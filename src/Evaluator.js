@@ -51,28 +51,37 @@ const Evaluator = {
    * @returns {DynamicConfig | object}
    */
   _eval(user, config) {
+    let secondary_exposures = [];
     if (config.enabled) {
       for (let i = 0; i < config.rules.length; i++) {
         let rule = config.rules[i];
-        const result = this._evalRule(user, rule);
-        if (result === FETCH_FROM_SERVER) {
-          return FETCH_FROM_SERVER;
+        const ruleResult = this._evalRule(user, rule);
+        if (ruleResult.value === FETCH_FROM_SERVER) {
+          return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
         }
-        if (result === true) {
+        secondary_exposures = secondary_exposures.concat(
+          ruleResult.secondary_exposures,
+        );
+        if (ruleResult.value === true) {
           const pass = this._evalPassPercent(user, rule, config);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
             ? new DynamicConfig(
                 config.name,
                 pass ? rule.returnValue : config.defaultValue,
                 rule.id,
+                secondary_exposures,
               )
-            : { value: pass, rule_id: rule.id };
+            : {
+                value: pass,
+                rule_id: rule.id,
+                secondary_exposures: secondary_exposures,
+              };
         }
       }
     }
     return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-      ? new DynamicConfig(config.name, config.defaultValue, 'default')
-      : { value: false, rule_id: 'default' };
+      ? new DynamicConfig(config.name, config.defaultValue, 'default', [])
+      : { value: false, rule_id: 'default', secondary_exposures: [] };
   },
 
   _evalPassPercent(user, rule, config) {
@@ -89,16 +98,36 @@ const Evaluator = {
    * but can also return a string with value 'FETCH_FROM_SERVER' if the rule cannot be evaluated by the SDK.
    * @param {object} user
    * @param {ConfigRule} rule
-   * @returns {string | boolean}
+   * @returns {object}
    */
   _evalRule(user, rule) {
-    for (let i = 0; i < rule.conditions.length; i++) {
-      const result = this._evalCondition(user, rule.conditions[i]);
-      if (result !== true) {
-        return result;
-      }
-    }
-    return true;
+    const conditionResults = rule.conditions.map((condition) =>
+      this._evalCondition(user, condition),
+    );
+
+    return conditionResults.reduce(
+      (finalRes, currentRes) => {
+        // If any result says fetch from server, then we fetch from server. This should be super rare.
+        // Otherwise, if any result evaluated to false, the whole rule should be false.
+        if (currentRes.value === FETCH_FROM_SERVER) {
+          finalRes.value = FETCH_FROM_SERVER;
+        } else if (!currentRes.value && finalRes.value === true) {
+          finalRes.value = false;
+        }
+
+        // Adding up all secondary exposures
+        if (Array.isArray(currentRes.secondary_exposures)) {
+          finalRes.secondary_exposures = finalRes.secondary_exposures.concat(
+            currentRes.secondary_exposures,
+          );
+        }
+        return finalRes;
+      },
+      {
+        value: true,
+        secondary_exposures: [],
+      },
+    );
   },
 
   /**
@@ -106,7 +135,7 @@ const Evaluator = {
    * but can also return a string with value 'FETCH_FROM_SERVER' if the condition cannot be evaluated by the SDK.
    * @param {*} user
    * @param {ConfigCondition} condition
-   * @returns {string | boolean}
+   * @returns {object}
    */
   _evalCondition(user, condition) {
     let value = null;
@@ -114,15 +143,26 @@ const Evaluator = {
     let target = condition.targetValue;
     switch (condition.type.toLowerCase()) {
       case 'public':
-        return true;
+        return { value: true, secondary_exposures: [] };
       case 'fail_gate':
       case 'pass_gate':
         const gateResult = Evaluator.checkGate(user, target);
         if (gateResult === FETCH_FROM_SERVER) {
-          return FETCH_FROM_SERVER;
+          return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
         }
         value = gateResult?.value;
-        return condition.type.toLowerCase() === 'fail_gate' ? !value : value;
+
+        let allExposures = gateResult?.secondary_exposures ?? [];
+        allExposures.push({
+          gate: target,
+          gateValue: String(value),
+          ruleID: gateResult?.rule_id ?? '',
+        });
+
+        return {
+          value: condition.type.toLowerCase() === 'fail_gate' ? !value : value,
+          secondary_exposures: allExposures,
+        };
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
         value = getFromUser(user, field) ?? getFromIP(user, field);
@@ -146,95 +186,154 @@ const Evaluator = {
         value = Number(userHash % BigInt(USER_BUCKET_COUNT));
         break;
       default:
-        return FETCH_FROM_SERVER;
+        return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
     }
 
     if (value === FETCH_FROM_SERVER) {
-      return FETCH_FROM_SERVER;
+      return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
     }
+
     const op = condition.operator?.toLowerCase();
+    let evalResult = false;
     switch (op) {
       // numerical
       case 'gt':
-        return numberCompare((a, b) => a > b)(value, target);
+        evalResult = numberCompare((a, b) => a > b)(value, target);
+        break;
       case 'gte':
-        return numberCompare((a, b) => a >= b)(value, target);
+        evalResult = numberCompare((a, b) => a >= b)(value, target);
+        break;
       case 'lt':
-        return numberCompare((a, b) => a < b)(value, target);
+        evalResult = numberCompare((a, b) => a < b)(value, target);
+        break;
       case 'lte':
-        return numberCompare((a, b) => a <= b)(value, target);
+        evalResult = numberCompare((a, b) => a <= b)(value, target);
+        break;
 
       // version
       case 'version_gt':
-        return versionCompareHelper((result) => result > 0)(
+        evalResult = versionCompareHelper((result) => result > 0)(
           versionCompare(value, target),
         );
+        break;
       case 'version_gte':
-        return versionCompareHelper((result) => result >= 0)(
+        evalResult = versionCompareHelper((result) => result >= 0)(
           versionCompare(value, target),
         );
+        break;
       case 'version_lt':
-        return versionCompareHelper((result) => result < 0)(
+        evalResult = versionCompareHelper((result) => result < 0)(
           versionCompare(value, target),
         );
+        break;
       case 'version_lte':
-        return versionCompareHelper((result) => result <= 0)(
+        evalResult = versionCompareHelper((result) => result <= 0)(
           versionCompare(value, target),
         );
+        break;
       case 'version_eq':
-        return versionCompareHelper((result) => result === 0)(
+        evalResult = versionCompareHelper((result) => result === 0)(
           versionCompare(value, target),
         );
+        break;
       case 'version_neq':
-        return versionCompareHelper((result) => result !== 0)(
+        evalResult = versionCompareHelper((result) => result !== 0)(
           versionCompare(value, target),
         );
+        break;
 
       // array
       case 'any':
-        return arrayAny(value, target, stringCompare(true, (a, b) => a === b));
+        evalResult = arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a === b),
+        );
+        break;
       case 'none':
-        return !arrayAny(value, target, stringCompare(true, (a, b) => a === b));
+        evalResult = !arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a === b),
+        );
+        break;
       case 'any_case_sensitive':
-        return arrayAny(value, target,  stringCompare(false, (a, b) => a === b));
+        evalResult = arrayAny(
+          value,
+          target,
+          stringCompare(false, (a, b) => a === b),
+        );
+        break;
       case 'none_case_sensitive':
-        return !arrayAny(value, target, stringCompare(false, (a, b) => a === b));
+        evalResult = !arrayAny(
+          value,
+          target,
+          stringCompare(false, (a, b) => a === b),
+        );
+        break;
 
       // string
       case 'str_starts_with_any':
-        return arrayAny(value, target, stringCompare(true, (a, b) => a.startsWith(b)));
+        evalResult = arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a.startsWith(b)),
+        );
+        break;
       case 'str_ends_with_any':
-        return arrayAny(value, target, stringCompare(true, (a, b) => a.endsWith(b)));
+        evalResult = arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a.endsWith(b)),
+        );
+        break;
       case 'str_contains_any':
-        return arrayAny(value, target, stringCompare(true, (a, b) => a.includes(b)));
+        evalResult = arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a.includes(b)),
+        );
+        break;
       case 'str_contains_none':
-        return !arrayAny(value, target, stringCompare(true, (a, b) => a.includes(b)));
+        evalResult = !arrayAny(
+          value,
+          target,
+          stringCompare(true, (a, b) => a.includes(b)),
+        );
+        break;
       case 'str_matches':
         try {
-          return new RegExp(target).test(String(value));
+          evalResult = new RegExp(target).test(String(value));
         } catch (e) {
-          return false;
+          evalResult = false;
         }
+        break;
       // strictly equals
       case 'eq':
-        return value === target;
+        evalResult = value === target;
+        break;
       case 'neq':
-        return value !== target;
+        evalResult = value !== target;
+        break;
 
       // dates
       case 'before':
-        return dateCompare((a, b) => a < b)(value, target);
+        evalResult = dateCompare((a, b) => a < b)(value, target);
+        break;
       case 'after':
-        return dateCompare((a, b) => a > b)(value, target);
+        evalResult = dateCompare((a, b) => a > b)(value, target);
+        break;
       case 'on':
-        return dateCompare((a, b) => {
+        evalResult = dateCompare((a, b) => {
           a?.setHours(0, 0, 0, 0);
           b?.setHours(0, 0, 0, 0);
           return a?.getTime() === b?.getTime();
         })(value, target);
+        break;
       default:
-        return FETCH_FROM_SERVER;
+        return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
     }
+    return { value: evalResult, secondary_exposures: [] };
   },
 
   ip2country(ip) {
@@ -381,7 +480,9 @@ function stringCompare(ignoreCase, fn) {
     if (a == null || b == null) {
       return false;
     }
-    return ignoreCase ? fn(String(a).toLowerCase(), String(b).toLowerCase()) : fn(String(a), String(b));
+    return ignoreCase
+      ? fn(String(a).toLowerCase(), String(b).toLowerCase())
+      : fn(String(a), String(b));
   };
 }
 

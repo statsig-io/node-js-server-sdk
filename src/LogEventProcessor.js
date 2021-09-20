@@ -71,7 +71,12 @@ function LogEventProcessor(options, secretKey) {
       });
   };
 
-  processor.logStatsigInternal = function (user, eventName, metadata) {
+  processor.logStatsigInternal = function (
+    user,
+    eventName,
+    metadata,
+    secondaryExposures,
+  ) {
     let event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
     if (user != null) {
       event.setUser(user);
@@ -79,6 +84,10 @@ function LogEventProcessor(options, secretKey) {
 
     if (metadata != null) {
       event.setMetadata(metadata);
+    }
+
+    if (secondaryExposures != null) {
+      event.setSecondaryExposures(secondaryExposures);
     }
 
     if (metadata?.error != null) {
@@ -93,19 +102,35 @@ function LogEventProcessor(options, secretKey) {
     gateName,
     gateValue,
     ruleID = '',
+    secondaryExposures = [],
   ) {
-    processor.logStatsigInternal(user, GATE_EXPOSURE_EVENT, {
-      gate: gateName,
-      gateValue: String(gateValue),
-      ruleID: ruleID,
-    });
+    processor.logStatsigInternal(
+      user,
+      GATE_EXPOSURE_EVENT,
+      {
+        gate: gateName,
+        gateValue: String(gateValue),
+        ruleID: ruleID,
+      },
+      secondaryExposures,
+    );
   };
 
-  processor.logConfigExposure = function (user, configName, ruleID = '') {
-    processor.logStatsigInternal(user, CONFIG_EXPOSURE_EVENT, {
-      config: configName,
-      ruleID: ruleID,
-    });
+  processor.logConfigExposure = function (
+    user,
+    configName,
+    ruleID = '',
+    secondaryExposures = [],
+  ) {
+    processor.logStatsigInternal(
+      user,
+      CONFIG_EXPOSURE_EVENT,
+      {
+        config: configName,
+        ruleID: ruleID,
+      },
+      secondaryExposures,
+    );
   };
 
   return processor;
