@@ -8,6 +8,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     };
     const randomUser = {
         userID: 'random',
+        privateAttributes: {
+            email: undefined,
+        }
     };
     let postedLogs = {};
     beforeEach(() => {
