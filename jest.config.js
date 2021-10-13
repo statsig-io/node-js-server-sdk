@@ -5,5 +5,6 @@ module.exports = {
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/src/__tests__/jest.setup.js',
+    '<rootDir>/dist/',
   ],
 };
