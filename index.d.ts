@@ -12,8 +12,14 @@ declare module 'statsig-node' {
     country?: string;
     locale?: string;
     appVersion?: string;
-    custom?: Record<string, string | number | boolean | Array<string> | undefined>;
-    privateAttributes?: Record<string, string | number | boolean | Array<string> | undefined>;
+    custom?: Record<
+      string,
+      string | number | boolean | Array<string> | undefined
+    >;
+    privateAttributes?: Record<
+      string,
+      string | number | boolean | Array<string> | undefined
+    >;
   };
 
   /**
@@ -28,7 +34,7 @@ declare module 'statsig-node' {
 
   export type StatsigEnvironment = {
     tier?: 'production' | 'staging' | 'development';
-    [key: string]: string;
+    [key: string]: string | undefined;
   };
 
   /**
