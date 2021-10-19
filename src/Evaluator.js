@@ -313,7 +313,11 @@ const Evaluator = {
         break;
       case 'str_matches':
         try {
-          evalResult = new RegExp(target).test(String(value));
+          if (String(value).length < 1000) {
+            evalResult = new RegExp(target).test(String(value));
+          } else {
+            evalResult = false;
+          }
         } catch (e) {
           evalResult = false;
         }
