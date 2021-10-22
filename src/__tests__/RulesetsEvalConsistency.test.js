@@ -25,9 +25,10 @@ if (secret) {
     [
       'https://api.statsig.com/v1',
       'https://us-west-2.api.statsig.com/v1',
-      'https://us-east-2.api.statsig.com/v1',
+      'https://az-eastus-2.api.statsig.com/v1',
       'https://ap-south-1.api.statsig.com/v1',
       'https://latest.api.statsig.com/v1',
+      'https://az-northeurope.api.statsig.com/v1',
     ].map((url) =>
       test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
         await _validateServerSDKConsistency(url);
@@ -60,7 +61,8 @@ async function _validateServerSDKConsistency(api) {
   const totalChecks =
     testData.length *
     (Object.keys(testData[0].feature_gates).length +
-      Object.keys(testData[0].dynamic_configs).length) * 3;
+      Object.keys(testData[0].dynamic_configs).length) *
+    3;
   expect.assertions(totalChecks);
 
   const statsig = require('../index');
@@ -74,15 +76,22 @@ async function _validateServerSDKConsistency(api) {
     for (const name in gates) {
       const sdkResult = await Evaluator.checkGate(user, name);
       const serverResult = gates[name];
-      const sameExposure = compareSecondaryExposures(sdkResult.secondary_exposures, serverResult.secondary_exposures);
-      if (sdkResult.value !== serverResult.value || sdkResult.rule_id !== serverResult.rule_id || !sameExposure) {
+      const sameExposure = compareSecondaryExposures(
+        sdkResult.secondary_exposures,
+        serverResult.secondary_exposures,
+      );
+      if (
+        sdkResult.value !== serverResult.value ||
+        sdkResult.rule_id !== serverResult.rule_id ||
+        !sameExposure
+      ) {
         console.log(
-          `Test failed for gate ${name}. Server got ${
-            JSON.stringify(serverResult)
-          }, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
+          `Test failed for gate ${name}. Server got ${JSON.stringify(
+            serverResult,
+          )}, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
         );
       }
-      
+
       expect(sdkResult.value).toEqual(serverResult.value);
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
@@ -91,12 +100,20 @@ async function _validateServerSDKConsistency(api) {
     for (const name in configs) {
       const sdkResult = await Evaluator.getConfig(user, name);
       const serverResult = configs[name];
-      const sameExposure = compareSecondaryExposures(sdkResult._getSecondaryExposures(), serverResult.secondary_exposures);
-      if (JSON.stringify(sdkResult.getValue()) !== JSON.stringify(serverResult.value) || sdkResult.getRuleID() !== serverResult.rule_id || !sameExposure) {
+      const sameExposure = compareSecondaryExposures(
+        sdkResult._getSecondaryExposures(),
+        serverResult.secondary_exposures,
+      );
+      if (
+        JSON.stringify(sdkResult.getValue()) !==
+          JSON.stringify(serverResult.value) ||
+        sdkResult.getRuleID() !== serverResult.rule_id ||
+        !sameExposure
+      ) {
         console.log(
-          `Test failed for config ${name}. Server got ${
-            JSON.stringify(serverResult)
-          }, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
+          `Test failed for config ${name}. Server got ${JSON.stringify(
+            serverResult,
+          )}, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
         );
       }
 
@@ -113,14 +130,18 @@ function compareSecondaryExposures(expo1, expo2) {
   if (expo1 == null && expo2 == null) {
     return true;
   }
-  if (!Array.isArray(expo1) || !Array.isArray(expo2) || expo1.length !== expo2.length) {
+  if (
+    !Array.isArray(expo1) ||
+    !Array.isArray(expo2) ||
+    expo1.length !== expo2.length
+  ) {
     return false;
   }
-  var obj1 = expo1.reduce(function(res, cur) {
+  var obj1 = expo1.reduce(function (res, cur) {
     res[cur.gate] = cur;
     return res;
   }, {});
-  var obj2 = expo2.reduce(function(res, cur) {
+  var obj2 = expo2.reduce(function (res, cur) {
     res[cur.gate] = cur;
     return res;
   }, {});
