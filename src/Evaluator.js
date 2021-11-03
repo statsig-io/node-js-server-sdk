@@ -212,13 +212,7 @@ const Evaluator = {
         break;
       case 'unit_id':
         if (typeof field === 'string') {
-          if (field.toLowerCase() === 'userid') {
-            value = user?.userID;
-          } else {
-            value =
-              user?.customIDs?.[field] ??
-              user?.customIDs?.[field.toLowerCase()];
-          }
+          value = this._getUnitID(user, field);
         }
         break;
       default:
