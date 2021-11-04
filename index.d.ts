@@ -20,6 +20,7 @@ declare module 'statsig-node' {
       string,
       string | number | boolean | Array<string> | undefined
     >;
+    customIDs?: Record<string, string>;
   };
 
   /**

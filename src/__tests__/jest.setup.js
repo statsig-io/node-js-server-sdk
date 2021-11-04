@@ -57,6 +57,33 @@ const mock_halfPassGateSpec = {
   ],
 };
 
+const mock_halfPassGateOnCustomIDSpec = {
+  name: 'nfl_gate3',
+  type: 'feature_gate',
+  salt: 'na',
+  defaultValue: false,
+  enabled: true,
+  idType: 'teamID',
+  rules: [
+    {
+      name: 'employees',
+      id: 'test',
+      passPercentage: 50,
+      conditions: [
+        {
+          type: 'user_field',
+          targetValue: ['packers.com', 'nfl.com'],
+          operator: 'str_contains_any',
+          field: 'email',
+          idType: 'teamID',
+        },
+      ],
+      idType: 'teamID',
+      returnValue: true,
+    },
+  ],
+};
+
 const mock_disabledGateSpec = {
   name: 'nfl_gate3',
   type: 'feature_gate',
@@ -132,6 +159,7 @@ const exampleConfigSpecs = {
   half_pass_gate: mock_halfPassGateSpec,
   disabled_gate: mock_disabledGateSpec,
   config: mock_dynamicConfigSpec,
+  half_pass_custom_id_gate: mock_halfPassGateOnCustomIDSpec,
 };
 
 module.exports = exampleConfigSpecs;

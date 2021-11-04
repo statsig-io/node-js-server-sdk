@@ -18,6 +18,9 @@ describe('Test condition evaluation', () => {
     privateAttributes: {
       level: 99,
       registration_date: baseTimeStr
+    },
+    customIDs: {
+      space_id: '123',
     }
   }
 
@@ -215,6 +218,13 @@ describe('Test condition evaluation', () => {
     ['user_field',         'none_case_sensitive', ['statsig', 'take.app'],   'company',   user,  true],
     ['user_field',         'none', ['Statsig', 'Take.app'],   'company',   user,  false],
     ['user_field',         'none', ['statsig', 'take.app'],   'company',   user,  false],
+
+    // unit id
+    ['unit_id',            'any',             ['123'],              'space_id',             user, true],
+    ['unit_id',            'any',             ['1234'],             'space_id',             user, false],
+    ['unit_id',            'any',             ['jkw'],              'userID',               user, true],
+    ['unit_id',            'any',             ['jkww'],             'userID',               user, false],
+    ['unit_id',            'any',             ['123'],              'bad_id',               user, false],
   ]
 
   const Evaluator = require('../Evaluator');
@@ -227,6 +237,7 @@ describe('Test condition evaluation', () => {
 
   const gateSpec = new ConfigSpec(exampleConfigSpecs.gate);
   const halfPassGateSpec = new ConfigSpec(exampleConfigSpecs.half_pass_gate);
+  const halfPassGateCustomIDSpec = new ConfigSpec(exampleConfigSpecs.half_pass_custom_id_gate);
   const disabledGateSpec = new ConfigSpec(exampleConfigSpecs.disabled_gate);
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
@@ -309,6 +320,21 @@ describe('Test condition evaluation', () => {
     }
     expect(passCount).toBeLessThan(600);
     expect(passCount).toBeGreaterThan(400);
+  });
+
+  it('implements pass percentage correctly', () => {
+    let valueID1 = Evaluator._eval({
+      userID: Math.random(),
+      email: 'tore@packers.com',
+      customIDs: {teamID: '3'}
+    }, halfPassGateCustomIDSpec).value
+    let valueID2 = Evaluator._eval({
+      userID: Math.random(),
+      email: 'tore@packers.com',
+      customIDs: {teamID: '2'}
+    }, halfPassGateCustomIDSpec).value
+    expect(valueID1).toEqual(true);
+    expect(valueID2).toEqual(false);
   });
 
   it('uses the correct return value and ruleID after evaluating pass percentage', () => {

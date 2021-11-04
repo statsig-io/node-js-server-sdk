@@ -7,6 +7,7 @@ class ConfigSpec {
     this.salt = specJSON.salt;
     this.defaultValue = specJSON.defaultValue;
     this.enabled = specJSON.enabled;
+    this.idType = specJSON.idType;
     this.rules = this.parseRules(specJSON.rules);
   }
 
@@ -28,6 +29,7 @@ class ConfigRule {
     this.returnValue = ruleJSON.returnValue;
     this.id = ruleJSON.id;
     this.salt = ruleJSON.salt;
+    this.idType = ruleJSON.idType;
   }
 
   parseConditions(conditionsJSON) {
@@ -47,6 +49,7 @@ class ConfigCondition {
     this.operator = conditionJSON.operator;
     this.field = conditionJSON.field;
     this.additionalValues = conditionJSON.additionalValues;
+    this.idType = conditionJSON.idType;
   }
 }
 

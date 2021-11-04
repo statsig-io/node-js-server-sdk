@@ -96,11 +96,24 @@ const Evaluator = {
 
   _evalPassPercent(user, rule, config) {
     const hash = computeUserHash(
-      config.salt + '.' + (rule.salt ?? rule.id) + '.' + user?.userID ?? '',
+      config.salt +
+        '.' +
+        (rule.salt ?? rule.id) +
+        '.' +
+        this._getUnitID(user, rule.idType) ?? '',
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
     );
+  },
+
+  _getUnitID(user, idType) {
+    if (typeof idType === 'string' && idType.toLowerCase() !== 'userid') {
+      return (
+        user?.customIDs?.[idType] ?? user?.customIDs?.[idType.toLowerCase()]
+      );
+    }
+    return user?.userID;
   },
 
   /**
@@ -192,8 +205,15 @@ const Evaluator = {
         break;
       case 'user_bucket':
         const salt = condition.additionalValues?.salt;
-        const userHash = computeUserHash(salt + '.' + user?.userID ?? '');
+        const userHash = computeUserHash(
+          salt + '.' + this._getUnitID(user, condition.idType) ?? '',
+        );
         value = Number(userHash % BigInt(USER_BUCKET_COUNT));
+        break;
+      case 'unit_id':
+        if (typeof field === 'string') {
+          value = this._getUnitID(user, field);
+        }
         break;
       default:
         return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
