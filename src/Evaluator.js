@@ -164,6 +164,7 @@ const Evaluator = {
     let value = null;
     let field = condition.field;
     let target = condition.targetValue;
+    let idType = condition.idType;
     switch (condition.type.toLowerCase()) {
       case 'public':
         return { value: true, secondary_exposures: [] };
@@ -206,14 +207,12 @@ const Evaluator = {
       case 'user_bucket':
         const salt = condition.additionalValues?.salt;
         const userHash = computeUserHash(
-          salt + '.' + this._getUnitID(user, condition.idType) ?? '',
+          salt + '.' + this._getUnitID(user, idType) ?? '',
         );
         value = Number(userHash % BigInt(USER_BUCKET_COUNT));
         break;
       case 'unit_id':
-        if (typeof field === 'string') {
-          value = this._getUnitID(user, field);
-        }
+        value = this._getUnitID(user, idType);
         break;
       default:
         return { value: FETCH_FROM_SERVER, secondary_exposures: [] };

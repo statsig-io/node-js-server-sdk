@@ -219,7 +219,7 @@ describe('Test condition evaluation', () => {
     ['user_field',         'none', ['Statsig', 'Take.app'],   'company',   user,  false],
     ['user_field',         'none', ['statsig', 'take.app'],   'company',   user,  false],
 
-    // unit id
+    // unit id                                                      id type
     ['unit_id',            'any',             ['123'],              'space_id',             user, true],
     ['unit_id',            'any',             ['1234'],             'space_id',             user, false],
     ['unit_id',            'any',             ['jkw'],              'userID',               user, true],
@@ -249,6 +249,10 @@ describe('Test condition evaluation', () => {
         targetValue: p[2],
         field: p[3],
         addtionalValues: p[6], // optional and does not exist for most conditions
+      }
+      if (p[0] === 'unit_id') {
+        json.idType = json.field;
+        json.field = null;
       }
       const condition = new ConfigCondition(json);
       const result = Evaluator._evalCondition(p[4], condition);
