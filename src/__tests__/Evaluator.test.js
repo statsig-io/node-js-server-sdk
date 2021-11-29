@@ -246,7 +246,7 @@ describe('Test condition evaluation', () => {
 
   it('works', () => {
     const SpecStore = require('../SpecStore');
-    SpecStore.store = {idLists: {list_1: {ids: {'jkw': true, '123': true}}}}
+    SpecStore.store = {idLists: {list_1: {ids: {'7NRRgkdK': true, 'pmWkWSBC': true}}}}
     params.forEach(p => {
       let json = {
         type: p[0],

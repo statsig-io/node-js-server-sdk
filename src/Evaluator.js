@@ -366,6 +366,7 @@ const Evaluator = {
       case 'in_segment_list':
       case 'not_in_segment_list': {
         const list = SpecStore.store.idLists[target]?.ids;
+        value = hashUnitIDForIDList(value);
         let inList = typeof list === 'object' && list[value] === true;
         evalResult = op === 'in_segment_list' ? inList : !inList;
         break;
@@ -392,6 +393,17 @@ const Evaluator = {
     return null;
   },
 };
+
+function hashUnitIDForIDList(unitID) {
+  if (typeof unitID !== 'string' || unitID == null) {
+    return '';
+  }
+  return crypto
+    .createHash('sha256')
+    .update(unitID)
+    .digest('base64')
+    .substr(0, 8);
+}
 
 function computeUserHash(userHash) {
   return crypto
