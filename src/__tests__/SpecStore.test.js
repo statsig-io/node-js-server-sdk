@@ -20,7 +20,13 @@ describe('Verify behavior of SpecStore', () => {
         exampleConfigSpecs.disabled_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      id_lists: { list_1: true },
       has_updates: true,
+    };
+    const idListJsonResponse = {
+      time: Date.now(),
+      add_ids: ['1', '2'],
+      remove_ids: null,
     };
     fetch.mockImplementation((url) => {
       if (url.includes('download_config_specs')) {
@@ -28,6 +34,12 @@ describe('Verify behavior of SpecStore', () => {
           ok: true,
           json: () => Promise.resolve(jsonResponse),
           text: () => Promise.resolve(JSON.stringify(jsonResponse)),
+        });
+      }
+      if (url.includes('download_id_list')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(idListJsonResponse),
         });
       }
       return Promise.reject();
@@ -38,7 +50,7 @@ describe('Verify behavior of SpecStore', () => {
   });
 
   test('init() does things correctly and kicks off a sync() which gets updated values', async () => {
-    await SpecStore.init({}, 'secret-api-key', 1000);
+    await SpecStore.init({}, 'secret-api-key', 1000, 1000);
     expect(Object.keys(SpecStore.store.gates).length).toEqual(2);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
     expect(SpecStore.store.gates[exampleConfigSpecs.gate.name]).toEqual(
@@ -49,6 +61,11 @@ describe('Verify behavior of SpecStore', () => {
     ).toEqual(new ConfigSpec(exampleConfigSpecs.disabled_gate));
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config),
+    );
+    expect(SpecStore.store.idLists).toEqual(
+      expect.objectContaining({
+        list_1: { ids: { 1: true, 2: true }, time: expect.anything() },
+      }),
     );
     expect(SpecStore.time).toBeCloseTo(Date.now());
     expect(SpecStore.initialized).toEqual(true);
@@ -67,9 +84,22 @@ describe('Verify behavior of SpecStore', () => {
         exampleConfigSpecs.half_pass_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      id_lists: { list_1: true, list_2: true },
       has_updates: true,
     };
-    fetch.mockImplementationOnce((url) => {
+    const idListJsonResponses = {
+      list_1: {
+        time: Date.now(),
+        add_ids: ['3'],
+        remove_ids: ['1'],
+      },
+      list_2: {
+        time: Date.now(),
+        add_ids: ['1', '2', '3'],
+        remove_ids: [''],
+      },
+    };
+    fetch.mockImplementation((url, params) => {
       if (url.includes('download_config_specs')) {
         return Promise.resolve({
           ok: true,
@@ -77,9 +107,16 @@ describe('Verify behavior of SpecStore', () => {
           text: () => Promise.resolve(JSON.stringify(updatedJSONResponse)),
         });
       }
+      if (url.includes('download_id_list')) {
+        const listName = JSON.parse(params.body).listName;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(idListJsonResponses[listName]),
+        });
+      }
       return Promise.reject();
     });
-    await new Promise((_) => setTimeout(_, 1001));
+    await new Promise((_) => setTimeout(_, 1500));
 
     const storeAfterFirstSync = Object.assign(SpecStore.store);
 
@@ -96,6 +133,12 @@ describe('Verify behavior of SpecStore', () => {
     ).toEqual(new ConfigSpec(exampleConfigSpecs.half_pass_gate));
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config),
+    );
+    expect(SpecStore.store.idLists).toEqual(
+      expect.objectContaining({
+        list_1: { ids: { 2: true, 3: true }, time: expect.anything() },
+        list_2: { ids: { 1: true, 2: true, 3: true }, time: expect.anything() },
+      }),
     );
     expect(SpecStore.time).toEqual(timeAfterFirstSync);
     expect(SpecStore.initialized).toEqual(true);

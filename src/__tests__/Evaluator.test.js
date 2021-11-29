@@ -225,6 +225,9 @@ describe('Test condition evaluation', () => {
     ['unit_id',            'any',             ['jkw'],              'userID',               user, true],
     ['unit_id',            'any',             ['jkww'],             'userID',               user, false],
     ['unit_id',            'any',             ['123'],              'bad_id',               user, false],
+    ['unit_id',            'in_segment_list', 'list_1',             'userID',               user, true],
+    ['unit_id',            'in_segment_list', 'list_1',             'space_id',             user, true],
+    ['unit_id',            'in_segment_list', 'list_1',             'bad_id',               user, false],
   ]
 
   const Evaluator = require('../Evaluator');
@@ -242,6 +245,8 @@ describe('Test condition evaluation', () => {
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
+    const SpecStore = require('../SpecStore');
+    SpecStore.store = {idLists: {list_1: {ids: {'jkw': true, '123': true}}}}
     params.forEach(p => {
       let json = {
         type: p[0],

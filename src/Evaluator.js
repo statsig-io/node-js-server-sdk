@@ -363,6 +363,13 @@ const Evaluator = {
           return a?.getTime() === b?.getTime();
         })(value, target);
         break;
+      case 'in_segment_list':
+      case 'not_in_segment_list': {
+        const list = SpecStore.store.idLists[target]?.ids;
+        let inList = typeof list === 'object' && list[value] === true;
+        evalResult = op === 'in_segment_list' ? inList : !inList;
+        break;
+      }
       default:
         return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
     }
