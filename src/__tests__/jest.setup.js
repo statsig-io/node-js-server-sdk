@@ -9,6 +9,8 @@ global.console = {
   debug: jest.fn(),
 };
 
+jest.setTimeout(20000);
+
 const mock_gateSpec = {
   name: 'nfl_gate',
   type: 'feature_gate',
