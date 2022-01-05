@@ -30,6 +30,7 @@ declare module 'statsig-node' {
     api?: string;
     bootstrapValues?: string;
     environment?: StatsigEnvironment;
+    localMode?: boolean;
     rulesUpdatedCallback?: { (rulesJSON: string, time: number): void };
   };
 

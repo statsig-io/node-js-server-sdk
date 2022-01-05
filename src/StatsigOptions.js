@@ -6,7 +6,16 @@ module.exports = function StatsigOptions(inputOptions) {
     bootstrapValues: getString('bootstrapValues', null),
     environment: getObject('environment', null),
     rulesUpdatedCallback: getFunction('rulesUpdatedCallback'),
+    localMode: getBoolean('localMode', false),
   };
+
+  function getBoolean(index, defaultValue) {
+    const b = inputOptions[index];
+    if (b == null || typeof b !== 'boolean') {
+      return defaultValue;
+    }
+    return b;
+  }
 
   function getString(index, defaultValue) {
     const str = inputOptions[index];

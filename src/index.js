@@ -47,6 +47,7 @@ const statsig = {
     statsig._ready = false;
     statsig._secretKey = secretKey;
     statsig._options = StatsigOptions(options);
+    fetcher.setLocal(statsig._options.localMode);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
 
     statsig._pendingInitPromise = Evaluator.init(

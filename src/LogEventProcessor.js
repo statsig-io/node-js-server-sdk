@@ -17,6 +17,9 @@ function LogEventProcessor(options, secretKey) {
   let loggedErrors = new Set();
 
   processor.log = function (event, errorKey = null) {
+    if (options.localMode) {
+      return;
+    }
     if (!(event instanceof LogEvent)) {
       return;
     }

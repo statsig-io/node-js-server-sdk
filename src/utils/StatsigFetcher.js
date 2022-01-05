@@ -13,6 +13,10 @@ const fetcher = {
     }
   },
 
+  setLocal(localMode) {
+    fetcher.localMode = localMode;
+  },
+
   dispatch: function (url, sdkKey, body, timeout) {
     this.init();
     return fetcher.dispatcher.enqueue(this.post(url, sdkKey, body), timeout);
@@ -20,6 +24,9 @@ const fetcher = {
 
   post: function (url, sdkKey, body, retries = 0, backoff = 1000) {
     this.init();
+    if (fetcher.localMode) {
+      return Promise.resolve();
+    }
     const counter = fetcher.leakyBucket[url];
     if (counter != null && counter >= 1000) {
       return Promise.reject(
