@@ -39,7 +39,7 @@ describe('Verify behavior of top level index functions', () => {
   test('Test retries', async () => {
     const spy = jest.spyOn(StatsigFetcher, 'post');
     const result = await StatsigFetcher.post(
-      'http://api.statsig.com/v1/test',
+      'https://statsigapi.net/v1/test',
       'test-123',
       { test: 123 },
       5,

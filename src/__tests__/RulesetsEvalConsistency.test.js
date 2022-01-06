@@ -22,7 +22,7 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://api.statsig.com/v1', 'https://latest.api.statsig.com/v1'].map(
+    ['https://statsigapi.net/v1', 'https://latest.api.statsig.com/v1'].map(
       (url) =>
         test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
           await _validateServerSDKConsistency(url);

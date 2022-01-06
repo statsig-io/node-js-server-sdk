@@ -124,7 +124,7 @@ describe('Verify behavior of top level index functions', () => {
     return statsig.initialize(secretKey).then(() => {
       expect(statsig._secretKey).toBe(secretKey);
       expect(statsig._logger).toBeDefined();
-      expect(statsig._options.api).toBe('https://api.statsig.com/v1');
+      expect(statsig._options.api).toBe('https://statsigapi.net/v1');
       expect(statsig._ready).toBe(true);
       expect(Evaluator.initialized).toBe(true);
     });
