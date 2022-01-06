@@ -18,13 +18,89 @@ const Evaluator = {
   async init(options, secretKey) {
     await SpecStore.init(options, secretKey);
     await ip3country.init();
+    this.gateOverrides = {};
+    this.configOverrides = {};
     this.initialized = true;
+  },
+
+  overrideGate(gateName, value, userID = null) {
+    let overrides = this.gateOverrides[gateName];
+    if (overrides == null) {
+      overrides = {};
+    }
+    overrides[userID == null ? '' : userID] = value;
+    this.gateOverrides[gateName] = overrides;
+  },
+
+  overrideConfig(configName, value, userID = '') {
+    let overrides = this.configOverrides[configName];
+    if (overrides == null) {
+      overrides = {};
+    }
+    overrides[userID == null ? '' : userID] = value;
+    this.configOverrides[configName] = overrides;
+  },
+
+  lookupGateOverride(user, gateName) {
+    const overrides = this.gateOverrides[gateName];
+    if (overrides == null) {
+      return null;
+    }
+    if (user.userID != null) {
+      // check for a user level override
+      const userOverride = overrides[user.userID];
+      if (userOverride != null) {
+        return {
+          value: userOverride,
+          rule_id: 'override',
+          secondary_exposures: [],
+        };
+      }
+    }
+
+    // check if there is a global override
+    const allOverride = overrides[''];
+    if (allOverride != null) {
+      return {
+        value: allOverride,
+        rule_id: 'override',
+        secondary_exposures: [],
+      };
+    }
+  },
+
+  lookupConfigOverride(user, configName) {
+    const overrides = this.configOverrides[configName];
+    if (overrides == null) {
+      return null;
+    }
+
+    if (user.userID != null) {
+      // check for a user level override
+      const userOverride = overrides[user.userID];
+      if (userOverride != null) {
+        return new DynamicConfig(configName, userOverride, 'override', []);
+      }
+    }
+
+    // check if there is a global override
+    const allOverride = overrides[''];
+    if (allOverride != null) {
+      return new DynamicConfig(configName, allOverride, 'override', []);
+    }
   },
 
   // returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
   // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
   checkGate(user, gateName) {
-    if (!this.initialized || !(gateName in SpecStore.store.gates)) {
+    if (!this.initialized) {
+      return null;
+    }
+    const override = this.lookupGateOverride(user, gateName);
+    if (override != null) {
+      return override;
+    }
+    if (!(gateName in SpecStore.store.gates)) {
       return null;
     }
     return this._eval(user, SpecStore.store.gates[gateName]);
@@ -33,7 +109,14 @@ const Evaluator = {
   // returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
   // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
   getConfig(user, configName) {
-    if (!this.initialized || !(configName in SpecStore.store.configs)) {
+    if (!this.initialized) {
+      return null;
+    }
+    const override = this.lookupConfigOverride(user, configName);
+    if (override != null) {
+      return override;
+    }
+    if (!(configName in SpecStore.store.configs)) {
       return null;
     }
     return this._eval(user, SpecStore.store.configs[configName]);

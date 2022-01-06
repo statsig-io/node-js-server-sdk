@@ -114,6 +114,28 @@ declare module 'statsig-node' {
   export function shutdown(): void;
 
   /**
+   * Overrides the given gate with the provided value
+   * If no userID is provided, it will override for all users
+   * If a userID is provided, it will override the gate with the given value for that user only
+   */
+  export function overrideGate(
+    gateName: string,
+    value: boolean,
+    userID?: string,
+  ): void;
+
+  /**
+   * Overrides the given config or experiment with the provided value
+   * If no userID is provided, it will override for all users
+   * If a userID is provided, it will override the config/experiment with the given value for that user only
+   */
+  export function overrideConfig(
+    gateName: string,
+    value: object,
+    userID?: string,
+  ): void;
+
+  /**
    * Returns the data for a DynamicConfig in the statsig console via typed get functions
    */
   export class DynamicConfig {

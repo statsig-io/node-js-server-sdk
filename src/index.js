@@ -224,6 +224,26 @@ const statsig = {
     Evaluator.shutdown();
   },
 
+  overrideGate(gateName, value, userID = '') {
+    if (typeof value !== 'boolean') {
+      console.warn(
+        'statsigSDK> Attempted to override a gate with a non boolean value',
+      );
+      return;
+    }
+    Evaluator.overrideGate(gateName, value, userID);
+  },
+
+  overrideConfig(configName, value, userID = '') {
+    if (typeof value !== 'object') {
+      console.warn(
+        'statsigSDK> Attempted to override a config with a non object value',
+      );
+      return;
+    }
+    Evaluator.overrideConfig(configName, value, userID);
+  },
+
   _getGateValue(user, gateName) {
     let ret = Evaluator.checkGate(user, gateName);
     if (ret == null) {
