@@ -138,7 +138,7 @@ describe('Verify behavior of DynamicConfig', () => {
   test('Behavior of dummy configs', () => {
     const dummyConfig = new DynamicConfig('configName');
     expect(dummyConfig.get()).toEqual({});
-    expect(dummyConfig.get('test_field')).toEqual(null);
+    expect(dummyConfig.get('test_field')).toBeNull();
     expect(dummyConfig.get('str', 'default_value')).toEqual('default_value');
     expect(dummyConfig.get('bool', true)).toEqual(true);
     expect(dummyConfig.get('number', 1.234)).toEqual(1.234);

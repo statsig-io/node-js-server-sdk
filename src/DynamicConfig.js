@@ -14,7 +14,9 @@ class DynamicConfig {
     this.name = configName;
     this.value = utils.clone(value);
     this._ruleID = ruleID;
-    this._secondaryExposures = Array.isArray(secondaryExposures) ? secondaryExposures : [];
+    this._secondaryExposures = Array.isArray(secondaryExposures)
+      ? secondaryExposures
+      : [];
   }
 
   /**
@@ -26,11 +28,14 @@ class DynamicConfig {
    * in cases where the parameter is not found or does not match the type of the default value
    * @returns {T | null}
    */
-  get(key, defaultValue) {
+  get(key, defaultValue, typeGuard = null) {
     if (defaultValue == null) {
       defaultValue = null;
     }
     const val = this.getValue(key, defaultValue);
+    if (typeGuard) {
+      return typeGuard(val) ? val : defaultValue;
+    }
     if (val == null) {
       return defaultValue;
     }
@@ -77,7 +82,7 @@ class DynamicConfig {
   /**
    * @ignore
    */
-   _getSecondaryExposures() {
+  _getSecondaryExposures() {
     return this._secondaryExposures;
   }
 }

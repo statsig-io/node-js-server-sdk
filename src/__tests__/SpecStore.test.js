@@ -67,7 +67,9 @@ describe('Verify behavior of SpecStore', () => {
         list_1: { ids: { 1: true, 2: true }, time: expect.anything() },
       }),
     );
-    expect(SpecStore.time).toBeCloseTo(Date.now());
+    const now = Date.now();
+    expect(SpecStore.time).toBeLessThanOrEqual(now);
+    expect(SpecStore.time).toBeGreaterThanOrEqual(now - 1);
     expect(SpecStore.initialized).toEqual(true);
     expect(SpecStore.syncTimer).toBeTruthy();
 

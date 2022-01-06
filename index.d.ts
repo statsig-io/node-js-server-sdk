@@ -122,9 +122,10 @@ declare module 'statsig-node' {
       key: string,
       defaultValue: any | null,
     ): boolean | number | string | object | Array<any> | null;
-    get<T extends boolean | number | string | object | Array<any>>(
+    get<T extends boolean | number | string | object | Array<any> | null>(
       key: string,
       defaultValue: T,
+      typeGuard?: (value: unknown) => boolean,
     ): T;
   }
 
