@@ -67,6 +67,7 @@ const Evaluator = {
         secondary_exposures: [],
       };
     }
+    return null;
   },
 
   lookupConfigOverride(user, configName) {
@@ -88,6 +89,7 @@ const Evaluator = {
     if (allOverride != null) {
       return new DynamicConfig(configName, allOverride, 'override', []);
     }
+    return null;
   },
 
   // returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
