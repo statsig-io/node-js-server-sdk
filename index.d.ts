@@ -32,6 +32,7 @@ declare module 'statsig-node' {
     environment?: StatsigEnvironment;
     localMode?: boolean;
     rulesUpdatedCallback?: { (rulesJSON: string, time: number): void };
+    initTimeoutMs?: number;
   };
 
   export type StatsigEnvironment = {
