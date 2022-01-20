@@ -7,6 +7,7 @@ module.exports = function StatsigOptions(inputOptions) {
     environment: getObject('environment', null),
     rulesUpdatedCallback: getFunction('rulesUpdatedCallback'),
     localMode: getBoolean('localMode', false),
+    initTimeoutMs: getNumber('initTimeoutMs', 0),
   };
 
   function getBoolean(index, defaultValue) {
@@ -39,6 +40,14 @@ module.exports = function StatsigOptions(inputOptions) {
       return null;
     }
     return func;
+  }
+
+  function getNumber(index, defaultValue) {
+    const obj = inputOptions[index];
+    if (obj == null || typeof obj !== 'number') {
+      return defaultValue;
+    }
+    return obj;
   }
 
   return statsigOptions;

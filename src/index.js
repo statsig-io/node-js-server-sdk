@@ -50,13 +50,30 @@ const statsig = {
     fetcher.setLocal(statsig._options.localMode);
     statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
 
-    statsig._pendingInitPromise = Evaluator.init(
+    const initPromise = Evaluator.init(
       statsig._options,
       statsig._secretKey,
     ).finally(() => {
       statsig._ready = true;
       statsig._pendingInitPromise = null;
     });
+    if (
+      statsig._options.initTimeoutMs != null &&
+      statsig._options.initTimeoutMs > 0
+    ) {
+      statsig._pendingInitPromise = Promise.race([
+        initPromise,
+        new Promise((resolve) => {
+          setTimeout(() => {
+            statsig._ready = true;
+            resolve();
+          }, statsig._options.initTimeoutMs);
+        }),
+      ]);
+    } else {
+      statsig._pendingInitPromise = initPromise;
+    }
+
     return statsig._pendingInitPromise;
   },
 
