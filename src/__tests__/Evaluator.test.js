@@ -228,6 +228,13 @@ describe('Test condition evaluation', () => {
     ['unit_id',            'in_segment_list', 'list_1',             'userID',               user, true],
     ['unit_id',            'in_segment_list', 'list_1',             'space_id',             user, true],
     ['unit_id',            'in_segment_list', 'list_1',             'bad_id',               user, false],
+
+    // eq, neq
+    ['user_field',         'neq',             null,                 'email',                {email: 'something'},        true],
+    ['user_field',         'eq',              null,                 'email',                {email: 'something'},        false],
+    ['user_field',         'eq',              null,                 'nullable',             {custom: {}},                true],
+    ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: null}},  true],
+    ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: 'sth'}}, false],
   ]
 
   const Evaluator = require('../Evaluator');

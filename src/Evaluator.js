@@ -428,10 +428,10 @@ const Evaluator = {
         break;
       // strictly equals
       case 'eq':
-        evalResult = value === target;
+        evalResult = value == target;
         break;
       case 'neq':
-        evalResult = value !== target;
+        evalResult = value != target;
         break;
 
       // dates
