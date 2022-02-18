@@ -174,7 +174,7 @@ const SpecStore = {
       }
     }
 
-    await Promise.all(promises);
+    await Promise.allSettled(promises);
     this.idListsSyncTimer = setTimeout(() => {
       this._downloadIDLists();
     }, this.idListSyncInterval);
