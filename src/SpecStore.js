@@ -1,5 +1,6 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
+const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
 
 const SYNC_INTERVAL = 10 * 1000;
@@ -40,6 +41,8 @@ const SpecStore = {
       await this._syncValues();
     }
 
+    // TODO: switch the new method on
+    // await this._syncIDLists();
     await this._downloadIDLists();
     this.initialized = true;
   },
@@ -111,6 +114,7 @@ const SpecStore = {
     if (!parseFailed) {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
+      // TODO: remove the id list logic below
       for (const name in specsJSON?.id_lists) {
         if (
           specsJSON?.id_lists?.hasOwnProperty(name) &&
@@ -127,12 +131,14 @@ const SpecStore = {
           delete this.store.idLists[name];
         }
       }
+      // TODO: remove until here
       this.time = specsJSON.time ?? this.time;
     }
 
     return !parseFailed;
   },
 
+  // TODO: remove
   async _downloadIDLists() {
     const promises = [];
     for (const name in this.store.idLists) {
@@ -177,6 +183,83 @@ const SpecStore = {
     await Promise.allSettled(promises);
     this.idListsSyncTimer = setTimeout(() => {
       this._downloadIDLists();
+    }, this.idListSyncInterval);
+  },
+
+  async _syncIDLists() {
+    try {
+      const response = await fetcher.post(
+        this.api + '/get_id_lists',
+        this.secretKey,
+        {
+          statsigMetadata: getStatsigMetadata(),
+          sinceTime: this.time,
+        },
+      );
+      const parsed = await response.json();
+      let promises = [];
+      if (typeof parsed === 'object') {
+        for (const name in parsed) {
+          if (
+            parsed.hasOwnProperty(name) &&
+            !this.store.idLists.hasOwnProperty(name)
+          ) {
+            this.store.idLists[name] = { ids: {}, readBytes: 0 };
+          }
+          const fileSize = parsed[name].size ?? 0;
+          const readSize = this.store.idLists[name].readBytes ?? 0;
+          const url = parsed[name].url;
+          if (fileSize > readSize && url != null) {
+            const p = fetch(url, {
+              method: 'GET',
+              headers: {
+                Range: `bytes=${readSize}-`,
+              },
+            })
+              .then((res) => {
+                const length = res.headers['Content-Length'];
+                if (typeof length === 'number') {
+                  // TODO: check off by 1
+                  this.store.idLists[name].readBytes += length;
+                }
+                return res.text();
+              })
+              .then((data) => {
+                const lines = data.split(/\r?\n/);
+                for (const line of lines) {
+                  if (line.length <= 1) {
+                    continue;
+                  }
+                  if (line.charAt(0) === '+') {
+                    const id = line.slice(1);
+                    this.store.idLists[name].ids[id] = true;
+                  } else if (line.charAt(0) === '-') {
+                    const id = line.slice(1);
+                    delete this.store.idLists[name].ids[id];
+                  }
+                }
+              })
+              .catch((e) => {});
+
+            promises.push(p);
+          }
+        }
+
+        // delete any id list that's no longer there
+        for (const name in this.store.idLists) {
+          if (
+            this.store.idLists.hasOwnProperty(name) &&
+            !parsed.hasOwnProperty(name)
+          ) {
+            delete this.store.idLists[name];
+          }
+        }
+        await Promise.allSettled(promises);
+      }
+    } catch (e) {}
+
+    this.syncTimer = setTimeout(() => {
+      this._syncIDLists();
     }, this.idListSyncInterval);
   },
 
