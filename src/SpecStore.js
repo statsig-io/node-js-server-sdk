@@ -2,6 +2,7 @@ const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
 const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
+const { URL } = require('url');
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -135,10 +136,17 @@ const SpecStore = {
           if (typeof url !== 'string') {
             continue;
           }
+          let urlMatch = false;
+          try {
+            const newURL = new URL(url);
+            const oldURL = new URL(this.store.idLists[name]?.url);
+            urlMatch = newURL.pathname === oldURL.pathname;
+          } catch {}
+
           if (
             (parsed.hasOwnProperty(name) &&
               !this.store.idLists.hasOwnProperty(name)) ||
-            url !== this.store.idLists[name]?.url // when URL changes, we reset the whole list
+            !urlMatch // when URL path changes, we reset the whole list
           ) {
             this.store.idLists[name] = {
               ids: {},
