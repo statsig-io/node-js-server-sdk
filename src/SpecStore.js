@@ -156,7 +156,6 @@ const SpecStore = {
           }
           const fileSize = parsed[name].size ?? 0;
           const readSize = this.store.idLists[name].readBytes ?? 0;
-
           if (fileSize > readSize && url != null) {
             const p = fetch(url, {
               method: 'GET',
@@ -165,29 +164,35 @@ const SpecStore = {
               },
             })
               .then((res) => {
-                const length = res.headers['Content-Length'];
+                const contentLength = res.headers.get('content-length');
+                const length = parseInt(contentLength);
                 if (typeof length === 'number') {
-                  // TODO: check off by 1
                   this.store.idLists[name].readBytes += length;
+                } else {
+                  delete this.store.idLists[name];
+                  throw new Error('Content-Length for the id list is invalid.');
                 }
                 return res.text();
               })
               .then((data) => {
                 const lines = data.split(/\r?\n/);
+                if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
+                  delete this.store.idLists[name];
+                  throw new Error('Seek range invalid.');
+                }
                 for (const line of lines) {
                   if (line.length <= 1) {
                     continue;
                   }
+                  const id = line.slice(1).trim();
                   if (line.charAt(0) === '+') {
-                    const id = line.slice(1);
                     this.store.idLists[name].ids[id] = true;
                   } else if (line.charAt(0) === '-') {
-                    const id = line.slice(1);
                     delete this.store.idLists[name].ids[id];
                   }
                 }
               })
-              .catch((e) => {});
+              .catch(() => {});
 
             promises.push(p);
           }

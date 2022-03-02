@@ -55,7 +55,11 @@ describe('Verify behavior of SpecStore', () => {
           ok: true,
           text: () => Promise.resolve(wholeList.slice(startingIndex)),
           headers: {
-            'Content-Length': 15 - startingIndex,
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 15 - startingIndex;
+              }
+            }),
           },
         });
       }
@@ -147,7 +151,11 @@ describe('Verify behavior of SpecStore', () => {
           ok: true,
           text: () => Promise.resolve(wholeList.slice(startingIndex)),
           headers: {
-            'Content-Length': 24 - startingIndex,
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 24 - startingIndex;
+              }
+            }),
           },
         });
       }
@@ -220,7 +228,11 @@ describe('Verify behavior of SpecStore', () => {
           ok: true,
           text: () => Promise.resolve(wholeList.slice(startingIndex)),
           headers: {
-            'Content-Length': 15,
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 15;
+              }
+            }),
           },
         });
       }
@@ -234,6 +246,66 @@ describe('Verify behavior of SpecStore', () => {
         list_1: {
           ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
           readBytes: 15,
+          url: 'https://id_list_content/list_1_2',
+        },
+      }),
+    );
+
+    // now returns a content that does not start with - or +; SDK should reset the list and re-sync after another cycle
+    fetch.mockImplementation((url, params) => {
+      if (url.includes('download_config_specs')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              has_updates: false,
+            }),
+        });
+      }
+      if (url.includes('get_id_lists')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              list_1: {
+                name: 'list_1',
+                size: 16, // increase size to trigger a content download
+                url: 'https://id_list_content/list_1_2',
+              },
+            }),
+        });
+      }
+      if (url.includes('id_list_content')) {
+        let wholeList = '';
+        for (var i = 1; i <= 5; i++) {
+          wholeList += `+${i}\n`;
+        }
+        wholeList += '?'; // make the starting character not - or +
+        const startingIndex = parseInt(
+          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+        );
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(wholeList.slice(startingIndex)),
+          headers: {
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 16;
+              }
+            }),
+          },
+        });
+      }
+      return Promise.reject();
+    });
+    await new Promise((_) => setTimeout(_, 1001));
+    expect(SpecStore.store.idLists['list_1']).toBeFalsy();
+    await new Promise((_) => setTimeout(_, 1001));
+    expect(SpecStore.store.idLists).toEqual(
+      expect.objectContaining({
+        list_1: {
+          ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
+          readBytes: 16,
           url: 'https://id_list_content/list_1_2',
         },
       }),

@@ -22,11 +22,10 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://statsigapi.net/v1', 'https://latest.api.statsig.com/v1'].map(
-      (url) =>
-        test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-          await _validateServerSDKConsistency(url);
-        }),
+    ['https://latest.api.statsig.com/v1'].map((url) =>
+      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
+        await _validateServerSDKConsistency(url);
+      }),
     );
   });
 } else {
@@ -62,6 +61,15 @@ async function _validateServerSDKConsistency(api) {
   const statsig = require('../index');
   const Evaluator = require('../Evaluator');
   await statsig.initialize(secret, { api: api });
+  // while (true) {
+  //   console.log('1');
+  //   const r = await statsig.checkGate(
+  //     { userID: '1', customIDs: { companyID: 'test' } },
+  //     'test_id_list',
+  //   );
+  //   console.log(r);
+  //   await new Promise((_) => setTimeout(_, 1000));
+  // }
 
   const promises = testData.map(async (data) => {
     const user = data.user;
