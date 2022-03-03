@@ -133,71 +133,76 @@ const SpecStore = {
       if (typeof parsed === 'object') {
         for (const name in parsed) {
           const url = parsed[name].url;
-          if (typeof url !== 'string') {
+          const newCreationTime = parsed[name].creationTime;
+          const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
+          if (typeof url !== 'string' || newCreationTime < oldCreationTime) {
             continue;
           }
-          let urlMatch = false;
+          let fileURLChanged = false;
           try {
             const newURL = new URL(url);
             const oldURL = new URL(this.store.idLists[name]?.url);
-            urlMatch =
-              newURL.hostname + newURL.pathname ===
-              oldURL.hostname + oldURL.pathname;
+            fileURLChanged =
+              newURL.hostname + newURL.pathname !==
+                oldURL.hostname + oldURL.pathname &&
+              newCreationTime >= oldCreationTime;
           } catch {}
 
           if (
             (parsed.hasOwnProperty(name) &&
               !this.store.idLists.hasOwnProperty(name)) ||
-            !urlMatch // when URL path changes, we reset the whole list
+            fileURLChanged // when URL path changes, we reset the whole list
           ) {
             this.store.idLists[name] = {
               ids: {},
               readBytes: 0,
-              url: parsed[name].url,
+              url: url,
+              creationTime: newCreationTime,
             };
           }
           const fileSize = parsed[name].size ?? 0;
           const readSize = this.store.idLists[name].readBytes ?? 0;
-          if (fileSize > readSize && url != null) {
-            const p = fetch(url, {
-              method: 'GET',
-              headers: {
-                Range: `bytes=${readSize}-`,
-              },
-            })
-              .then((res) => {
-                const contentLength = res.headers.get('content-length');
-                const length = parseInt(contentLength);
-                if (typeof length === 'number') {
-                  this.store.idLists[name].readBytes += length;
-                } else {
-                  delete this.store.idLists[name];
-                  throw new Error('Content-Length for the id list is invalid.');
-                }
-                return res.text();
-              })
-              .then((data) => {
-                const lines = data.split(/\r?\n/);
-                if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
-                  delete this.store.idLists[name];
-                  throw new Error('Seek range invalid.');
-                }
-                for (const line of lines) {
-                  if (line.length <= 1) {
-                    continue;
-                  }
-                  const id = line.slice(1).trim();
-                  if (line.charAt(0) === '+') {
-                    this.store.idLists[name].ids[id] = true;
-                  } else if (line.charAt(0) === '-') {
-                    delete this.store.idLists[name].ids[id];
-                  }
-                }
-              })
-              .catch(() => {});
-
-            promises.push(p);
+          if (fileSize <= readSize) {
+            continue;
           }
+          const p = fetch(url, {
+            method: 'GET',
+            headers: {
+              Range: `bytes=${readSize}-`,
+            },
+          })
+            .then((res) => {
+              const contentLength = res.headers.get('content-length');
+              const length = parseInt(contentLength);
+              if (typeof length === 'number') {
+                this.store.idLists[name].readBytes += length;
+              } else {
+                delete this.store.idLists[name];
+                throw new Error('Content-Length for the id list is invalid.');
+              }
+              return res.text();
+            })
+            .then((data) => {
+              const lines = data.split(/\r?\n/);
+              if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
+                delete this.store.idLists[name];
+                throw new Error('Seek range invalid.');
+              }
+              for (const line of lines) {
+                if (line.length <= 1) {
+                  continue;
+                }
+                const id = line.slice(1).trim();
+                if (line.charAt(0) === '+') {
+                  this.store.idLists[name].ids[id] = true;
+                } else if (line.charAt(0) === '-') {
+                  delete this.store.idLists[name].ids[id];
+                }
+              }
+            })
+            .catch(() => {});
+
+          promises.push(p);
         }
 
         // delete any id list that's no longer there

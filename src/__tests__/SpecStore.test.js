@@ -1,3 +1,5 @@
+const { start } = require('repl');
+
 describe('Verify behavior of SpecStore', () => {
   const exampleConfigSpecs = require('./jest.setup');
   const { ConfigSpec } = require('../ConfigSpec');
@@ -39,6 +41,7 @@ describe('Verify behavior of SpecStore', () => {
                 name: 'list_1',
                 size: 15,
                 url: 'https://id_list_content/list_1',
+                creationTime: 1,
               },
             }),
         });
@@ -89,6 +92,7 @@ describe('Verify behavior of SpecStore', () => {
           ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
           readBytes: 15,
           url: 'https://id_list_content/list_1',
+          creationTime: 1,
         },
       }),
     );
@@ -132,6 +136,7 @@ describe('Verify behavior of SpecStore', () => {
                 name: 'list_1',
                 size: 24,
                 url: 'https://id_list_content/list_1',
+                creationTime: 1,
               },
             }),
         });
@@ -185,6 +190,7 @@ describe('Verify behavior of SpecStore', () => {
           ids: { 4: true, 5: true }, // 1,2,3, should be deleted
           readBytes: 24,
           url: 'https://id_list_content/list_1',
+          creationTime: 1,
         },
       }),
     );
@@ -212,6 +218,7 @@ describe('Verify behavior of SpecStore', () => {
                 name: 'list_1',
                 size: 15,
                 url: 'https://id_list_content/list_1_2',
+                creationTime: 2,
               },
             }),
         });
@@ -247,6 +254,7 @@ describe('Verify behavior of SpecStore', () => {
           ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
           readBytes: 15,
           url: 'https://id_list_content/list_1_2',
+          creationTime: 2,
         },
       }),
     );
@@ -271,6 +279,7 @@ describe('Verify behavior of SpecStore', () => {
                 name: 'list_1',
                 size: 16, // increase size to trigger a content download
                 url: 'https://id_list_content/list_1_2',
+                creationTime: 2,
               },
             }),
         });
@@ -307,6 +316,66 @@ describe('Verify behavior of SpecStore', () => {
           ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
           readBytes: 16,
           url: 'https://id_list_content/list_1_2',
+          creationTime: 2,
+        },
+      }),
+    );
+
+    // now returns the old list, and the SDK should ignore it
+    fetch.mockImplementation((url, params) => {
+      if (url.includes('download_config_specs')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              has_updates: false,
+            }),
+        });
+      }
+      if (url.includes('get_id_lists')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              list_1: {
+                name: 'list_1',
+                size: 30,
+                url: 'https://id_list_content/list_1',
+                creationTime: 1, // old list
+              },
+            }),
+        });
+      }
+      if (url.includes('id_list_content')) {
+        let wholeList = '';
+        for (var i = 1; i <= 10; i++) {
+          wholeList += `+${i}\n`;
+        }
+        const startingIndex = parseInt(
+          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+        );
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(wholeList.slice(startingIndex)),
+          headers: {
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 30 - startingIndex;
+              }
+            }),
+          },
+        });
+      }
+      return Promise.reject();
+    });
+    await new Promise((_) => setTimeout(_, 1001));
+    expect(SpecStore.store.idLists).toEqual(
+      expect.objectContaining({
+        list_1: {
+          ids: { 1: true, 2: true, 3: true, 4: true, 5: true },
+          readBytes: 16,
+          url: 'https://id_list_content/list_1_2',
+          creationTime: 2,
         },
       }),
     );
