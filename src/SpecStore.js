@@ -140,7 +140,9 @@ const SpecStore = {
           try {
             const newURL = new URL(url);
             const oldURL = new URL(this.store.idLists[name]?.url);
-            urlMatch = newURL.pathname === oldURL.pathname;
+            urlMatch =
+              newURL.hostname + newURL.pathname ===
+              oldURL.hostname + oldURL.pathname;
           } catch {}
 
           if (
