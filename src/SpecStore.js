@@ -133,30 +133,30 @@ const SpecStore = {
       if (typeof parsed === 'object') {
         for (const name in parsed) {
           const url = parsed[name].url;
+          const fileID = parsed[name].fileID;
           const newCreationTime = parsed[name].creationTime;
           const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
-          if (typeof url !== 'string' || newCreationTime < oldCreationTime) {
+          if (
+            typeof url !== 'string' ||
+            newCreationTime < oldCreationTime ||
+            typeof fileID !== 'string'
+          ) {
             continue;
           }
-          let fileURLChanged = false;
-          try {
-            const newURL = new URL(url);
-            const oldURL = new URL(this.store.idLists[name]?.url);
-            fileURLChanged =
-              newURL.hostname + newURL.pathname !==
-                oldURL.hostname + oldURL.pathname &&
-              newCreationTime >= oldCreationTime;
-          } catch {}
+          let newFile =
+            fileID !== this.store.idLists[name]?.fileID &&
+            newCreationTime >= oldCreationTime;
 
           if (
             (parsed.hasOwnProperty(name) &&
               !this.store.idLists.hasOwnProperty(name)) ||
-            fileURLChanged // when URL path changes, we reset the whole list
+            newFile // when fileID changes, we reset the whole list
           ) {
             this.store.idLists[name] = {
               ids: {},
               readBytes: 0,
-              url: url,
+              url,
+              fileID,
               creationTime: newCreationTime,
             };
           }
@@ -206,13 +206,17 @@ const SpecStore = {
         }
 
         // delete any id list that's no longer there
+        const deletedLists = [];
         for (const name in this.store.idLists) {
           if (
             this.store.idLists.hasOwnProperty(name) &&
             !parsed.hasOwnProperty(name)
           ) {
-            delete this.store.idLists[name];
+            deletedLists.push(name);
           }
+        }
+        for (const name in deletedLists) {
+          delete this.store.idLists[name];
         }
         await Promise.allSettled(promises);
       }
