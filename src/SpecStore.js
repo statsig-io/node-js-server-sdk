@@ -1,6 +1,8 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
+const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
+const { URL } = require('url');
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -40,7 +42,7 @@ const SpecStore = {
       await this._syncValues();
     }
 
-    await this._downloadIDLists();
+    await this._syncIDLists();
     this.initialized = true;
   },
 
@@ -111,72 +113,117 @@ const SpecStore = {
     if (!parseFailed) {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
-      for (const name in specsJSON?.id_lists) {
-        if (
-          specsJSON?.id_lists?.hasOwnProperty(name) &&
-          !this.store.idLists.hasOwnProperty(name)
-        ) {
-          this.store.idLists[name] = { ids: {}, time: 0 };
-        }
-      }
-      for (const name in this.store.idLists) {
-        if (
-          this.store.idLists.hasOwnProperty(name) &&
-          !specsJSON?.id_lists.hasOwnProperty(name)
-        ) {
-          delete this.store.idLists[name];
-        }
-      }
       this.time = specsJSON.time ?? this.time;
     }
 
     return !parseFailed;
   },
 
-  async _downloadIDLists() {
-    const promises = [];
-    for (const name in this.store.idLists) {
-      if (this.store.idLists.hasOwnProperty(name)) {
-        const p = fetcher
-          .post(this.api + '/download_id_list', this.secretKey, {
-            listName: name,
-            statsigMetadata: getStatsigMetadata(),
-            sinceTime: this.store.idLists?.[name]?.time ?? 0,
-          })
-          .then((response) => {
-            return response.json();
-          })
-          .then((data) => {
-            if (this.store.idLists[name] == null) {
-              this.store.idLists[name] = { ids: {}, time: 0 };
-            }
-            const list = this.store.idLists[name];
-            // Assuming data is the below format
-            // data = {
-            //   add_ids: ['1','2','3','4','5'],
-            //   remove_ids: ['6','7'], // this will be null/empty if it's the first fetch
-            //   time: 123456789,
-            // };
-            if (Array.isArray(data.add_ids)) {
-              for (const id of data.add_ids) {
-                list.ids[id] = true;
-              }
-            }
-            if (Array.isArray(data.remove_ids)) {
-              for (const id of data.remove_ids) {
-                delete list.ids[id];
-              }
-            }
-            list.time = data.time ?? list.time;
-          })
-          .catch((e) => {});
-        promises.push(p);
-      }
-    }
+  async _syncIDLists() {
+    try {
+      const response = await fetcher.post(
+        this.api + '/get_id_lists',
+        this.secretKey,
+        {
+          statsigMetadata: getStatsigMetadata(),
+        },
+      );
+      const parsed = await response.json();
+      let promises = [];
+      if (typeof parsed === 'object') {
+        for (const name in parsed) {
+          const url = parsed[name].url;
+          const fileID = parsed[name].fileID;
+          const newCreationTime = parsed[name].creationTime;
+          const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
+          if (
+            typeof url !== 'string' ||
+            newCreationTime < oldCreationTime ||
+            typeof fileID !== 'string'
+          ) {
+            continue;
+          }
+          let newFile =
+            fileID !== this.store.idLists[name]?.fileID &&
+            newCreationTime >= oldCreationTime;
 
-    await Promise.allSettled(promises);
-    this.idListsSyncTimer = setTimeout(() => {
-      this._downloadIDLists();
+          if (
+            (parsed.hasOwnProperty(name) &&
+              !this.store.idLists.hasOwnProperty(name)) ||
+            newFile // when fileID changes, we reset the whole list
+          ) {
+            this.store.idLists[name] = {
+              ids: {},
+              readBytes: 0,
+              url,
+              fileID,
+              creationTime: newCreationTime,
+            };
+          }
+          const fileSize = parsed[name].size ?? 0;
+          const readSize = this.store.idLists[name].readBytes ?? 0;
+          if (fileSize <= readSize) {
+            continue;
+          }
+          const p = fetch(url, {
+            method: 'GET',
+            headers: {
+              Range: `bytes=${readSize}-`,
+            },
+          })
+            .then((res) => {
+              const contentLength = res.headers.get('content-length');
+              const length = parseInt(contentLength);
+              if (typeof length === 'number') {
+                this.store.idLists[name].readBytes += length;
+              } else {
+                delete this.store.idLists[name];
+                throw new Error('Content-Length for the id list is invalid.');
+              }
+              return res.text();
+            })
+            .then((data) => {
+              const lines = data.split(/\r?\n/);
+              if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
+                delete this.store.idLists[name];
+                throw new Error('Seek range invalid.');
+              }
+              for (const line of lines) {
+                if (line.length <= 1) {
+                  continue;
+                }
+                const id = line.slice(1).trim();
+                if (line.charAt(0) === '+') {
+                  this.store.idLists[name].ids[id] = true;
+                } else if (line.charAt(0) === '-') {
+                  delete this.store.idLists[name].ids[id];
+                }
+              }
+            })
+            .catch(() => {});
+
+          promises.push(p);
+        }
+
+        // delete any id list that's no longer there
+        const deletedLists = [];
+        for (const name in this.store.idLists) {
+          if (
+            this.store.idLists.hasOwnProperty(name) &&
+            !parsed.hasOwnProperty(name)
+          ) {
+            deletedLists.push(name);
+          }
+        }
+        for (const name in deletedLists) {
+          delete this.store.idLists[name];
+        }
+        await Promise.allSettled(promises);
+      }
+    } catch (e) {}
+
+    this.syncTimer = setTimeout(() => {
+      this._syncIDLists();
     }, this.idListSyncInterval);
   },
 
