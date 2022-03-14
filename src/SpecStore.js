@@ -49,7 +49,7 @@ const SpecStore = {
 
   async _syncValues() {
     try {
-      const baseApi = this.options.useCdnUrlForDownloadConfigSpecs ?
+      const baseApi = this.options._useCdnUrlForDownloadConfigSpecs ?
         this.options._cdnBasedApi :
         this.api;
       const response = await fetcher.post(
