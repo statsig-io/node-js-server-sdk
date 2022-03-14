@@ -3,14 +3,14 @@ const DEFAULT_CDN_BASED_API = 'https://api.statsigcdn.com/v1';
 
 module.exports = function StatsigOptions(inputOptions) {
   const statsigOptions = {
-    _cdnBasedApi: DEFAULT_CDN_BASED_API,
     api: getString('api', DEFAULT_API),
     bootstrapValues: getString('bootstrapValues', null),
     environment: getObject('environment', null),
     rulesUpdatedCallback: getFunction('rulesUpdatedCallback'),
     localMode: getBoolean('localMode', false),
     initTimeoutMs: getNumber('initTimeoutMs', 0),
-    useCdnUrlForDownloadConfigSpecs: getBoolean(
+    _cdnBasedApi: DEFAULT_CDN_BASED_API,
+    _useCdnUrlForDownloadConfigSpecs: getBoolean(
       'useCdnUrlForDownloadConfigSpecs',
       false
     ),

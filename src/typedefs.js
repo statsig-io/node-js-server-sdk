@@ -36,8 +36,7 @@
  * @property {rulesUpdatedCallback} [rulesUpdatedCallback]
  * @property {boolean} [localMode]
  * @property {number} [initTimeoutMs]
- * @property {boolean} [useCdnUrlForDownloadConfigSpecs]
- * @memberof typedefs
+  * @memberof typedefs
  */
 
 module.exports = {};
