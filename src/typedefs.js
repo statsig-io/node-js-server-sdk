@@ -34,6 +34,9 @@
  * @property {Object.<string, string>} [environment]
  * @property {string} [bootstrapValues]
  * @property {rulesUpdatedCallback} [rulesUpdatedCallback]
+ * @property {boolean} [localMode]
+ * @property {number} [initTimeoutMs]
+ * @property {boolean} [useCdnUrlForDownloadConfigSpecs]
  * @memberof typedefs
  */
 

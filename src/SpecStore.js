@@ -14,6 +14,7 @@ const SpecStore = {
     syncInterval = SYNC_INTERVAL,
     idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
   ) {
+    this.options = options;
     this.api = options.api;
     this.bootstrapValues = options.bootstrapValues;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback;
@@ -48,8 +49,11 @@ const SpecStore = {
 
   async _syncValues() {
     try {
+      const baseApi = this.options.useCdnUrlForDownloadConfigSpecs ?
+        this.options._cdnBasedApi :
+        this.api;
       const response = await fetcher.post(
-        this.api + '/download_config_specs',
+        baseApi + '/download_config_specs',
         this.secretKey,
         {
           statsigMetadata: getStatsigMetadata(),
