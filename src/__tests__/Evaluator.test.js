@@ -1,4 +1,8 @@
-const { ConfigSpec, ConfigCondition, FETCH_FROM_SERVER } = require('../ConfigSpec');
+const {
+  ConfigSpec,
+  ConfigCondition,
+  FETCH_FROM_SERVER,
+} = require('../ConfigSpec');
 const exampleConfigSpecs = require('./jest.setup');
 
 describe('Test condition evaluation', () => {
@@ -13,30 +17,32 @@ describe('Test condition evaluation', () => {
       company: 'Statsig',
     },
     statsigEnvironment: {
-      tier: 'production'
+      tier: 'production',
     },
     privateAttributes: {
       level: 99,
-      registration_date: baseTimeStr
+      registration_date: baseTimeStr,
     },
     customIDs: {
       space_id: '123',
-    }
-  }
+    },
+  };
 
   const user2 = {
     userID: 'jkw',
     ip: '123.456.789',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
     custom: {
       company: 'Statsig',
       level: 99,
     },
     statsigEnvironment: {
-      tier: 'staging'
-    }
-  }
+      tier: 'staging',
+    },
+  };
 
+  // prettier-ignore
   const params = [
     //type                operator          targetValue        field             user  result
     ['public',            null,             null,              null,             user, true],
@@ -239,29 +245,35 @@ describe('Test condition evaluation', () => {
 
   const Evaluator = require('../Evaluator');
   jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-    if (gateName === 'gate_pass') return {value: true, rule_id: 'my_rule'};
-    if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-    return {value: false, rule_id: 'default'};
+    if (gateName === 'gate_pass')
+      return { value: true, rule_id: 'my_rule', secondary_exposures: [] };
+    if (gateName === 'gate_server')
+      return { value: FETCH_FROM_SERVER, rule_id: '', secondary_exposures: [] };
+    return { value: false, rule_id: 'default', secondary_exposures: [] };
   });
   jest.spyOn(Evaluator, 'ip2country').mockImplementation((ip) => 'US');
 
   const gateSpec = new ConfigSpec(exampleConfigSpecs.gate);
   const halfPassGateSpec = new ConfigSpec(exampleConfigSpecs.half_pass_gate);
-  const halfPassGateCustomIDSpec = new ConfigSpec(exampleConfigSpecs.half_pass_custom_id_gate);
+  const halfPassGateCustomIDSpec = new ConfigSpec(
+    exampleConfigSpecs.half_pass_custom_id_gate,
+  );
   const disabledGateSpec = new ConfigSpec(exampleConfigSpecs.disabled_gate);
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
     const SpecStore = require('../SpecStore');
-    SpecStore.store = {idLists: {list_1: {ids: {'7NRRgkdK': true, 'pmWkWSBC': true}}}}
-    params.forEach(p => {
+    SpecStore.store = {
+      idLists: { list_1: { ids: { '7NRRgkdK': true, pmWkWSBC: true } } },
+    };
+    params.forEach((p) => {
       let json = {
         type: p[0],
         operator: p[1],
         targetValue: p[2],
         field: p[3],
         addtionalValues: p[6], // optional and does not exist for most conditions
-      }
+      };
       if (p[0] === 'unit_id') {
         json.idType = json.field;
         json.field = null;
@@ -269,14 +281,24 @@ describe('Test condition evaluation', () => {
       const condition = new ConfigCondition(json);
       const result = Evaluator._evalCondition(p[4], condition);
       if (result.value !== p[5]) {
-        console.log(`Evaluation test failed for condition ${JSON.stringify(json)} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${result.value}`);
+        console.log(
+          `Evaluation test failed for condition ${JSON.stringify(
+            json,
+          )} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${
+            result.value
+          }`,
+        );
       }
       expect(result.value).toEqual(p[5]);
       if (p[2] === 'gate_pass') {
-        expect(result.secondary_exposures).toEqual([{ gate: 'gate_pass', gateValue: 'true', ruleID: 'my_rule' }]);
+        expect(result.secondary_exposures).toEqual([
+          { gate: 'gate_pass', gateValue: 'true', ruleID: 'my_rule' },
+        ]);
       }
       if (p[2] === 'gate_fail') {
-        expect(result.secondary_exposures).toEqual([{ gate: 'gate_fail', gateValue: 'false', ruleID: 'default' }]);
+        expect(result.secondary_exposures).toEqual([
+          { gate: 'gate_fail', gateValue: 'false', ruleID: 'default' },
+        ]);
       }
     });
   });
@@ -285,39 +307,43 @@ describe('Test condition evaluation', () => {
     expect(Evaluator._eval({}, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
-      secondary_exposures: []
+      secondary_exposures: [],
     });
     expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
-      secondary_exposures: []
+      secondary_exposures: [],
     });
     expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual({
       value: true,
       rule_id: 'rule_id_gate',
-      secondary_exposures: []
+      secondary_exposures: [],
     });
-    expect(Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec)).toEqual({
+    expect(
+      Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
+    ).toEqual({
       value: true,
       rule_id: 'rule_id_gate',
-      secondary_exposures: []
+      secondary_exposures: [],
     });
     expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual({
       value: false,
       rule_id: 'default',
-      secondary_exposures: []
-    });
-    expect(Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec)).toEqual({
-      value: false,
-      rule_id: 'disabled',
-      secondary_exposures: []
+      secondary_exposures: [],
     });
     expect(
-      Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec)
+      Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
     ).toEqual({
       value: false,
       rule_id: 'disabled',
-      secondary_exposures: []
+      secondary_exposures: [],
+    });
+    expect(
+      Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec),
+    ).toEqual({
+      value: false,
+      rule_id: 'disabled',
+      secondary_exposures: [],
     });
   });
 
@@ -325,11 +351,14 @@ describe('Test condition evaluation', () => {
     let passCount = 0;
     for (let i = 0; i < 1000; i++) {
       if (
-        Evaluator._eval({
-          userID: Math.random(),
-          email: 'tore@packers.com',
-          // @ts-ignore
-        }, halfPassGateSpec).value
+        Evaluator._eval(
+          {
+            userID: Math.random(),
+            email: 'tore@packers.com',
+            // @ts-ignore
+          },
+          halfPassGateSpec,
+        ).value
       ) {
         passCount++;
       }
@@ -339,16 +368,22 @@ describe('Test condition evaluation', () => {
   });
 
   it('implements pass percentage correctly', () => {
-    let valueID1 = Evaluator._eval({
-      userID: Math.random(),
-      email: 'tore@packers.com',
-      customIDs: {teamID: '3'}
-    }, halfPassGateCustomIDSpec).value
-    let valueID2 = Evaluator._eval({
-      userID: Math.random(),
-      email: 'tore@packers.com',
-      customIDs: {teamID: '2'}
-    }, halfPassGateCustomIDSpec).value
+    let valueID1 = Evaluator._eval(
+      {
+        userID: Math.random(),
+        email: 'tore@packers.com',
+        customIDs: { teamID: '3' },
+      },
+      halfPassGateCustomIDSpec,
+    ).value;
+    let valueID2 = Evaluator._eval(
+      {
+        userID: Math.random(),
+        email: 'tore@packers.com',
+        customIDs: { teamID: '2' },
+      },
+      halfPassGateCustomIDSpec,
+    ).value;
     expect(valueID1).toEqual(true);
     expect(valueID2).toEqual(false);
   });
@@ -358,11 +393,14 @@ describe('Test condition evaluation', () => {
     jest.spyOn(Evaluator, '_evalPassPercent').mockImplementation(() => {
       return false;
     });
-    const failResult = Evaluator._eval({
-      userID: Math.random(),
-      email: 'tore@packers.com',
-      // @ts-ignore
-    }, halfPassGateSpec);
+    const failResult = Evaluator._eval(
+      {
+        userID: Math.random(),
+        email: 'tore@packers.com',
+        // @ts-ignore
+      },
+      halfPassGateSpec,
+    );
 
     expect(failResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
     expect(failResult.value).toEqual(false);
@@ -370,22 +408,25 @@ describe('Test condition evaluation', () => {
     jest.spyOn(Evaluator, '_evalPassPercent').mockImplementation(() => {
       return true;
     });
-    const passResult = Evaluator._eval({
-      userID: Math.random(),
-      email: 'tore@packers.com',
-      // @ts-ignore
-    }, halfPassGateSpec);
+    const passResult = Evaluator._eval(
+      {
+        userID: Math.random(),
+        email: 'tore@packers.com',
+      },
+      halfPassGateSpec,
+    );
 
     expect(passResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
     expect(passResult.value).toEqual(true);
   });
 
   it('evals dynamic configs correctly', () => {
-    // @ts-ignore
-    expect(Evaluator._eval({}, dynamicConfigSpec).get()).toEqual({});
+    expect(Evaluator._eval({}, dynamicConfigSpec).value).toEqual({});
     expect(
-      // @ts-ignore
-      Evaluator._eval({ userID: 'jkw', custom: { level: 10 } }, dynamicConfigSpec).get()
+      Evaluator._eval(
+        { userID: 'jkw', custom: { level: 10 } },
+        dynamicConfigSpec,
+      ).value,
     ).toEqual({
       packers: {
         name: 'Green Bay Packers',
@@ -397,16 +438,14 @@ describe('Test condition evaluation', () => {
       },
     });
     expect(
-      Evaluator
-        ._eval({ userID: 'jkw', custom: { level: 10 } }, dynamicConfigSpec)
-        // @ts-ignore
-        .getRuleID()
+      Evaluator._eval(
+        { userID: 'jkw', custom: { level: 10 } },
+        dynamicConfigSpec,
+      ).rule_id,
     ).toEqual('rule_id_config');
-    // @ts-ignore
-    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).get()).toEqual({});
-    // @ts-ignore
-    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).getRuleID()).toEqual(
-      'rule_id_config_public'
+    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).value).toEqual({});
+    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).rule_id).toEqual(
+      'rule_id_config_public',
     );
   });
 });
@@ -454,8 +493,8 @@ describe('testing checkGate and getConfig', () => {
     expect(
       Evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.gate.name
-      )
+        exampleConfigSpecs.gate.name,
+      ),
     ).toEqual(null);
 
     await Evaluator.init({}, 'secret-api-key', 1000);
@@ -463,24 +502,28 @@ describe('testing checkGate and getConfig', () => {
     expect(
       Evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.gate.name
-      )
-    ).toEqual({ value: true, rule_id: exampleConfigSpecs.gate.rules[0].id, secondary_exposures: [] });
+        exampleConfigSpecs.gate.name,
+      ),
+    ).toEqual({
+      value: true,
+      rule_id: exampleConfigSpecs.gate.rules[0].id,
+      secondary_exposures: [],
+    });
 
     // should evaluate to false
     expect(
       Evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.gate.name
-      )
+        exampleConfigSpecs.gate.name,
+      ),
     ).toEqual({ value: false, rule_id: 'default', secondary_exposures: [] });
 
     // non-existent gate should return null
     expect(
       Evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.gate.name + 'non-existent-gate'
-      )
+        exampleConfigSpecs.gate.name + 'non-existent-gate',
+      ),
     ).toEqual(null);
   });
 
@@ -489,8 +532,8 @@ describe('testing checkGate and getConfig', () => {
     expect(
       Evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.config.name
-      )
+        exampleConfigSpecs.config.name,
+      ),
     ).toEqual(null);
 
     await Evaluator.init({}, 'secret-api-key');
@@ -499,22 +542,20 @@ describe('testing checkGate and getConfig', () => {
     expect(
       Evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
-        exampleConfigSpecs.config.name
-      )
-    ).toEqual(
-      new DynamicConfig(
         exampleConfigSpecs.config.name,
-        exampleConfigSpecs.config.rules[0].returnValue,
-        exampleConfigSpecs.config.rules[0].id
-      )
-    );
+      ),
+    ).toEqual({
+      value: exampleConfigSpecs.config.rules[0].returnValue,
+      rule_id: exampleConfigSpecs.config.rules[0].id,
+      secondary_exposures: [],
+    });
 
     // non-existent config should return null
     expect(
       Evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.config.name + 'non-existent-config'
-      )
+        exampleConfigSpecs.config.name + 'non-existent-config',
+      ),
     ).toEqual(null);
   });
 

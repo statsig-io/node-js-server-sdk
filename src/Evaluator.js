@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const { DynamicConfig } = require('./DynamicConfig');
 const ip3country = require('ip3country');
 const {
   ConfigSpec,
@@ -13,6 +12,19 @@ const UAParser = require('useragent');
 const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
+
+class ConfigEvaluation {
+  /**
+   * @param {object | boolean} value
+   * @param {string} rule_id
+   * @param {any[]} secondary_exposures
+   */
+  constructor(value, rule_id, secondary_exposures) {
+    this.value = value;
+    this.rule_id = rule_id;
+    this.secondary_exposures = secondary_exposures;
+  }
+}
 
 const Evaluator = {
   async init(options, secretKey) {
@@ -41,6 +53,11 @@ const Evaluator = {
     this.configOverrides[configName] = overrides;
   },
 
+  /**
+   * @param {{ userID: string | number; }} user
+   * @param {string} gateName
+   * @returns {ConfigEvaluation}
+   */
   lookupGateOverride(user, gateName) {
     const overrides = this.gateOverrides[gateName];
     if (overrides == null) {
@@ -70,6 +87,11 @@ const Evaluator = {
     return null;
   },
 
+  /**
+   * @param {{ userID: string | number; }} user
+   * @param {string} configName
+   * @returns {ConfigEvaluation}
+   */
   lookupConfigOverride(user, configName) {
     const overrides = this.configOverrides[configName];
     if (overrides == null) {
@@ -80,47 +102,71 @@ const Evaluator = {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return new DynamicConfig(configName, userOverride, 'override', []);
+        return {
+          value: userOverride,
+          rule_id: 'override',
+          secondary_exposures: [],
+        };
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new DynamicConfig(configName, allOverride, 'override', []);
+      return {
+        value: allOverride,
+        rule_id: 'override',
+        secondary_exposures: [],
+      };
     }
     return null;
   },
 
-  // returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
-  // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
+  /**
+   * returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
+   * or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
+   * @param {object} user
+   * @param {string} gateName
+   * @returns {ConfigEvaluation | null}
+   */
   checkGate(user, gateName) {
     if (!this.initialized) {
       return null;
     }
+
     const override = this.lookupGateOverride(user, gateName);
     if (override != null) {
       return override;
     }
+
     if (!(gateName in SpecStore.store.gates)) {
       return null;
     }
+
     return this._eval(user, SpecStore.store.gates[gateName]);
   },
 
-  // returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
-  // or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
+  /**
+   * returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
+   * or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
+   * @param {object} user
+   * @param {string} configName
+   * @returns {ConfigEvaluation}
+   */
   getConfig(user, configName) {
     if (!this.initialized) {
       return null;
     }
+
     const override = this.lookupConfigOverride(user, configName);
     if (override != null) {
       return override;
     }
+
     if (!(configName in SpecStore.store.configs)) {
       return null;
     }
+
     return this._eval(user, SpecStore.store.configs[configName]);
   },
 
@@ -133,7 +179,7 @@ const Evaluator = {
    * but can also return a string with value 'FETCH_FROM_SERVER' if the rule cannot be evaluated by the SDK.
    * @param {object} user
    * @param {ConfigSpec} config
-   * @returns {DynamicConfig | object}
+   * @returns {ConfigEvaluation}
    */
   _eval(user, config) {
     let secondary_exposures = [];
@@ -142,7 +188,11 @@ const Evaluator = {
         let rule = config.rules[i];
         const ruleResult = this._evalRule(user, rule);
         if (ruleResult.value === FETCH_FROM_SERVER) {
-          return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
+          return {
+            value: FETCH_FROM_SERVER,
+            secondary_exposures: [],
+            rule_id: '',
+          };
         }
         secondary_exposures = secondary_exposures.concat(
           ruleResult.secondary_exposures,
@@ -150,12 +200,11 @@ const Evaluator = {
         if (ruleResult.value === true) {
           const pass = this._evalPassPercent(user, rule, config);
           return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-            ? new DynamicConfig(
-                config.name,
-                pass ? rule.returnValue : config.defaultValue,
-                rule.id,
+            ? {
+                value: pass ? rule.returnValue : config.defaultValue,
+                rule_id: rule.id,
                 secondary_exposures,
-              )
+              }
             : {
                 value: pass,
                 rule_id: rule.id,
@@ -166,12 +215,7 @@ const Evaluator = {
     }
     const ruleID = config.enabled ? 'default' : 'disabled';
     return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-      ? new DynamicConfig(
-          config.name,
-          config.defaultValue,
-          ruleID,
-          secondary_exposures,
-        )
+      ? { value: config.defaultValue, rule_id: ruleID, secondary_exposures }
       : {
           value: false,
           rule_id: ruleID,
@@ -256,7 +300,7 @@ const Evaluator = {
       case 'fail_gate':
       case 'pass_gate':
         const gateResult = Evaluator.checkGate(user, target);
-        if (gateResult === FETCH_FROM_SERVER) {
+        if (gateResult?.value === FETCH_FROM_SERVER) {
           return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
         }
         value = gateResult?.value;

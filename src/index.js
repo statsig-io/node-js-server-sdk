@@ -270,7 +270,7 @@ const statsig = {
         secondary_exposures: [],
       };
     }
-    if (ret !== FETCH_FROM_SERVER) {
+    if (ret.value !== FETCH_FROM_SERVER) {
       statsig._logger.logGateExposure(
         user,
         gateName,
@@ -297,18 +297,28 @@ const statsig = {
       });
   },
 
+  /**
+   * @param {{ [x: string]: any; }} user
+   * @param {string} configName
+   * @returns {Promise<DynamicConfig>}
+   */
   _getConfigValue(user, configName) {
-    let config = Evaluator.getConfig(user, configName);
-    if (config == null) {
-      config = new DynamicConfig(configName);
-    }
-    if (config !== FETCH_FROM_SERVER) {
+    const ret = Evaluator.getConfig(user, configName);
+    if (ret?.value !== FETCH_FROM_SERVER) {
+      const config = new DynamicConfig(
+        configName,
+        ret?.value,
+        ret?.rule_id,
+        ret?.secondary_exposures,
+      );
+
       statsig._logger.logConfigExposure(
         user,
         configName,
         config.getRuleID(),
         config._getSecondaryExposures(),
       );
+
       return Promise.resolve(config);
     }
 

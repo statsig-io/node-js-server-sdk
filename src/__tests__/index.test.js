@@ -245,7 +245,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-      return FETCH_FROM_SERVER;
+      return { value: FETCH_FROM_SERVER, rule_id: '', secondary_exposures: [] };
     });
     await statsig.initialize(secretKey);
 
@@ -274,8 +274,14 @@ describe('Verify behavior of top level index functions', () => {
             { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
           ],
         };
-      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-      return { value: false, rule_id: 'rule_id_fail' };
+      if (gateName === 'gate_server') {
+        return {
+          value: FETCH_FROM_SERVER,
+          rule_id: '',
+          secondary_exposures: [],
+        };
+      }
+      return { value: false, rule_id: 'rule_id_fail', secondary_exposures: [] };
     });
     await statsig.initialize(secretKey);
 
@@ -310,9 +316,19 @@ describe('Verify behavior of top level index functions', () => {
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
       if (gateName === 'gate_pass')
-        return { value: true, rule_id: 'rule_id_pass' };
-      if (gateName === 'gate_server') return FETCH_FROM_SERVER;
-      return { value: false, rule_id: 'rule_id_fail' };
+        return {
+          value: true,
+          rule_id: 'rule_id_pass',
+          secondary_exposures: [],
+        };
+      if (gateName === 'gate_server') {
+        return {
+          value: FETCH_FROM_SERVER,
+          rule_id: '',
+          secondary_exposures: [],
+        };
+      }
+      return { value: false, rule_id: 'rule_id_fail', secondary_exposures: [] };
     });
 
     // also set and verify environment is passed on to user as statsigEnvironment
@@ -349,7 +365,7 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'getConfig').mockImplementation(() => {
-      return FETCH_FROM_SERVER;
+      return { value: FETCH_FROM_SERVER, rule_id: '', secondary_exposures: [] };
     });
 
     await statsig.initialize(secretKey);
@@ -378,14 +394,14 @@ describe('Verify behavior of top level index functions', () => {
     const statsig = require('../index');
     const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-      return new DynamicConfig(
-        configName,
-        {
+      return {
+        value: {
           string: '12345',
           number: 12345,
         },
-        'rule_id_config',
-      );
+        rule_id: 'rule_id_config',
+        secondary_exposures: [],
+      };
     });
     await statsig.initialize(secretKey);
 

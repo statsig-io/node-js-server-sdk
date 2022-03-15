@@ -95,13 +95,13 @@ async function _validateServerSDKConsistency(api) {
       const sdkResult = await Evaluator.getConfig(user, name);
       const serverResult = configs[name];
       const sameExposure = compareSecondaryExposures(
-        sdkResult._getSecondaryExposures(),
+        sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
       if (
-        JSON.stringify(sdkResult.getValue()) !==
+        JSON.stringify(sdkResult.value) !==
           JSON.stringify(serverResult.value) ||
-        sdkResult.getRuleID() !== serverResult.rule_id ||
+        sdkResult.rule_id !== serverResult.rule_id ||
         !sameExposure
       ) {
         console.log(
@@ -111,8 +111,8 @@ async function _validateServerSDKConsistency(api) {
         );
       }
 
-      expect(sdkResult.getValue()).toMatchObject(serverResult.value);
-      expect(sdkResult.getRuleID()).toEqual(serverResult.rule_id);
+      expect(sdkResult.value).toMatchObject(serverResult.value);
+      expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
     }
   });
