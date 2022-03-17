@@ -22,6 +22,7 @@ describe('Verify behavior of SpecStore', () => {
         exampleConfigSpecs.disabled_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      layer_configs: [exampleConfigSpecs.allocated_layer],
       has_updates: true,
     };
     fetch.mockImplementation((url, params) => {
@@ -78,6 +79,7 @@ describe('Verify behavior of SpecStore', () => {
     await SpecStore.init({}, 'secret-api-key', 1000, 1000);
     expect(Object.keys(SpecStore.store.gates).length).toEqual(2);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
+    expect(Object.keys(SpecStore.store.layers).length).toEqual(1);
     expect(SpecStore.store.gates[exampleConfigSpecs.gate.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.gate),
     );
@@ -87,6 +89,9 @@ describe('Verify behavior of SpecStore', () => {
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config),
     );
+    expect(
+      SpecStore.store.layers[exampleConfigSpecs.allocated_layer.name],
+    ).toEqual(new ConfigSpec(exampleConfigSpecs.allocated_layer));
     expect(SpecStore.store.idLists).toEqual(
       expect.objectContaining({
         list_1: {
@@ -117,6 +122,7 @@ describe('Verify behavior of SpecStore', () => {
         exampleConfigSpecs.half_pass_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      layer_configs: [exampleConfigSpecs.allocated_layer],
       id_lists: { list_1: true, list_2: true },
       has_updates: true,
     };
@@ -175,6 +181,7 @@ describe('Verify behavior of SpecStore', () => {
 
     expect(Object.keys(SpecStore.store.gates).length).toEqual(3);
     expect(Object.keys(SpecStore.store.configs).length).toEqual(1);
+    expect(Object.keys(SpecStore.store.layers).length).toEqual(1);
     expect(SpecStore.store.gates[exampleConfigSpecs.gate.name]).toEqual(
       new ConfigSpec(modifiedGate),
     );
@@ -187,6 +194,9 @@ describe('Verify behavior of SpecStore', () => {
     expect(SpecStore.store.configs[exampleConfigSpecs.config.name]).toEqual(
       new ConfigSpec(exampleConfigSpecs.config),
     );
+    expect(
+      SpecStore.store.layers[exampleConfigSpecs.allocated_layer.name],
+    ).toEqual(new ConfigSpec(exampleConfigSpecs.allocated_layer));
     expect(SpecStore.store.idLists).toEqual(
       expect.objectContaining({
         list_1: {

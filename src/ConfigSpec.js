@@ -30,6 +30,7 @@ class ConfigRule {
     this.id = ruleJSON.id;
     this.salt = ruleJSON.salt;
     this.idType = ruleJSON.idType;
+    this.configDelegate = ruleJSON.configDelegate;
   }
 
   parseConditions(conditionsJSON) {
@@ -53,4 +54,9 @@ class ConfigCondition {
   }
 }
 
-module.exports = { ConfigSpec, ConfigRule, ConfigCondition, FETCH_FROM_SERVER };
+module.exports = {
+  ConfigSpec,
+  ConfigRule,
+  ConfigCondition,
+  FETCH_FROM_SERVER,
+};

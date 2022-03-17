@@ -3,11 +3,12 @@ const { DynamicConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
-const Evaluator = require('./Evaluator');
+const { Evaluator } = require('./Evaluator');
 const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
 const { FETCH_FROM_SERVER } = require('./ConfigSpec');
+const { Layer } = require('./Layer');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -86,23 +87,18 @@ const statsig = {
    * @throws Error if the gateName is not provided or not a non-empty string
    */
   checkGate(user, gateName) {
-    if (statsig._ready !== true) {
-      return Promise.reject(new Error('Must call initialize() first.'));
-    }
-    if (typeof gateName !== 'string' || gateName.length === 0) {
-      return Promise.reject(new Error('Must pass a valid gateName to check'));
-    }
-    if (!isUserValid(user)) {
-      return Promise.reject(
-        new Error(
-          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
-        ),
-      );
-    }
-    user = normalizeUser(user);
-    return this._getGateValue(user, gateName).then((gate) => {
-      return gate.value;
-    });
+    const { rejection, normalizedUser } = this._validateInputs(
+      user,
+      gateName,
+      'gateName',
+    );
+
+    return (
+      rejection ??
+      this._getGateValue(normalizedUser, gateName).then((gate) => {
+        return gate.value;
+      })
+    );
   },
 
   /**
@@ -114,22 +110,13 @@ const statsig = {
    * @throws Error if the configName is not provided or not a non-empty string
    */
   getConfig(user, configName) {
-    if (statsig._ready !== true) {
-      return Promise.reject(new Error('Must call initialize() first.'));
-    }
-    if (typeof configName !== 'string' || configName.length === 0) {
-      return Promise.reject(new Error('Must pass a valid configName to check'));
-    }
-    if (!isUserValid(user)) {
-      return Promise.reject(
-        new Error(
-          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
-        ),
-      );
-    }
-    user = normalizeUser(user);
+    const { rejection, normalizedUser } = this._validateInputs(
+      user,
+      configName,
+      'configName',
+    );
 
-    return this._getConfigValue(user, configName);
+    return rejection ?? this._getConfigValue(normalizedUser, configName);
   },
 
   /**
@@ -141,12 +128,31 @@ const statsig = {
    * @throws Error if the experimentName is not provided or not a non-empty string
    */
   getExperiment(user, experimentName) {
-    if (typeof experimentName !== 'string' || experimentName.length === 0) {
-      return Promise.reject(
-        new Error('Must pass a valid experimentName to check'),
-      );
-    }
-    return this.getConfig(user, experimentName);
+    const { rejection, normalizedUser } = this._validateInputs(
+      user,
+      experimentName,
+      'experimentName',
+    );
+
+    return rejection ?? this._getConfigValue(normalizedUser, experimentName);
+  },
+
+  /**
+   * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the layer
+   * @param {string} layerName - the name of the layer to get
+   * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
+   * @throws Error if initialize() was not called first
+   * @throws Error if the layerName is not provided or not a non-empty string
+   */
+  getLayer(user, layerName) {
+    const { rejection, normalizedUser } = this._validateInputs(
+      user,
+      layerName,
+      'layerName',
+    );
+
+    return rejection ?? this._getLayerValue(normalizedUser, layerName);
   },
 
   /**
@@ -261,16 +267,50 @@ const statsig = {
     Evaluator.overrideConfig(configName, value, userID);
   },
 
-  _getGateValue(user, gateName) {
-    let ret = Evaluator.checkGate(user, gateName);
-    if (ret == null) {
-      ret = {
-        value: false,
-        rule_id: '',
-        secondary_exposures: [],
-      };
+  /**
+   * @param {object} user
+   * @param {string} name
+   * @param {string} usage
+   * @return {{rejection: Promise | undefined, normalizedUser: object | undefined}}
+   */
+  _validateInputs(user, name, usage) {
+    const result = { rejection: null, normalizedUser: null };
+    if (statsig._ready !== true) {
+      result.rejection = Promise.reject(
+        new Error('Must call initialize() first.'),
+      );
+    } else if (typeof name !== 'string' || name.length === 0) {
+      result.rejection = Promise.reject(
+        new Error(`Must pass a valid ${usage} to check`),
+      );
+    } else if (!isUserValid(user)) {
+      result.rejection = Promise.reject(
+        new Error(
+          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        ),
+      );
+    } else {
+      result.normalizedUser = normalizeUser(user);
     }
-    if (ret.value !== FETCH_FROM_SERVER) {
+
+    return result;
+  },
+
+  /**
+   * @param {object} user
+   * @param {string} gateName
+   * @return {Promise<{value: boolean}>}}
+   */
+  _getGateValue(user, gateName) {
+    let ret = Evaluator.checkGate(user, gateName) ?? {
+      value: false,
+      rule_id: '',
+      secondary_exposures: [],
+      config_delegate: undefined,
+      fetch_from_server: false,
+    };
+
+    if (!ret.fetch_from_server) {
       statsig._logger.logGateExposure(
         user,
         gateName,
@@ -278,7 +318,7 @@ const statsig = {
         ret.rule_id,
         ret.secondary_exposures,
       );
-      return Promise.resolve(ret);
+      return Promise.resolve({ value: ret.value });
     }
 
     return fetcher
@@ -304,10 +344,10 @@ const statsig = {
    */
   _getConfigValue(user, configName) {
     const ret = Evaluator.getConfig(user, configName);
-    if (ret?.value !== FETCH_FROM_SERVER) {
+    if (!ret?.fetch_from_server) {
       const config = new DynamicConfig(
         configName,
-        ret?.value,
+        ret?.json_value,
         ret?.rule_id,
         ret?.secondary_exposures,
       );
@@ -322,13 +362,50 @@ const statsig = {
       return Promise.resolve(config);
     }
 
+    return this._fetchConfig(user, configName);
+  },
+
+  /**
+   * @param {object} user
+   * @param {string} layerName
+   * @return {Promise<Layer>}
+   */
+  _getLayerValue(user, layerName) {
+    let ret = Evaluator.getLayer(user, layerName);
+    if (!ret?.fetch_from_server) {
+      const config = new Layer(
+        layerName,
+        ret?.json_value,
+        ret?.rule_id,
+        ret?.secondary_exposures,
+      );
+
+      statsig._logger.logLayerExposure(
+        user,
+        layerName,
+        config.getRuleID(),
+        config._getSecondaryExposures(),
+        ret?.config_delegate,
+      );
+
+      return Promise.resolve(config);
+    }
+
+    if (ret?.config_delegate) {
+      return this._fetchConfig(user, ret.config_delegate);
+    }
+
+    return Promise.resolve(new Layer(layerName));
+  },
+
+  _fetchConfig(user, name) {
     return fetcher
       .dispatch(
         statsig._options.api + '/get_config',
         statsig._secretKey,
         {
           user: user,
-          configName: configName,
+          configName: name,
           statsigMetadata: getStatsigMetadata(),
         },
         5000,
@@ -338,7 +415,7 @@ const statsig = {
       })
       .then((resJSON) => {
         return Promise.resolve(
-          new DynamicConfig(configName, resJSON.value, resJSON.rule_id),
+          new DynamicConfig(name, resJSON.value, resJSON.rule_id),
         );
       });
   },

@@ -44,15 +44,15 @@ describe('Test condition evaluation', () => {
 
   // prettier-ignore
   const params = [
-    //type                operator          targetValue        field             user  result
+    //type                operator          targetValue        field             user  result   additionalValues   fetchFromServer
     ['public',            null,             null,              null,             user, true],
     ['public',            'any',            false,             null,             user, true],
     ['fail_gate',         null,             'gate_pass',       null,             user, false],
     ['fail_gate',         null,             'gate_fail',       null,             user, true],
     ['pass_gate',         'fake',           'gate_pass',       null,             user, true],
     ['pass_gate',         null,             'gate_fail',       null,             user, false],
-    ['pass_gate',         null,             'gate_server',     null,             user, FETCH_FROM_SERVER],
-    ['fail_gate',         null,             'gate_server',     null,             user, FETCH_FROM_SERVER],
+    ['pass_gate',         null,             'gate_server',     null,             user, false,  undefined,   true],
+    ['fail_gate',         null,             'gate_server',     null,             user, false,  undefined,   true],
 
     // ip_based condition when ip is not provided
     ['ip_based',          'any',            ['US', 'CA'],      'country',        user, true],
@@ -202,18 +202,18 @@ describe('Test condition evaluation', () => {
 
     // user bucket
     ['user_bucket',        'lt',              981,            null,              { userID: 1},  true, { salt:'himalayan salt' }],
-    ['user_bucket',        'lt',              229,            null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'lt',              542,            null,              { userID: 18}, true,  { salt:'himalayan salt' }],
     ['user_bucket',        'gt',              980,            null,              { userID: 1},  false, { salt:'himalayan salt' }],
-    ['user_bucket',        'gt',              229,            null,              { userID: 18}, false,  { salt:'himalayan salt' }],
-    ['user_bucket',        'any',             [228, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
-    ['user_bucket',        'any',             [229, 333, 555],null,              { userID: 18}, false,  { salt:'himalayan salt' }],
-    ['user_bucket',        'none',            [229, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'gt',              542,            null,              { userID: 18}, false,  { salt:'himalayan salt' }],
+    ['user_bucket',        'any',             [541, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
+    ['user_bucket',        'any',             [542, 333, 555],null,              { userID: 18}, false,  { salt:'himalayan salt' }],
+    ['user_bucket',        'none',            [542, 333, 555],null,              { userID: 18}, true,  { salt:'himalayan salt' }],
    
     // some random type not implemented yet
-    ['derived_field',      'eq',              '0.25',          'd1_retention',     user, FETCH_FROM_SERVER],
+    ['derived_field',      'eq',              '0.25',          'd1_retention',     user, false,   undefined,   true],
 
     // new operator
-    ['user_field',         'unknown_op',      '0.25',          'level',            user, FETCH_FROM_SERVER],
+    ['user_field',         'unknown_op',      '0.25',          'level',            user, false,   undefined,   true],
 
     // any/none case sensitivity
     ['user_field',         'any_case_sensitive', ['Statsig', 'Take.app'],   'company',   user,  true],
@@ -243,13 +243,17 @@ describe('Test condition evaluation', () => {
     ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: 'sth'}}, false],
   ]
 
-  const Evaluator = require('../Evaluator');
+  const { Evaluator, ConfigEvaluation } = require('../Evaluator');
   jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-    if (gateName === 'gate_pass')
-      return { value: true, rule_id: 'my_rule', secondary_exposures: [] };
-    if (gateName === 'gate_server')
-      return { value: FETCH_FROM_SERVER, rule_id: '', secondary_exposures: [] };
-    return { value: false, rule_id: 'default', secondary_exposures: [] };
+    if (gateName === 'gate_pass') {
+      return new ConfigEvaluation(true, 'my_rule');
+    }
+
+    if (gateName === 'gate_server') {
+      return ConfigEvaluation.fetchFromServer();
+    }
+
+    return new ConfigEvaluation(false, 'default');
   });
   jest.spyOn(Evaluator, 'ip2country').mockImplementation((ip) => 'US');
 
@@ -265,56 +269,80 @@ describe('Test condition evaluation', () => {
     const SpecStore = require('../SpecStore');
     SpecStore.store = {
       idLists: { list_1: { ids: { '7NRRgkdK': true, pmWkWSBC: true } } },
+      configs: {},
     };
-    params.forEach((p) => {
-      let json = {
-        type: p[0],
-        operator: p[1],
-        targetValue: p[2],
-        field: p[3],
-        addtionalValues: p[6], // optional and does not exist for most conditions
-      };
-      if (p[0] === 'unit_id') {
-        json.idType = json.field;
-        json.field = null;
-      }
-      const condition = new ConfigCondition(json);
-      const result = Evaluator._evalCondition(p[4], condition);
-      if (result.value !== p[5]) {
-        console.log(
-          `Evaluation test failed for condition ${JSON.stringify(
-            json,
-          )} and user ${JSON.stringify(p[4])}. \n\n Expected ${p[5]} but got ${
-            result.value
-          }`,
-        );
-      }
-      expect(result.value).toEqual(p[5]);
-      if (p[2] === 'gate_pass') {
-        expect(result.secondary_exposures).toEqual([
-          { gate: 'gate_pass', gateValue: 'true', ruleID: 'my_rule' },
-        ]);
-      }
-      if (p[2] === 'gate_fail') {
-        expect(result.secondary_exposures).toEqual([
-          { gate: 'gate_fail', gateValue: 'false', ruleID: 'default' },
-        ]);
-      }
-    });
+    params.forEach(
+      ([
+        type,
+        operator,
+        targetValue,
+        field,
+        user,
+        evalPasses,
+        additionalValues,
+        fetchFromServer,
+      ]) => {
+        let json = {
+          type,
+          operator,
+          targetValue,
+          field,
+          additionalValues, // optional and does not exist for most conditions
+        };
+        if (type === 'unit_id') {
+          json.idType = json.field;
+          json.field = null;
+        }
+        const condition = new ConfigCondition(json);
+        const result = Evaluator._evalCondition(user, condition);
+        if (
+          result.passes !== evalPasses ||
+          result.fetchFromServer !== fetchFromServer
+        ) {
+          console.log(
+            `Evaluation test failed for condition ${JSON.stringify(
+              json,
+            )} and user ${JSON.stringify(
+              user,
+            )}. \n\n Expected ${evalPasses} but got ${result.passes}`,
+          );
+        }
+        expect(result.passes).toEqual(evalPasses);
+        if (targetValue === 'gate_pass') {
+          expect(result.exposures).toEqual([
+            { gate: 'gate_pass', gateValue: 'true', ruleID: 'my_rule' },
+          ]);
+        }
+        if (targetValue === 'gate_fail') {
+          expect(result.exposures).toEqual([
+            { gate: 'gate_fail', gateValue: 'false', ruleID: 'default' },
+          ]);
+        }
+      },
+    );
   });
 
   it('evals gates correctly', () => {
     expect(Evaluator._eval({}, gateSpec)).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
       value: false,
       rule_id: 'default',
       secondary_exposures: [],
     });
     expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
       value: false,
       rule_id: 'default',
       secondary_exposures: [],
     });
     expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: true,
       value: true,
       rule_id: 'rule_id_gate',
       secondary_exposures: [],
@@ -322,11 +350,17 @@ describe('Test condition evaluation', () => {
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
     ).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: true,
       value: true,
       rule_id: 'rule_id_gate',
       secondary_exposures: [],
     });
     expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
       value: false,
       rule_id: 'default',
       secondary_exposures: [],
@@ -334,6 +368,9 @@ describe('Test condition evaluation', () => {
     expect(
       Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
     ).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
       value: false,
       rule_id: 'disabled',
       secondary_exposures: [],
@@ -341,6 +378,9 @@ describe('Test condition evaluation', () => {
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec),
     ).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
       value: false,
       rule_id: 'disabled',
       secondary_exposures: [],
@@ -389,7 +429,6 @@ describe('Test condition evaluation', () => {
   });
 
   it('uses the correct return value and ruleID after evaluating pass percentage', () => {
-    const Evaluator = require('../Evaluator');
     jest.spyOn(Evaluator, '_evalPassPercent').mockImplementation(() => {
       return false;
     });
@@ -421,12 +460,12 @@ describe('Test condition evaluation', () => {
   });
 
   it('evals dynamic configs correctly', () => {
-    expect(Evaluator._eval({}, dynamicConfigSpec).value).toEqual({});
+    expect(Evaluator._eval({}, dynamicConfigSpec).json_value).toEqual({});
     expect(
       Evaluator._eval(
         { userID: 'jkw', custom: { level: 10 } },
         dynamicConfigSpec,
-      ).value,
+      ).json_value,
     ).toEqual({
       packers: {
         name: 'Green Bay Packers',
@@ -443,7 +482,9 @@ describe('Test condition evaluation', () => {
         dynamicConfigSpec,
       ).rule_id,
     ).toEqual('rule_id_config');
-    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).value).toEqual({});
+    expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).json_value).toEqual(
+      {},
+    );
     expect(Evaluator._eval({ level: 5 }, dynamicConfigSpec).rule_id).toEqual(
       'rule_id_config_public',
     );
@@ -460,7 +501,7 @@ describe('testing checkGate and getConfig', () => {
     jest.resetModules();
     jest.restoreAllMocks();
 
-    Evaluator = require('../Evaluator');
+    Evaluator = require('../Evaluator').Evaluator;
     fetch = require('node-fetch');
     jest.mock('node-fetch', () => jest.fn());
 
@@ -471,6 +512,10 @@ describe('testing checkGate and getConfig', () => {
         exampleConfigSpecs.disabled_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      layer_configs: [
+        exampleConfigSpecs.allocated_layer,
+        exampleConfigSpecs.unallocated_layer,
+      ],
       has_updates: true,
     };
     fetch.mockImplementation((url) => {
@@ -505,6 +550,9 @@ describe('testing checkGate and getConfig', () => {
         exampleConfigSpecs.gate.name,
       ),
     ).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: true,
       value: true,
       rule_id: exampleConfigSpecs.gate.rules[0].id,
       secondary_exposures: [],
@@ -516,7 +564,14 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name,
       ),
-    ).toEqual({ value: false, rule_id: 'default', secondary_exposures: [] });
+    ).toEqual({
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: false,
+      value: false,
+      rule_id: 'default',
+      secondary_exposures: [],
+    });
 
     // non-existent gate should return null
     expect(
@@ -545,7 +600,10 @@ describe('testing checkGate and getConfig', () => {
         exampleConfigSpecs.config.name,
       ),
     ).toEqual({
-      value: exampleConfigSpecs.config.rules[0].returnValue,
+      fetch_from_server: false,
+      config_delegate: undefined,
+      json_value: exampleConfigSpecs.config.rules[0].returnValue,
+      value: true,
       rule_id: exampleConfigSpecs.config.rules[0].id,
       secondary_exposures: [],
     });
@@ -557,6 +615,35 @@ describe('testing checkGate and getConfig', () => {
         exampleConfigSpecs.config.name + 'non-existent-config',
       ),
     ).toEqual(null);
+  });
+
+  describe('getLayer()', () => {
+    it('returns null when not initialized', () => {
+      expect(
+        Evaluator.getLayer({ userID: 'dloomb' }, 'unallocated_layer'),
+      ).toBeNull();
+    });
+
+    describe('when initialized', () => {
+      beforeEach(async () => {
+        await Evaluator.init({}, 'secret-api-key');
+      });
+
+      it('returns null when a non existant layer name is given', async () => {
+        expect(
+          Evaluator.getLayer({ userID: 'dloomb' }, 'not_a_layer'),
+        ).toBeNull();
+      });
+
+      it('returns layer defaults', () => {
+        const layer = Evaluator.getLayer(
+          { userID: 'dloomb' },
+          'unallocated_layer',
+        );
+        expect(layer.json_value).toEqual({ b_param: 'layer_default' });
+        expect(layer.rule_id).toEqual('default');
+      });
+    });
   });
 
   test('ip2country() behavior', async () => {

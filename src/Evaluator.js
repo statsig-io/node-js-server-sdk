@@ -9,20 +9,36 @@ const {
 const SpecStore = require('./SpecStore');
 const UAParser = require('useragent');
 
-const TYPE_DYNAMIC_CONFIG = 'dynamic_config';
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
 
 class ConfigEvaluation {
   /**
-   * @param {object | boolean} value
+   * @param {boolean} value
    * @param {string} rule_id
    * @param {any[]} secondary_exposures
+   * @param {object | boolean} json_value
+   * @param {string | undefined} config_delegate
+   * @param {boolean} fetch_from_server
    */
-  constructor(value, rule_id, secondary_exposures) {
+  constructor(
+    value,
+    rule_id = '',
+    secondary_exposures = [],
+    json_value = null,
+    config_delegate = undefined,
+    fetch_from_server = false,
+  ) {
     this.value = value;
     this.rule_id = rule_id;
+    this.json_value = json_value;
     this.secondary_exposures = secondary_exposures;
+    this.config_delegate = config_delegate;
+    this.fetch_from_server = fetch_from_server;
+  }
+
+  static fetchFromServer() {
+    return new ConfigEvaluation(false, '', [], null, null, true);
   }
 }
 
@@ -67,22 +83,14 @@ const Evaluator = {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return {
-          value: userOverride,
-          rule_id: 'override',
-          secondary_exposures: [],
-        };
+        return new ConfigEvaluation(userOverride, 'override');
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return {
-        value: allOverride,
-        rule_id: 'override',
-        secondary_exposures: [],
-      };
+      return new ConfigEvaluation(allOverride, 'override');
     }
     return null;
   },
@@ -102,22 +110,14 @@ const Evaluator = {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return {
-          value: userOverride,
-          rule_id: 'override',
-          secondary_exposures: [],
-        };
+        return new ConfigEvaluation(true, 'override', [], userOverride);
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return {
-        value: allOverride,
-        rule_id: 'override',
-        secondary_exposures: [],
-      };
+      return new ConfigEvaluation(true, 'override', [], allOverride);
     }
     return null;
   },
@@ -134,21 +134,15 @@ const Evaluator = {
       return null;
     }
 
-    const override = this.lookupGateOverride(user, gateName);
-    if (override != null) {
-      return override;
-    }
-
-    if (!(gateName in SpecStore.store.gates)) {
-      return null;
-    }
-
-    return this._eval(user, SpecStore.store.gates[gateName]);
+    return (
+      this.lookupGateOverride(user, gateName) ??
+      this._evalConfig(user, SpecStore.store.gates[gateName])
+    );
   },
 
   /**
-   * returns a DynamicConfig object, or null if used incorrectly (e.g. config name does not exist or not initialized)
-   * or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
+   * returns a ConfigEvaluation object, or null if used incorrectly (e.g. config name does not exist or not initialized).
+   * The ConfigEvaluation may have fetchFromServer equal to true, which needs to be handled by caller by calling server endpoint directly
    * @param {object} user
    * @param {string} configName
    * @returns {ConfigEvaluation}
@@ -158,16 +152,23 @@ const Evaluator = {
       return null;
     }
 
-    const override = this.lookupConfigOverride(user, configName);
-    if (override != null) {
-      return override;
-    }
+    return (
+      this.lookupConfigOverride(user, configName) ??
+      this._evalConfig(user, SpecStore.store.configs[configName])
+    );
+  },
 
-    if (!(configName in SpecStore.store.configs)) {
+  /**
+   * @param {any} user
+   * @param {string | number} layerName
+   * @returns {ConfigEvaluation | null}
+   */
+  getLayer(user, layerName) {
+    if (!this.initialized) {
       return null;
     }
 
-    return this._eval(user, SpecStore.store.configs[configName]);
+    return this._evalConfig(user, SpecStore.store.layers[layerName]);
   },
 
   shutdown() {
@@ -175,52 +176,56 @@ const Evaluator = {
   },
 
   /**
-   * Evaluates the current config spec, returns a boolean if the user pass or fail the rule,
-   * but can also return a string with value 'FETCH_FROM_SERVER' if the rule cannot be evaluated by the SDK.
+   * @param {object} user
+   * @param {ConfigSpec | null} config
+   * @returns {ConfigEvaluation | null}
+   */
+  _evalConfig(user, config) {
+    if (!config) {
+      return null;
+    }
+
+    return this._eval(user, config);
+  },
+
+  /**
    * @param {object} user
    * @param {ConfigSpec} config
    * @returns {ConfigEvaluation}
    */
   _eval(user, config) {
+    if (!config.enabled) {
+      return new ConfigEvaluation(false, 'disabled', [], config.defaultValue);
+    }
+
     let secondary_exposures = [];
-    if (config.enabled) {
-      for (let i = 0; i < config.rules.length; i++) {
-        let rule = config.rules[i];
-        const ruleResult = this._evalRule(user, rule);
-        if (ruleResult.value === FETCH_FROM_SERVER) {
-          return {
-            value: FETCH_FROM_SERVER,
-            secondary_exposures: [],
-            rule_id: '',
-          };
-        }
-        secondary_exposures = secondary_exposures.concat(
-          ruleResult.secondary_exposures,
+    for (let i = 0; i < config.rules.length; i++) {
+      let rule = config.rules[i];
+      const ruleResult = this._evalRule(user, rule);
+      if (ruleResult.fetch_from_server) {
+        return ConfigEvaluation.fetchFromServer();
+      }
+      secondary_exposures = secondary_exposures.concat(
+        ruleResult.secondary_exposures,
+      );
+      if (ruleResult.value === true) {
+        const pass = this._evalPassPercent(user, rule, config);
+        return new ConfigEvaluation(
+          pass,
+          ruleResult.rule_id,
+          secondary_exposures,
+          pass ? ruleResult.json_value : config.defaultValue,
+          ruleResult.config_delegate,
         );
-        if (ruleResult.value === true) {
-          const pass = this._evalPassPercent(user, rule, config);
-          return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-            ? {
-                value: pass ? rule.returnValue : config.defaultValue,
-                rule_id: rule.id,
-                secondary_exposures,
-              }
-            : {
-                value: pass,
-                rule_id: rule.id,
-                secondary_exposures: secondary_exposures,
-              };
-        }
       }
     }
-    const ruleID = config.enabled ? 'default' : 'disabled';
-    return config.type.toLowerCase() === TYPE_DYNAMIC_CONFIG
-      ? { value: config.defaultValue, rule_id: ruleID, secondary_exposures }
-      : {
-          value: false,
-          rule_id: ruleID,
-          secondary_exposures: secondary_exposures,
-        };
+
+    return new ConfigEvaluation(
+      false,
+      'default',
+      secondary_exposures,
+      config.defaultValue,
+    );
   },
 
   _evalPassPercent(user, rule, config) {
@@ -246,48 +251,55 @@ const Evaluator = {
   },
 
   /**
-   * Evaluates the current rule, returns a boolean if the user pass or fail the rule,
-   * but can also return a string with value 'FETCH_FROM_SERVER' if the rule cannot be evaluated by the SDK.
    * @param {object} user
    * @param {ConfigRule} rule
-   * @returns {object}
+   * @returns {ConfigEvaluation}
    */
   _evalRule(user, rule) {
-    const conditionResults = rule.conditions.map((condition) =>
-      this._evalCondition(user, condition),
-    );
+    let secondaryExposures = [];
+    let pass = true;
 
-    return conditionResults.reduce(
-      (finalRes, currentRes) => {
-        // If any result says fetch from server, then we fetch from server. This should be super rare.
-        // Otherwise, if any result evaluated to false, the whole rule should be false.
-        if (currentRes.value === FETCH_FROM_SERVER) {
-          finalRes.value = FETCH_FROM_SERVER;
-        } else if (!currentRes.value && finalRes.value === true) {
-          finalRes.value = false;
-        }
+    for (const condition of rule.conditions) {
+      const result = this._evalCondition(user, condition);
+      if (result.fetchFromServer) {
+        return ConfigEvaluation.fetchFromServer();
+      }
 
-        // Adding up all secondary exposures
-        if (Array.isArray(currentRes.secondary_exposures)) {
-          finalRes.secondary_exposures = finalRes.secondary_exposures.concat(
-            currentRes.secondary_exposures,
-          );
-        }
-        return finalRes;
-      },
-      {
-        value: true,
-        secondary_exposures: [],
-      },
+      if (!result.passes) {
+        pass = false;
+      }
+
+      if (result.exposures) {
+        secondaryExposures = secondaryExposures.concat(result.exposures);
+      }
+    }
+
+    if (pass && SpecStore.store.configs[rule.configDelegate]) {
+      const delegatedResult = this._eval(
+        user,
+        SpecStore.store.configs[rule.configDelegate],
+      );
+      delegatedResult.config_delegate = rule.configDelegate;
+      delegatedResult.secondary_exposures = secondaryExposures.concat(
+        delegatedResult.secondary_exposures,
+      );
+      return delegatedResult;
+    }
+
+    return new ConfigEvaluation(
+      pass,
+      rule.id,
+      secondaryExposures,
+      rule.returnValue,
     );
   },
 
   /**
    * Evaluates the current condition, returns a boolean if the user pass or fail the condition,
-   * but can also return a string with value 'FETCH_FROM_SERVER' if the condition cannot be evaluated by the SDK.
+   * but can also return a fetchFromServer boolean if the condition cannot be evaluated by the SDK.
    * @param {*} user
    * @param {ConfigCondition} condition
-   * @returns {object}
+   * @returns {{passes: boolean, fetchFromServer?: boolean, exposures?: any[]}}
    */
   _evalCondition(user, condition) {
     let value = null;
@@ -296,12 +308,12 @@ const Evaluator = {
     let idType = condition.idType;
     switch (condition.type.toLowerCase()) {
       case 'public':
-        return { value: true, secondary_exposures: [] };
+        return { passes: true };
       case 'fail_gate':
       case 'pass_gate':
         const gateResult = Evaluator.checkGate(user, target);
-        if (gateResult?.value === FETCH_FROM_SERVER) {
-          return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
+        if (gateResult?.fetch_from_server) {
+          return { passes: false, fetchFromServer: true };
         }
         value = gateResult?.value;
 
@@ -313,8 +325,8 @@ const Evaluator = {
         });
 
         return {
-          value: condition.type.toLowerCase() === 'fail_gate' ? !value : value,
-          secondary_exposures: allExposures,
+          passes: condition.type.toLowerCase() === 'fail_gate' ? !value : value,
+          exposures: allExposures,
         };
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
@@ -344,11 +356,11 @@ const Evaluator = {
         value = this._getUnitID(user, idType);
         break;
       default:
-        return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
+        return { passes: false, fetchFromServer: true };
     }
 
     if (value === FETCH_FROM_SERVER) {
-      return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
+      return { passes: false, fetchFromServer: true };
     }
 
     const op = condition.operator?.toLowerCase();
@@ -501,9 +513,9 @@ const Evaluator = {
         break;
       }
       default:
-        return { value: FETCH_FROM_SERVER, secondary_exposures: [] };
+        return { passes: false, fetchFromServer: true };
     }
-    return { value: evalResult, secondary_exposures: [] };
+    return { passes: evalResult };
   },
 
   ip2country(ip) {
@@ -709,4 +721,4 @@ function arrayAny(value, array, fn) {
   return false;
 }
 
-module.exports = Evaluator;
+module.exports = { Evaluator, ConfigEvaluation };

@@ -3,6 +3,7 @@ const LogEvent = require('./LogEvent');
 const fetcher = require('./utils/StatsigFetcher');
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
+const LAYER_EXPOSURE_EVENT = 'layer_exposure';
 const GATE_EXPOSURE_EVENT = 'gate_exposure';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 
@@ -131,6 +132,25 @@ function LogEventProcessor(options, secretKey) {
       {
         config: configName,
         ruleID: ruleID,
+      },
+      secondaryExposures,
+    );
+  };
+
+  processor.logLayerExposure = function (
+    user,
+    configName,
+    ruleID = '',
+    secondaryExposures = [],
+    allocatedExperiment = '',
+  ) {
+    processor.logStatsigInternal(
+      user,
+      LAYER_EXPOSURE_EVENT,
+      {
+        config: configName,
+        ruleID: ruleID,
+        allocatedExperiment,
       },
       secondaryExposures,
     );

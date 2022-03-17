@@ -30,6 +30,7 @@ describe('Test local mode with overrides', () => {
         exampleConfigSpecs.disabled_gate,
       ],
       dynamic_configs: [exampleConfigSpecs.config],
+      layer_configs: [],
       id_lists: {},
       has_updates: true,
     };

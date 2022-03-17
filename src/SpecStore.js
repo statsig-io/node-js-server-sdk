@@ -2,7 +2,6 @@ const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
 const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
-const { URL } = require('url');
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -20,7 +19,7 @@ const SpecStore = {
     this.rulesUpdatedCallback = options.rulesUpdatedCallback;
     this.secretKey = secretKey;
     this.time = 0;
-    this.store = { gates: {}, configs: {}, idLists: {} };
+    this.store = { gates: {}, configs: {}, idLists: {}, layers: {} };
     this.syncInterval = syncInterval;
     this.idListSyncInterval = idListSyncInterval;
 
@@ -49,9 +48,9 @@ const SpecStore = {
 
   async _syncValues() {
     try {
-      const baseApi = this.options._useCdnUrlForDownloadConfigSpecs ?
-        this.options._cdnBasedApi :
-        this.api;
+      const baseApi = this.options._useCdnUrlForDownloadConfigSpecs
+        ? this.options._cdnBasedApi
+        : this.api;
       const response = await fetcher.post(
         baseApi + '/download_config_specs',
         this.secretKey,
@@ -72,7 +71,7 @@ const SpecStore = {
         }
       }
     } catch (e) {
-      // TODO: log
+      console.error('statsigSDK::sync> Failed while attempting to sync values');
     }
 
     this.syncTimer = setTimeout(() => {
@@ -85,17 +84,25 @@ const SpecStore = {
     if (!specsJSON?.has_updates) {
       return false;
     }
-    let updatedGates = {};
-    let updatedConfigs = {};
+
     let parseFailed = false;
 
-    let gateArray = specsJSON?.feature_gates;
-    let configArray = specsJSON?.dynamic_configs;
-    if (!Array.isArray(gateArray) || !Array.isArray(configArray)) {
+    const updatedGates = {};
+    const updatedConfigs = {};
+    const updatedLayers = {};
+    const gateArray = specsJSON?.feature_gates;
+    const configArray = specsJSON?.dynamic_configs;
+    const layersArray = specsJSON?.layer_configs;
+
+    if (
+      !Array.isArray(gateArray) ||
+      !Array.isArray(configArray) ||
+      !Array.isArray(layersArray)
+    ) {
       return false;
     }
 
-    for (const gateJSON of specsJSON?.feature_gates) {
+    for (const gateJSON of gateArray) {
       try {
         const gate = new ConfigSpec(gateJSON);
         updatedGates[gate.name] = gate;
@@ -104,7 +111,8 @@ const SpecStore = {
         break;
       }
     }
-    for (const configJSON of specsJSON?.dynamic_configs) {
+
+    for (const configJSON of configArray) {
       try {
         const config = new ConfigSpec(configJSON);
         updatedConfigs[config.name] = config;
@@ -114,9 +122,20 @@ const SpecStore = {
       }
     }
 
+    for (const layerJSON of layersArray) {
+      try {
+        const config = new ConfigSpec(layerJSON);
+        updatedLayers[config.name] = config;
+      } catch (e) {
+        parseFailed = true;
+        break;
+      }
+    }
+
     if (!parseFailed) {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
+      this.store.layers = updatedLayers;
       this.time = specsJSON.time ?? this.time;
     }
 

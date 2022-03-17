@@ -52,23 +52,28 @@ async function _validateServerSDKConsistency(api) {
   });
   const testData = (await response.json()).data;
 
+  const featureGateChecks = Object.keys(testData[0].feature_gates).length * 3;
+  const dynamicConfigChecks =
+    Object.keys(testData[0].dynamic_configs).length * 3;
+  const layerConfigChecks = Object.keys(testData[0].layer_configs).length * 3;
+
   const totalChecks =
     testData.length *
-    (Object.keys(testData[0].feature_gates).length +
-      Object.keys(testData[0].dynamic_configs).length) *
-    3;
+    (featureGateChecks + dynamicConfigChecks + layerConfigChecks);
   expect.assertions(totalChecks);
 
   const statsig = require('../index');
-  const Evaluator = require('../Evaluator');
+  const { Evaluator } = require('../Evaluator');
   await statsig.initialize(secret, { api: api });
 
   const promises = testData.map(async (data) => {
     const user = data.user;
     const gates = data.feature_gates_v2;
     const configs = data.dynamic_configs;
+    const layers = data.layer_configs;
+
     for (const name in gates) {
-      const sdkResult = await Evaluator.checkGate(user, name);
+      const sdkResult = Evaluator.checkGate(user, name);
       const serverResult = gates[name];
       const sameExposure = compareSecondaryExposures(
         sdkResult.secondary_exposures,
@@ -92,14 +97,14 @@ async function _validateServerSDKConsistency(api) {
     }
 
     for (const name in configs) {
-      const sdkResult = await Evaluator.getConfig(user, name);
+      const sdkResult = Evaluator.getConfig(user, name);
       const serverResult = configs[name];
       const sameExposure = compareSecondaryExposures(
         sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
       if (
-        JSON.stringify(sdkResult.value) !==
+        JSON.stringify(sdkResult.json_value) !==
           JSON.stringify(serverResult.value) ||
         sdkResult.rule_id !== serverResult.rule_id ||
         !sameExposure
@@ -111,7 +116,33 @@ async function _validateServerSDKConsistency(api) {
         );
       }
 
-      expect(sdkResult.value).toMatchObject(serverResult.value);
+      expect(sdkResult.json_value).toMatchObject(serverResult.value);
+      expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
+      expect(sameExposure).toBe(true);
+    }
+
+    for (const name in layers) {
+      const sdkResult = Evaluator.getLayer(user, name);
+      const serverResult = layers[name];
+      const sameExposure = compareSecondaryExposures(
+        sdkResult.secondary_exposures,
+        serverResult.secondary_exposures,
+      );
+
+      if (
+        JSON.stringify(sdkResult.json_value) !==
+          JSON.stringify(serverResult.value) ||
+        sdkResult.rule_id !== serverResult.rule_id ||
+        !sameExposure
+      ) {
+        console.log(
+          `Test failed for layer ${name}. Server got ${JSON.stringify(
+            serverResult,
+          )}, SDK got ${JSON.stringify(sdkResult)} for ${JSON.stringify(user)}`,
+        );
+      }
+
+      expect(sdkResult.json_value).toMatchObject(serverResult.value);
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
     }
