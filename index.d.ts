@@ -92,6 +92,19 @@ declare module 'statsig-node' {
   ): Promise<DynamicConfig>;
 
   /**
+   * Checks the value of a Layer for a given user
+   * @param {StatsigUser} user - the user to evaluate for the layer
+   * @param {string} layerName - the name of the layer to get
+   * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
+   * @throws Error if initialize() was not called first
+   * @throws Error if the layerName is not provided or not a non-empty string
+   */
+  export function getLayer(
+    user: StatsigUser,
+    layerName: string,
+  ): Promise<Layer>;
+
+  /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment
    * @param {StatsigUser} user - the user associated with this event
    * @param {string} eventName - the name of the event (name = Purchase)
@@ -141,6 +154,21 @@ declare module 'statsig-node' {
    */
   export class DynamicConfig {
     value: object;
+    getValue(
+      key: string,
+      defaultValue: any | null,
+    ): boolean | number | string | object | Array<any> | null;
+    get<T extends boolean | number | string | object | Array<any> | null>(
+      key: string,
+      defaultValue: T,
+      typeGuard?: (value: unknown) => boolean,
+    ): T;
+  }
+
+  /**
+   * Returns the data for a Layer in the statsig console via typed get functions
+   */
+  export class Layer {
     getValue(
       key: string,
       defaultValue: any | null,
