@@ -2,6 +2,8 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./download_config_spec.json'),
 );
 
+const INIT_RESPONSE = require('./initialize_response.json');
+
 describe('Verify e2e behavior of the SDK with mocked network', () => {
   jest.mock('node-fetch', () => jest.fn());
   const statsigUser = {
@@ -40,6 +42,10 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify checkGate and exposure logs', async () => {
     const statsig = require('../index');
     await statsig.initialize('secret-123');
+    console.log(statsig.getClientInitializeResponse(statsigUser));
+    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
+      INIT_RESPONSE,
+    );
     const on = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on).toEqual(true);
     const passingEmail = await statsig.checkGate(

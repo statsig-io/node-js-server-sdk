@@ -171,6 +171,88 @@ const Evaluator = {
     return this._evalConfig(user, SpecStore.store.layers[layerName]);
   },
 
+  /**
+   *
+   * @param {object} user
+   * @returns {Record<string, any>}
+   */
+  getClientInitializeResponse(user) {
+    const gates = Object.entries(SpecStore.store.gates)
+      .map(([gate, spec]) => {
+        if (spec.entity === 'segment') {
+          return null;
+        }
+        const res = this._eval(user, spec);
+        return {
+          name: getHashedName(gate),
+          value: res.fetch_from_server ? false : res.value,
+          rule_id: res.rule_id,
+          secondary_exposures: res.secondary_exposures,
+        };
+      })
+      .filter((item) => item !== null);
+
+    const configs = Object.entries(SpecStore.store.configs).map(
+      ([config, spec]) => {
+        const res = this._eval(user, spec);
+        const format = this._specToInitializeResponse(spec, res);
+        if (spec.entity !== 'dynamic_config') {
+          const userInExperiment = this._isUserAllocatedToExperiment(
+            user,
+            spec,
+          );
+          const experimentActive = this._isExperimentActive(spec);
+          // These parameters only control sticky experiments on the client
+          format.is_experiment_active = experimentActive;
+          format.is_user_in_experiment = userInExperiment;
+        }
+        return format;
+      },
+    );
+
+    const layers = Object.entries(SpecStore.store.layers).map(
+      ([layer, spec]) => {
+        const res = this._eval(user, spec);
+        const format = this._specToInitializeResponse(spec, res);
+        if (res.config_delegate != null) {
+          format.allocated_experiment_name = getHashedName(res.config_delegate);
+          format.is_experiment_active = true;
+          format.is_user_in_experiment = true;
+        }
+        return format;
+      },
+    );
+    return {
+      feature_gates: Object.assign(
+        {},
+        ...gates.map((item) => ({ [item.name]: item })),
+      ),
+      dynamic_configs: Object.assign(
+        {},
+        ...configs.map((item) => ({ [item.name]: item })),
+      ),
+      layer_configs: Object.assign(
+        {},
+        ...layers.map((item) => ({ [item.name]: item })),
+      ),
+      sdkParams: {},
+      has_updates: true,
+      time: 0, // set the time to 0 so this doesnt interfere with polling
+    };
+  },
+
+  _specToInitializeResponse(spec, res) {
+    return {
+      name: getHashedName(spec.name),
+      value: res.fetch_from_server ? {} : res.json_value,
+      group: res.rule_id,
+      rule_id: res.rule_id,
+      is_device_based:
+        spec.idType != null && spec.idType.toLowerCase() === 'stableid',
+      secondary_exposures: res.secondary_exposures,
+    };
+  },
+
   shutdown() {
     SpecStore.shutdown();
   },
@@ -518,6 +600,34 @@ const Evaluator = {
     return { passes: evalResult };
   },
 
+  _isExperimentActive(experimentConfig) {
+    for (const rule of experimentConfig.rules) {
+      const ruleID = rule['id'];
+      if (ruleID == null) {
+        continue;
+      }
+      if (ruleID.toLowerCase() === 'layerassignment') {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  _isUserAllocatedToExperiment(user, experimentConfig) {
+    for (const rule of experimentConfig.rules) {
+      const ruleID = rule['id'];
+      if (ruleID == null) {
+        continue;
+      }
+      if (ruleID.toLowerCase() === 'layerassignment') {
+        const evalResult = this._evalRule(user, rule);
+        // user is in an experiment when they FAIL the layerAssignment rule
+        return !evalResult.value;
+      }
+    }
+    return false;
+  },
+
   ip2country(ip) {
     if (!this.initialized) {
       return null;
@@ -535,23 +645,23 @@ const Evaluator = {
   },
 };
 
-function hashUnitIDForIDList(unitID) {
-  if (typeof unitID !== 'string' || unitID == null) {
-    return '';
-  }
-  return crypto
-    .createHash('sha256')
-    .update(unitID)
-    .digest('base64')
-    .substr(0, 8);
-}
-
 function computeUserHash(userHash) {
   return crypto
     .createHash('sha256')
     .update(userHash)
     .digest()
     .readBigUInt64BE();
+}
+
+function getHashedName(name) {
+  return crypto.createHash('sha256').update(name).digest('base64');
+}
+
+function hashUnitIDForIDList(unitID) {
+  if (typeof unitID !== 'string' || unitID == null) {
+    return '';
+  }
+  return getHashedName(unitID).substr(0, 8);
 }
 
 function getFromUser(user, field) {
