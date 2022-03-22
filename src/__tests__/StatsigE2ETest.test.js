@@ -2,6 +2,8 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./download_config_spec.json'),
 );
 
+const INIT_RESPONSE = require('./initialize_response.json');
+
 describe('Verify e2e behavior of the SDK with mocked network', () => {
   jest.mock('node-fetch', () => jest.fn());
   const statsigUser = {

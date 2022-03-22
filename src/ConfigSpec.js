@@ -9,6 +9,7 @@ class ConfigSpec {
     this.enabled = specJSON.enabled;
     this.idType = specJSON.idType;
     this.rules = this.parseRules(specJSON.rules);
+    this.entity = specJSON.entity;
   }
 
   parseRules(rulesJSON) {
