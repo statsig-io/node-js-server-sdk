@@ -233,17 +233,6 @@ const statsig = {
     statsig._logger.log(event);
   },
 
-  getClientInitializeResponse(user) {
-    if (statsig._ready !== true) {
-      return Promise.reject(
-        new Error(
-          'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
-        ),
-      );
-    }
-    return Evaluator.getClientInitializeResponse(user);
-  },
-
   /**
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state

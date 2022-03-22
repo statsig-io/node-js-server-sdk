@@ -115,15 +115,6 @@ declare module 'statsig-node' {
   export function shutdown(): void;
 
   /**
-   * Returns the initialize values for the given user
-   * Can be used to bootstrap a client SDK with up to date values
-   * @param user the user to evaluate configurations for
-   */
-  export function getClientInitializeResponse(
-    user: StatsigUser,
-  ): Record<string, unknown>;
-
-  /**
    * Overrides the given gate with the provided value
    * If no userID is provided, it will override for all users
    * If a userID is provided, it will override the gate with the given value for that user only
