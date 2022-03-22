@@ -121,7 +121,7 @@ declare module 'statsig-node' {
    */
   export function getClientInitializeResponse(
     user: StatsigUser,
-  ): Record<string, any>;
+  ): Record<string, unknown>;
 
   /**
    * Overrides the given gate with the provided value

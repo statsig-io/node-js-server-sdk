@@ -174,7 +174,7 @@ const Evaluator = {
   /**
    *
    * @param {object} user
-   * @returns {Record<string, any>}
+   * @returns {Record<string, unknown>}
    */
   getClientInitializeResponse(user) {
     const gates = Object.entries(SpecStore.store.gates)

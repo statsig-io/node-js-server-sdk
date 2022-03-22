@@ -42,7 +42,6 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify checkGate and exposure logs', async () => {
     const statsig = require('../index');
     await statsig.initialize('secret-123');
-    console.log(statsig.getClientInitializeResponse(statsigUser));
     expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
       INIT_RESPONSE,
     );
