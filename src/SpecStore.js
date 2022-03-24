@@ -71,7 +71,9 @@ const SpecStore = {
         }
       }
     } catch (e) {
-      console.error('statsigSDK::sync> Failed while attempting to sync values');
+      console.error(
+        `statsigSDK::sync> Failed while attempting to sync values: ${e.message ?? ''}`,
+      );
     }
 
     this.syncTimer = setTimeout(() => {
