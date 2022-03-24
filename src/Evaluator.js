@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const ip3country = require('ip3country');
 const {
   ConfigSpec,
   ConfigRule,
@@ -7,7 +6,14 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
-const UAParser = require('useragent');
+const { sha256 } = require('js-sha256');
+const parseUserAgent = require('./utils/parseUserAgent');
+let ip3country = null;
+try {
+  ip3country = require('ip3country');
+} catch (err) {
+  // ip3country could be null
+}
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -45,7 +51,9 @@ class ConfigEvaluation {
 const Evaluator = {
   async init(options, secretKey) {
     await SpecStore.init(options, secretKey);
-    await ip3country.init();
+    if (ip3country) {
+      await ip3country.init();
+    }
     this.gateOverrides = {};
     this.configOverrides = {};
     this.initialized = true;
@@ -646,15 +654,33 @@ const Evaluator = {
 };
 
 function computeUserHash(userHash) {
-  return crypto
-    .createHash('sha256')
-    .update(userHash)
-    .digest()
-    .readBigUInt64BE();
+  if (crypto) {
+    return crypto
+      .createHash('sha256')
+      .update(userHash)
+      .digest()
+      .readBigUInt64BE();
+  } else {
+    const buffer = sha256.create().update(userHash).arrayBuffer();
+    const dv = new DataView(buffer);
+    return dv.getBigUint64(0, false);
+  }
 }
 
 function getHashedName(name) {
-  return crypto.createHash('sha256').update(name).digest('base64');
+  if (crypto) {
+    return crypto.createHash('sha256').update(name).digest('base64');
+  } else {
+    const digest = sha256.create().update(name).digest();
+    if (Buffer) {
+      return Buffer.from(digest).toString('base64');
+    } else {
+      // @ts-ignore
+      const decoder = new TextDecoder('utf8');
+      // @ts-ignore
+      return btoa(decoder.decode(digest));
+    }
+  }
 }
 
 function hashUnitIDForIDList(unitID) {
@@ -691,24 +717,24 @@ function getFromUserAgent(user, field) {
   if (ua == null) {
     return null;
   }
-  // Fix the vulnerability in useragent library found here https://app.snyk.io/vuln/SNYK-JS-USERAGENT-174737
+ 
   if (typeof ua !== 'string' || ua.length > 1000) {
     return null;
   }
-  const res = UAParser.parse(ua);
+  const res = parseUserAgent(ua);
   switch (field.toLowerCase()) {
     case 'os_name':
     case 'osname':
-      return res.os.family ?? null;
+      return res.os.name ?? null;
     case 'os_version':
     case 'osversion':
-      return res.os.toVersion() ?? null;
+      return res.os.version ?? null;
     case 'browser_name':
     case 'browsername':
-      return res.family ?? null;
+      return res.browser.name ?? null;
     case 'browser_version':
     case 'browserversion':
-      return res.toVersion() ?? null;
+      return res.browser.version ?? null;
     default:
       return null;
   }
