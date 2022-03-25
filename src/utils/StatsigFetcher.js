@@ -1,5 +1,5 @@
+const fetch = require('node-fetch');
 const Dispatcher = require('./Dispatcher');
-const genericFetch = require('./genericFetch');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 const fetcher = {
@@ -49,7 +49,7 @@ const fetcher = {
         'STATSIG-CLIENT-TIME': Date.now(),
       },
     };
-    return genericFetch(url, params)
+    return fetch(url, params)
       .then((res) => {
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
           return this._retry(url, sdkKey, body, retries, backoff);
