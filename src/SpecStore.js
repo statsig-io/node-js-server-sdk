@@ -193,12 +193,12 @@ const SpecStore = {
           if (fileSize <= readSize) {
             continue;
           }
-          const p = fetch(url, {
-            method: 'GET',
-            headers: {
-              Range: `bytes=${readSize}-`,
-            },
-          })
+          const p = fetcher
+            .get(url, {
+              headers: {
+                Range: `bytes=${readSize}-`,
+              },
+            })
             .then((res) => {
               const contentLength = res.headers.get('content-length');
               const length = parseInt(contentLength);
