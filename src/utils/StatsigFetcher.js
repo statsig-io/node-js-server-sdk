@@ -76,17 +76,6 @@ const fetcher = {
       });
   },
 
-  get: function (url, params) {
-    if (params == null) {
-      params = {};
-    }
-    if (params.headers == null) {
-      params.headers = {};
-    }
-    params.headers['STATSIG-SERVER-SESSION-ID'] = fetcher.sessionID;
-    return fetch(url, params);
-  },
-
   shutdown: function () {
     if (fetcher.pendingTimers != null) {
       fetcher.pendingTimers.forEach((timer) => {
