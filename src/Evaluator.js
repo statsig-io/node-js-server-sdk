@@ -8,12 +8,7 @@ const {
 const SpecStore = require('./SpecStore');
 const { sha256 } = require('js-sha256');
 const parseUserAgent = require('./utils/parseUserAgent');
-let ip3country = null;
-try {
-  ip3country = require('ip3country');
-} catch (err) {
-  // ip3country could be null
-}
+const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -51,8 +46,10 @@ class ConfigEvaluation {
 const Evaluator = {
   async init(options, secretKey) {
     await SpecStore.init(options, secretKey);
-    if (ip3country) {
+    try {
       await ip3country.init();
+    } catch (err) {
+      // Ignore
     }
     this.gateOverrides = {};
     this.configOverrides = {};
