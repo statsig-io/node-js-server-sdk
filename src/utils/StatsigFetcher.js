@@ -62,10 +62,11 @@ const fetcher = {
         }
         return Promise.resolve(res);
       })
-      .catch(() => {
+      .catch((e) => {
         if (retries > 0) {
           return this._retry(url, sdkKey, body, retries, backoff);
         }
+        return Promise.reject(e);
       })
       .finally(() => {
         fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);

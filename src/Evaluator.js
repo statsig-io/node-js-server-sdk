@@ -177,6 +177,9 @@ const Evaluator = {
    * @returns {Record<string, unknown>}
    */
   getClientInitializeResponse(user) {
+    if (!SpecStore.isServingChecks()) {
+      return null;
+    }
     const gates = Object.entries(SpecStore.store.gates)
       .map(([gate, spec]) => {
         if (spec.entity === 'segment') {

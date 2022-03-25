@@ -35,6 +35,13 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
           ok: true,
         });
       }
+      if (url.includes('get_id_lists')) {
+        postedLogs = JSON.parse(params.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        });
+      }
       return Promise.reject();
     });
   });
@@ -42,6 +49,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify checkGate and exposure logs', async () => {
     const statsig = require('../index');
     await statsig.initialize('secret-123');
+    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
+      INIT_RESPONSE,
+    );
     const on = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on).toEqual(true);
     const passingEmail = await statsig.checkGate(

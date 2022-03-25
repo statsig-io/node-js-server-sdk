@@ -46,6 +46,10 @@ const SpecStore = {
     this.initialized = true;
   },
 
+  isServingChecks() {
+    return this.time !== 0;
+  },
+
   async _syncValues() {
     try {
       const response = await fetcher.post(
@@ -69,7 +73,9 @@ const SpecStore = {
       }
     } catch (e) {
       console.error(
-        `statsigSDK::sync> Failed while attempting to sync values: ${e.message ?? ''}`,
+        `statsigSDK::sync> Failed while attempting to sync values: ${
+          e?.message ?? ''
+        }`,
       );
     }
 

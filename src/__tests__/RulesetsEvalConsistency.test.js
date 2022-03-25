@@ -30,7 +30,7 @@ if (secret) {
     );
   });
 } else {
-  describe('', () => {
+  describe('fail for non employees', () => {
     test('Intended failing test. Proceed with pull request unless you are a Statsig employee.', () => {
       console.log(
         'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.',
