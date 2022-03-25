@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const {
   ConfigSpec,
   ConfigRule,
@@ -651,32 +650,20 @@ const Evaluator = {
 };
 
 function computeUserHash(userHash) {
-  if (crypto) {
-    return crypto
-      .createHash('sha256')
-      .update(userHash)
-      .digest()
-      .readBigUInt64BE();
-  } else {
-    const buffer = sha256.create().update(userHash).arrayBuffer();
-    const dv = new DataView(buffer);
-    return dv.getBigUint64(0, false);
-  }
+  const buffer = sha256.create().update(userHash).arrayBuffer();
+  const dv = new DataView(buffer);
+  return dv.getBigUint64(0, false);
 }
 
 function getHashedName(name) {
-  if (crypto) {
-    return crypto.createHash('sha256').update(name).digest('base64');
+  const digest = sha256.create().update(name).digest();
+  if (Buffer) {
+    return Buffer.from(digest).toString('base64');
   } else {
-    const digest = sha256.create().update(name).digest();
-    if (Buffer) {
-      return Buffer.from(digest).toString('base64');
-    } else {
-      // @ts-ignore
-      const decoder = new TextDecoder('utf8');
-      // @ts-ignore
-      return btoa(decoder.decode(digest));
-    }
+    // @ts-ignore
+    const decoder = new TextDecoder('utf8');
+    // @ts-ignore
+    return btoa(decoder.decode(digest));
   }
 }
 
