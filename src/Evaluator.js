@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const ip3country = require('ip3country');
 const {
   ConfigSpec,
   ConfigRule,
@@ -7,7 +9,6 @@ const {
 const SpecStore = require('./SpecStore');
 const { sha256 } = require('js-sha256');
 const parseUserAgent = require('./utils/parseUserAgent');
-const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -45,11 +46,7 @@ class ConfigEvaluation {
 const Evaluator = {
   async init(options, secretKey) {
     await SpecStore.init(options, secretKey);
-    try {
-      await ip3country.init();
-    } catch (err) {
-      // Ignore
-    }
+    await ip3country.init();
     this.gateOverrides = {};
     this.configOverrides = {};
     this.initialized = true;
@@ -650,21 +647,15 @@ const Evaluator = {
 };
 
 function computeUserHash(userHash) {
-  const buffer = sha256.create().update(userHash).arrayBuffer();
-  const dv = new DataView(buffer);
-  return dv.getBigUint64(0, false);
+  return crypto
+    .createHash('sha256')
+    .update(userHash)
+    .digest()
+    .readBigUInt64BE();
 }
 
 function getHashedName(name) {
-  const digest = sha256.create().update(name).digest();
-  if (Buffer) {
-    return Buffer.from(digest).toString('base64');
-  } else {
-    // @ts-ignore
-    const decoder = new TextDecoder('utf8');
-    // @ts-ignore
-    return btoa(decoder.decode(digest));
-  }
+  return crypto.createHash('sha256').update(name).digest('base64');
 }
 
 function hashUnitIDForIDList(unitID) {
