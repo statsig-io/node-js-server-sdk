@@ -7,7 +7,6 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
-const { sha256 } = require('js-sha256');
 const parseUserAgent = require('./utils/parseUserAgent');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
