@@ -1,5 +1,4 @@
 const DEFAULT_API = 'https://statsigapi.net/v1';
-const DEFAULT_CDN_BASED_API = 'https://api.statsigcdn.com/v1';
 
 module.exports = function StatsigOptions(inputOptions) {
   const statsigOptions = {
@@ -9,11 +8,6 @@ module.exports = function StatsigOptions(inputOptions) {
     rulesUpdatedCallback: getFunction('rulesUpdatedCallback'),
     localMode: getBoolean('localMode', false),
     initTimeoutMs: getNumber('initTimeoutMs', 0),
-    _cdnBasedApi: DEFAULT_CDN_BASED_API,
-    _useCdnUrlForDownloadConfigSpecs: getBoolean(
-      'useCdnUrlForDownloadConfigSpecs',
-      false
-    ),
   };
 
   function getBoolean(index, defaultValue) {

@@ -46,13 +46,14 @@ const SpecStore = {
     this.initialized = true;
   },
 
+  isServingChecks() {
+    return this.time !== 0;
+  },
+
   async _syncValues() {
     try {
-      const baseApi = this.options._useCdnUrlForDownloadConfigSpecs
-        ? this.options._cdnBasedApi
-        : this.api;
       const response = await fetcher.post(
-        baseApi + '/download_config_specs',
+        this.api + '/download_config_specs',
         this.secretKey,
         {
           statsigMetadata: getStatsigMetadata(),
@@ -71,7 +72,11 @@ const SpecStore = {
         }
       }
     } catch (e) {
-      console.error('statsigSDK::sync> Failed while attempting to sync values');
+      console.error(
+        `statsigSDK::sync> Failed while attempting to sync values: ${
+          e?.message ?? ''
+        }`,
+      );
     }
 
     this.syncTimer = setTimeout(() => {

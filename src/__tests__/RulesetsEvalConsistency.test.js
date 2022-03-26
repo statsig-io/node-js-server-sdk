@@ -22,7 +22,7 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://statsigapi.net/v1', 'https://latest.api.statsig.com/v1'].map(
+    ['https://statsigapi.net/v1', 'https://latest.statsigapi.net/v1'].map(
       (url) =>
         test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
           await _validateServerSDKConsistency(url);
@@ -30,7 +30,7 @@ if (secret) {
     );
   });
 } else {
-  describe('', () => {
+  describe('fail for non employees', () => {
     test('Intended failing test. Proceed with pull request unless you are a Statsig employee.', () => {
       console.log(
         'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.',

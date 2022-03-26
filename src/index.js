@@ -247,6 +247,17 @@ const statsig = {
     Evaluator.shutdown();
   },
 
+  getClientInitializeResponse(user) {
+    if (statsig._ready !== true) {
+      return Promise.reject(
+        new Error(
+          'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
+        ),
+      );
+    }
+    return Evaluator.getClientInitializeResponse(user);
+  },
+
   overrideGate(gateName, value, userID = '') {
     if (typeof value !== 'boolean') {
       console.warn(

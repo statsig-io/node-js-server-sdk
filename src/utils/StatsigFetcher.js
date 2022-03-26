@@ -1,9 +1,11 @@
+const { randomUUID } = require('crypto');
 const fetch = require('node-fetch');
 const Dispatcher = require('./Dispatcher');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 const fetcher = {
   init: function () {
+    fetcher.sessionID = randomUUID();
     if (fetcher.leakyBucket == null) {
       fetcher.leakyBucket = {};
       fetcher.pendingTimers = [];
@@ -47,6 +49,7 @@ const fetcher = {
         'Content-type': 'application/json; charset=UTF-8',
         'STATSIG-API-KEY': sdkKey,
         'STATSIG-CLIENT-TIME': Date.now(),
+        'STATSIG-SERVER-SESSION-ID': fetcher.sessionID,
       },
     };
     return fetch(url, params)
@@ -62,10 +65,11 @@ const fetcher = {
         }
         return Promise.resolve(res);
       })
-      .catch(() => {
+      .catch((e) => {
         if (retries > 0) {
           return this._retry(url, sdkKey, body, retries, backoff);
         }
+        return Promise.reject(e);
       })
       .finally(() => {
         fetcher.leakyBucket[url] = Math.max(fetcher.leakyBucket[url] - 1, 0);
