@@ -7,7 +7,7 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
-const UAParser = require('useragent');
+const parseUserAgent = require('./utils/parseUserAgent');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -694,24 +694,24 @@ function getFromUserAgent(user, field) {
   if (ua == null) {
     return null;
   }
-  // Fix the vulnerability in useragent library found here https://app.snyk.io/vuln/SNYK-JS-USERAGENT-174737
+ 
   if (typeof ua !== 'string' || ua.length > 1000) {
     return null;
   }
-  const res = UAParser.parse(ua);
+  const res = parseUserAgent(ua);
   switch (field.toLowerCase()) {
     case 'os_name':
     case 'osname':
-      return res.os.family ?? null;
+      return res.os.name ?? null;
     case 'os_version':
     case 'osversion':
-      return res.os.toVersion() ?? null;
+      return res.os.version ?? null;
     case 'browser_name':
     case 'browsername':
-      return res.family ?? null;
+      return res.browser.name ?? null;
     case 'browser_version':
     case 'browserversion':
-      return res.toVersion() ?? null;
+      return res.browser.version ?? null;
     default:
       return null;
   }

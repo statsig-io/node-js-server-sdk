@@ -1,11 +1,19 @@
 const uuidv4 = require('uuid');
 
 function getSDKVersion() {
-  return require('../../package.json')?.version ?? '';
+  try {
+    return require('../../package.json')?.version ?? '';
+  } catch (err) {
+    return '';
+  }
 }
 
 function getSDKType() {
-  return require('../../package.json')?.name ?? '';
+  try {
+    return require('../../package.json')?.name ?? 'statsig-node';
+  } catch (err) {
+    return 'statsig-node';
+  }
 }
 
 function generateID() {

@@ -1,7 +1,7 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
-const fetch = require('node-fetch');
 const { getStatsigMetadata } = require('./utils/core');
+const fetch = require('node-fetch');
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
