@@ -29,28 +29,32 @@ class DynamicConfig {
    * @returns {T | null}
    */
   get(key, defaultValue, typeGuard = null) {
-    if (defaultValue == null) {
+    if (defaultValue === undefined) {
       defaultValue = null;
     }
+
     const val = this.getValue(key, defaultValue);
-    if (typeGuard) {
-      return typeGuard(val) ? val : defaultValue;
-    }
+
     if (val == null) {
       return defaultValue;
     }
-    if (defaultValue != null) {
-      if (Array.isArray(defaultValue) || Array.isArray(val)) {
-        if (Array.isArray(defaultValue) && Array.isArray(val)) {
-          // @ts-ignore
-          return val;
-        }
-        return defaultValue;
-      } else if (typeof defaultValue !== typeof val) {
-        return defaultValue;
-      }
+
+    if (typeGuard) {
+      return typeGuard(val) ? val : defaultValue;
     }
-    return val;
+
+    if (defaultValue == null) {
+      return val;
+    }
+
+    if (
+      typeof val === typeof defaultValue &&
+      Array.isArray(defaultValue) === Array.isArray(val)
+    ) {
+      return val;
+    }
+
+    return defaultValue;
   }
 
   /**
@@ -66,9 +70,11 @@ class DynamicConfig {
     if (key == null) {
       return this.value;
     }
-    if (defaultValue == null) {
+
+    if (defaultValue === undefined) {
       defaultValue = null;
     }
+
     return this.value[key] ?? defaultValue;
   }
 

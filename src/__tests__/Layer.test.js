@@ -27,7 +27,7 @@ describe('Verify behavior of Layer', () => {
 
   test('Test constructor', () => {
     const layer = new Layer('name', 123);
-    expect(layer.get()).toStrictEqual({});
+    expect(layer.get()).toStrictEqual(null);
   });
 
   test('Test getValue key not found', () => {
@@ -134,7 +134,7 @@ describe('Verify behavior of Layer', () => {
 
   test('Behavior of dummy layers', () => {
     const dummyLayer = new Layer('layerName');
-    expect(dummyLayer.get()).toEqual({});
+    expect(dummyLayer.get()).toBeNull();
     expect(dummyLayer.get('test_field')).toBeNull();
     expect(dummyLayer.get('str', 'default_value')).toEqual('default_value');
     expect(dummyLayer.get('bool', true)).toEqual(true);
@@ -142,7 +142,7 @@ describe('Verify behavior of Layer', () => {
     expect(dummyLayer.get('arr', [1, 2, 3])).toEqual([1, 2, 3]);
     expect(dummyLayer.get('obj', { key: 'value' })).toEqual({ key: 'value' });
 
-    expect(dummyLayer.getValue()).toEqual({});
+    expect(dummyLayer.getValue()).toEqual(null);
     expect(dummyLayer.getValue('test_field')).toEqual(null);
     expect(dummyLayer.getValue('str', 'default_value')).toEqual(
       'default_value',
