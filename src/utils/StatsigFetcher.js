@@ -1,6 +1,6 @@
 const { randomUUID } = require('crypto');
-const fetch = require('node-fetch');
 const Dispatcher = require('./Dispatcher');
+const safeFetch = require('./safeFetch');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 const fetcher = {
@@ -52,7 +52,7 @@ const fetcher = {
         'STATSIG-SERVER-SESSION-ID': fetcher.sessionID,
       },
     };
-    return fetch(url, params)
+    return safeFetch(url, params)
       .then((res) => {
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
           return this._retry(url, sdkKey, body, retries, backoff);

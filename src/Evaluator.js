@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const ip3country = require('ip3country');
 const {
   ConfigSpec,
@@ -7,6 +6,7 @@ const {
   FETCH_FROM_SERVER,
 } = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
+const shajs = require('sha.js');
 const parseUserAgent = require('./utils/parseUserAgent');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -45,7 +45,11 @@ class ConfigEvaluation {
 const Evaluator = {
   async init(options, secretKey) {
     await SpecStore.init(options, secretKey);
-    await ip3country.init();
+    try {
+      await ip3country.init();
+    } catch (err) {
+      // Ignore: this is optional
+    }
     this.gateOverrides = {};
     this.configOverrides = {};
     this.initialized = true;
@@ -649,15 +653,23 @@ const Evaluator = {
 };
 
 function computeUserHash(userHash) {
-  return crypto
-    .createHash('sha256')
-    .update(userHash)
-    .digest()
-    .readBigUInt64BE();
+  const buffer = shajs('sha256').update(userHash).digest();
+  if (buffer.readBigUInt64BE) {
+    return buffer.readBigUInt64BE();
+  }
+  
+  const ab = new ArrayBuffer(buffer.length);
+  const view = new Uint8Array(ab);
+  for (let ii = 0; ii < buffer.length; ii++) {
+    view[ii] = buffer[ii];
+  }
+
+  const dv = new DataView(ab);
+  return dv.getBigUint64(0, false);
 }
 
 function getHashedName(name) {
-  return crypto.createHash('sha256').update(name).digest('base64');
+  return shajs('sha256').update(name).digest('base64');
 }
 
 function hashUnitIDForIDList(unitID) {
