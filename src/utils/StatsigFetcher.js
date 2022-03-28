@@ -1,11 +1,11 @@
-const { randomUUID } = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 const Dispatcher = require('./Dispatcher');
 const safeFetch = require('./safeFetch');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 const fetcher = {
   init: function () {
-    fetcher.sessionID = randomUUID();
+    fetcher.sessionID = uuidv4();
     if (fetcher.leakyBucket == null) {
       fetcher.leakyBucket = {};
       fetcher.pendingTimers = [];
