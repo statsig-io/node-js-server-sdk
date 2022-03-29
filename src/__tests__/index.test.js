@@ -416,8 +416,80 @@ describe('Verify behavior of top level index functions', () => {
       expect(data.getValue('string')).toStrictEqual('12345');
     });
 
-    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledTimes(1); // Dedupe logic kicks in
     expect(spy).toHaveBeenCalledWith(configExposure);
+  });
+
+  test('Verify that getConfig() and getExperiment() are deduped with same metadata', async () => {
+    expect.assertions(1);
+
+    const statsig = require('../index');
+    const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {
+        string: '12345',
+        number: 12345,
+      });
+    });
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let configName = 'config_downloaded';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    for (let ii = 0 ; ii < 10000; ii++) {
+      await statsig.getConfig(user, configName);
+    }
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  test('Verify that getConfig() and getExperiment() are not deduped with different user', async () => {
+    expect.assertions(1);
+
+    const statsig = require('../index');
+    const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {
+        string: '12345',
+        number: 12345,
+      });
+    });
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let configName = 'config_downloaded';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    for (let ii = 0 ; ii < 10000; ii++) {
+      user.userID = ii;
+      await statsig.getConfig(user, configName);
+    }
+
+    expect(spy).toHaveBeenCalledTimes(10000);
+  });
+
+  test('Verify that getConfig() and getExperiment() are not deduped with different metadata', async () => {
+    expect.assertions(1);
+
+    const statsig = require('../index');
+    const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let configName = 'config_downloaded';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    for (let ii = 0 ; ii < 10000; ii++) {
+      jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+        return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
+          string: '12345',
+        });
+      });
+      await statsig.getConfig(user, configName);
+    }
+
+    expect(spy).toHaveBeenCalledTimes(10000);
   });
 
   test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
@@ -444,7 +516,7 @@ describe('Verify behavior of top level index functions', () => {
         expect(data).toEqual(config);
       });
 
-    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledTimes(1); // Dedupe logic kicks in
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {

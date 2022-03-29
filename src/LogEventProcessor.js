@@ -9,13 +9,18 @@ const INTERNAL_EVENT_PREFIX = 'statsig::';
 
 function LogEventProcessor(options, secretKey) {
   const processor = {};
-  let flushBatchSize = 500;
+  let flushBatchSize = 1000;
   let flushInterval = 60 * 1000;
+  let deduperInterval = 60 * 1000;
   let queue = [];
   let flushTimer = setInterval(function () {
     processor.flush();
   }, flushInterval);
+  let deduperTimer = setInterval(function() {
+    deduper.clear();
+  }, deduperInterval);
   let loggedErrors = new Set();
+  let deduper = new Set();
 
   processor.log = function (event, errorKey = null) {
     if (options.localMode) {
@@ -37,7 +42,6 @@ function LogEventProcessor(options, secretKey) {
     }
 
     queue.push(event);
-
     if (queue.length >= flushBatchSize) {
       processor.flush();
     }
@@ -46,6 +50,7 @@ function LogEventProcessor(options, secretKey) {
   processor.flush = function (waitForResponse = true) {
     if (!waitForResponse) {
       clearInterval(flushTimer);
+      clearInterval(deduperTimer);
     }
 
     if (queue.length === 0) {
@@ -81,6 +86,10 @@ function LogEventProcessor(options, secretKey) {
     metadata,
     secondaryExposures,
   ) {
+    if (!processor.isUniqueExposure(user, eventName, metadata)) {
+      return;
+    }
+
     let event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
     if (user != null) {
       event.setUser(user);
@@ -154,6 +163,39 @@ function LogEventProcessor(options, secretKey) {
       },
       secondaryExposures,
     );
+  };
+
+  processor.isUniqueExposure = function(
+    user,
+    eventName,
+    metadata,
+  ) {
+    let customIdKey = '';
+    if (user.customIDs && typeof(user.customIDs) === 'object') {
+      customIdKey = Object.values(user.customIDs).join();
+    }
+
+    let metadataKey = '';
+    if (metadata && typeof(metadata) === 'object') {
+      customIdKey = Object.values(metadata).join();
+    }
+
+    const keyList = [ 
+      user.userID, 
+      customIdKey,
+      eventName, 
+      metadataKey,
+    ];
+    const key = keyList.join();
+    if (deduper.has(key)) {
+      return false;
+    }
+
+    deduper.add(key);
+    if (deduper.size > 100000) {
+      deduper.clear();
+    }
+    return true;
   };
 
   return processor;
