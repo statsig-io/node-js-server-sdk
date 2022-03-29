@@ -52,8 +52,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
       INIT_RESPONSE,
     );
-    const on = await statsig.checkGate(statsigUser, 'always_on_gate');
-    expect(on).toEqual(true);
+    const on1 = await statsig.checkGate(statsigUser, 'always_on_gate');
+    expect(on1).toEqual(true);
+
+    const on2 = await statsig.checkGate(statsigUser, 'always_on_gate');
+    expect(on2).toEqual(true);
+
+    const on3 = await statsig.checkGate(statsigUser, 'always_on_gate');
+    expect(on3).toEqual(true);
+
     const passingEmail = await statsig.checkGate(
       statsigUser,
       'on_for_statsig_email',
