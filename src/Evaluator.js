@@ -323,7 +323,7 @@ const Evaluator = {
         '.' +
         (rule.salt ?? rule.id) +
         '.' +
-        this._getUnitID(user, rule.idType) ?? '',
+        (this._getUnitID(user, rule.idType) ?? ''),
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
@@ -657,7 +657,7 @@ function computeUserHash(userHash) {
   if (buffer.readBigUInt64BE) {
     return buffer.readBigUInt64BE();
   }
-  
+
   const ab = new ArrayBuffer(buffer.length);
   const view = new Uint8Array(ab);
   for (let ii = 0; ii < buffer.length; ii++) {
@@ -706,7 +706,7 @@ function getFromUserAgent(user, field) {
   if (ua == null) {
     return null;
   }
- 
+
   if (typeof ua !== 'string' || ua.length > 1000) {
     return null;
   }
