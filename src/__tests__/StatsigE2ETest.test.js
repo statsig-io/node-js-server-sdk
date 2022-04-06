@@ -153,56 +153,6 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
   });
 
-  test('Verify getLayer and exposure logs', async () => {
-    const statsig = require('../index');
-    await statsig.initialize('secret-123');
-
-    let layer = await statsig.getLayer(statsigUser, 'a_layer');
-    expect(layer.get('experiment_param', '')).toEqual('test');
-    expect(layer.get('layer_param', false)).toBe(true);
-    expect(layer.get('second_layer_param', false)).toBe(true);
-
-    layer = await statsig.getLayer(randomUser, 'b_layer_no_alloc');
-    expect(layer.get('b_param', '')).toEqual('layer_default');
-
-    layer = await statsig.getLayer(randomUser, 'c_layer_with_holdout');
-    expect(layer.get('holdout_layer_param', '')).toEqual('layer_default');
-
-    statsig.shutdown();
-
-    expect(postedLogs.events.length).toEqual(3);
-
-    expect(postedLogs.events[0].eventName).toEqual('statsig::layer_exposure');
-    expect(postedLogs.events[0].secondaryExposures).toEqual([]);
-    expect(postedLogs.events[0].metadata).toEqual({
-      config: 'a_layer',
-      ruleID: '2RamGujUou6h2bVNQWhtNZ',
-      allocatedExperiment: 'sample_experiment',
-    });
-
-    expect(postedLogs.events[1].eventName).toEqual('statsig::layer_exposure');
-    expect(postedLogs.events[1].secondaryExposures).toEqual([]);
-    expect(postedLogs.events[1].metadata).toEqual({
-      config: 'b_layer_no_alloc',
-      ruleID: 'default',
-      allocatedExperiment: '',
-    });
-
-    expect(postedLogs.events[2].eventName).toEqual('statsig::layer_exposure');
-    expect(postedLogs.events[2].secondaryExposures).toEqual([
-      {
-        gate: 'always_on_gate',
-        gateValue: 'true',
-        ruleID: '6N6Z8ODekNYZ7F8gFdoLP5',
-      },
-    ]);
-    expect(postedLogs.events[2].metadata).toEqual({
-      config: 'c_layer_with_holdout',
-      ruleID: '7d2E854TtGmfETdmJFip1L',
-      allocatedExperiment: '',
-    });
-  });
-
   test('Verify logEvent', async () => {
     const statsig = require('../index');
     await statsig.initialize('secret-123');

@@ -1,8 +1,4 @@
-const {
-  ConfigSpec,
-  ConfigCondition,
-  FETCH_FROM_SERVER,
-} = require('../ConfigSpec');
+const { ConfigSpec, ConfigCondition } = require('../ConfigSpec');
 const exampleConfigSpecs = require('./jest.setup');
 
 describe('Test condition evaluation', () => {
@@ -323,68 +319,27 @@ describe('Test condition evaluation', () => {
   });
 
   it('evals gates correctly', () => {
-    expect(Evaluator._eval({}, gateSpec)).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'default',
-      secondary_exposures: [],
-    });
-    expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'default',
-      secondary_exposures: [],
-    });
-    expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: true,
-      value: true,
-      rule_id: 'rule_id_gate',
-      secondary_exposures: [],
-    });
+    expect(Evaluator._eval({}, gateSpec)).toEqual(
+      new ConfigEvaluation(false, 'default', [], false),
+    );
+    expect(Evaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual(
+      new ConfigEvaluation(false, 'default', [], false),
+    );
+    expect(Evaluator._eval({ email: 'tore@packers.com' }, gateSpec)).toEqual(
+      new ConfigEvaluation(true, 'rule_id_gate', [], true),
+    );
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: true,
-      value: true,
-      rule_id: 'rule_id_gate',
-      secondary_exposures: [],
-    });
-    expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'default',
-      secondary_exposures: [],
-    });
+    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], true));
+    expect(Evaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec)).toEqual(
+      new ConfigEvaluation(false, 'default', [], false),
+    );
     expect(
       Evaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'disabled',
-      secondary_exposures: [],
-    });
+    ).toEqual(new ConfigEvaluation(false, 'disabled', [], false));
     expect(
       Evaluator._eval({ custom: { email: 'tore@nfl.com' } }, disabledGateSpec),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'disabled',
-      secondary_exposures: [],
-    });
+    ).toEqual(new ConfigEvaluation(false, 'disabled', [], false));
   });
 
   it('implements pass percentage correctly', () => {
@@ -493,6 +448,7 @@ describe('Test condition evaluation', () => {
 
 describe('testing checkGate and getConfig', () => {
   const { DynamicConfig } = require('../DynamicConfig');
+  const { ConfigEvaluation } = require('../Evaluator');
 
   let Evaluator;
   let fetch;
@@ -549,14 +505,9 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.gate.name,
       ),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: true,
-      value: true,
-      rule_id: exampleConfigSpecs.gate.rules[0].id,
-      secondary_exposures: [],
-    });
+    ).toEqual(
+      new ConfigEvaluation(true, exampleConfigSpecs.gate.rules[0].id, [], true),
+    );
 
     // should evaluate to false
     expect(
@@ -564,14 +515,7 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name,
       ),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: false,
-      value: false,
-      rule_id: 'default',
-      secondary_exposures: [],
-    });
+    ).toEqual(new ConfigEvaluation(false, 'default', [], false));
 
     // non-existent gate should return null
     expect(
@@ -599,14 +543,14 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
         exampleConfigSpecs.config.name,
       ),
-    ).toEqual({
-      fetch_from_server: false,
-      config_delegate: undefined,
-      json_value: exampleConfigSpecs.config.rules[0].returnValue,
-      value: true,
-      rule_id: exampleConfigSpecs.config.rules[0].id,
-      secondary_exposures: [],
-    });
+    ).toEqual(
+      new ConfigEvaluation(
+        true,
+        exampleConfigSpecs.config.rules[0].id,
+        [],
+        exampleConfigSpecs.config.rules[0].returnValue,
+      ),
+    );
 
     // non-existent config should return null
     expect(

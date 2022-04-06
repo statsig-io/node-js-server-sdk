@@ -7,7 +7,6 @@ const { Evaluator } = require('./Evaluator');
 const StatsigOptions = require('./StatsigOptions');
 
 const typedefs = require('./typedefs');
-const { FETCH_FROM_SERVER } = require('./ConfigSpec');
 const { Layer } = require('./Layer');
 
 const MAX_VALUE_SIZE = 64;
@@ -384,19 +383,22 @@ const statsig = {
   _getLayerValue(user, layerName) {
     let ret = Evaluator.getLayer(user, layerName);
     if (!ret?.fetch_from_server) {
+      const logFunc = (
+        /** @type {Layer} */ layer,
+        /** @type {string} */ parameterName,
+      ) => {
+        if (statsig._ready !== true) {
+          return;
+        }
+
+        statsig._logger.logLayerExposure(user, layer, parameterName, ret);
+      };
+
       const config = new Layer(
         layerName,
         ret?.json_value,
         ret?.rule_id,
-        ret?.secondary_exposures,
-      );
-
-      statsig._logger.logLayerExposure(
-        user,
-        layerName,
-        config.getRuleID(),
-        config._getSecondaryExposures(),
-        ret?.config_delegate,
+        logFunc,
       );
 
       return Promise.resolve(config);

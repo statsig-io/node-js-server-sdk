@@ -16,7 +16,11 @@
   "dynamic_configs": {
     "RMv0YJlLOBe7cY7HgZ3Jox34R0Wrk7jLv3DZyBETA7I=": {
       "name": "RMv0YJlLOBe7cY7HgZ3Jox34R0Wrk7jLv3DZyBETA7I=",
-      "value": { "number": 7, "string": "statsig", "boolean": false },
+      "value": {
+        "number": 7,
+        "string": "statsig",
+        "boolean": false
+      },
       "group": "1kNmlB23wylPFZi1M0Divl",
       "rule_id": "1kNmlB23wylPFZi1M0Divl",
       "is_device_based": false,
@@ -36,7 +40,10 @@
       "is_device_based": false,
       "is_experiment_active": false,
       "is_user_in_experiment": false,
-      "secondary_exposures": []
+      "secondary_exposures": [],
+      "explicit_parameters": [
+        "experiment_param"
+      ]
     }
   },
   "layer_configs": {
@@ -51,9 +58,13 @@
       "rule_id": "2RamGujUou6h2bVNQWhtNZ",
       "is_device_based": false,
       "secondary_exposures": [],
+      "undelegated_secondary_exposures": [],
       "allocated_experiment_name": "86mj1zUC35KaWoOqpe8SKEHQjRlXOzdLfiTJU/iU+vc=",
       "is_experiment_active": true,
-      "is_user_in_experiment": true
+      "is_user_in_experiment": true,
+      "explicit_parameters": [
+        "experiment_param"
+      ]
     },
     "swfBsA2gj0FY/9mzJdHytSKjrIsN1B9nJMeTWdKN2yw=": {
       "name": "swfBsA2gj0FY/9mzJdHytSKjrIsN1B9nJMeTWdKN2yw=",
@@ -63,7 +74,9 @@
       "group": "default",
       "rule_id": "default",
       "is_device_based": false,
-      "secondary_exposures": []
+      "secondary_exposures": [],
+      "undelegated_secondary_exposures": [],
+      "explicit_parameters": []
     },
     "gxLOmmNNwVd8rUKILhDYkZwuLBxBuwWV1xn8m0aTs/E=": {
       "name": "gxLOmmNNwVd8rUKILhDYkZwuLBxBuwWV1xn8m0aTs/E=",
@@ -79,7 +92,9 @@
           "gateValue": "true",
           "ruleID": "6N6Z8ODekNYZ7F8gFdoLP5"
         }
-      ]
+      ],
+      "undelegated_secondary_exposures": [],
+      "explicit_parameters": []
     }
   },
   "sdkParams": {},
