@@ -16,7 +16,7 @@ function LogEventProcessor(options, secretKey) {
   let flushTimer = setInterval(function () {
     processor.flush();
   }, flushInterval);
-  let deduperTimer = setInterval(function() {
+  let deduperTimer = setInterval(function () {
     deduper.clear();
   }, deduperInterval);
   let loggedErrors = new Set();
@@ -148,44 +148,45 @@ function LogEventProcessor(options, secretKey) {
 
   processor.logLayerExposure = function (
     user,
-    configName,
-    ruleID = '',
-    secondaryExposures = [],
-    allocatedExperiment = '',
+    layer,
+    parameterName,
+    configEvaluation,
   ) {
+    let allocatedExperiment = '';
+    let exposures = configEvaluation.undelegated_secondary_exposures;
+    const isExplicit =
+      configEvaluation.explicit_parameters?.includes(parameterName) ?? false;
+    if (isExplicit) {
+      allocatedExperiment = configEvaluation.config_delegate;
+      exposures = configEvaluation.secondary_exposures;
+    }
+
     processor.logStatsigInternal(
       user,
       LAYER_EXPOSURE_EVENT,
       {
-        config: configName,
-        ruleID: ruleID,
-        allocatedExperiment,
+        config: layer.name,
+        ruleID: layer._ruleID,
+        allocatedExperiment: allocatedExperiment,
+        parameterName,
+        isExplicitParameter: String(isExplicit),
       },
-      secondaryExposures,
+      exposures,
     );
   };
 
-  processor.isUniqueExposure = function(
-    user,
-    eventName,
-    metadata,
-  ) {
+  processor.isUniqueExposure = function (user, eventName, metadata) {
     let customIdKey = '';
-    if (user.customIDs && typeof(user.customIDs) === 'object') {
+    if (user.customIDs && typeof user.customIDs === 'object') {
       customIdKey = Object.values(user.customIDs).join();
     }
 
     let metadataKey = '';
-    if (metadata && typeof(metadata) === 'object') {
+    if (metadata && typeof metadata === 'object') {
       customIdKey = Object.values(metadata).join();
     }
 
-    const keyList = [ 
-      user.userID, 
-      customIdKey,
-      eventName, 
-      metadataKey,
-    ];
+    const keyList = [user.userID, customIdKey, eventName, metadataKey];
     const key = keyList.join();
     if (deduper.has(key)) {
       return false;

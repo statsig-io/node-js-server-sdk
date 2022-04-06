@@ -17,28 +17,34 @@ class ConfigEvaluation {
    * @param {boolean} value
    * @param {string} rule_id
    * @param {any[]} secondary_exposures
+   * @param {any[] | undefined} undelegated_secondary_exposures
    * @param {object | boolean} json_value
    * @param {string | undefined} config_delegate
    * @param {boolean} fetch_from_server
+   * @param {string[] | undefined} explicit_parameters
    */
   constructor(
     value,
     rule_id = '',
     secondary_exposures = [],
     json_value = null,
+    explicit_parameters = undefined,
     config_delegate = undefined,
     fetch_from_server = false,
+    undelegated_secondary_exposures = [],
   ) {
     this.value = value;
     this.rule_id = rule_id;
     this.json_value = json_value;
     this.secondary_exposures = secondary_exposures;
+    this.undelegated_secondary_exposures = undelegated_secondary_exposures;
     this.config_delegate = config_delegate;
     this.fetch_from_server = fetch_from_server;
+    this.explicit_parameters = explicit_parameters;
   }
 
   static fetchFromServer() {
-    return new ConfigEvaluation(false, '', [], null, null, true);
+    return new ConfigEvaluation(false, '', [], null, null, null, true);
   }
 }
 
@@ -194,7 +200,7 @@ const Evaluator = {
           name: getHashedName(gate),
           value: res.fetch_from_server ? false : res.value,
           rule_id: res.rule_id,
-          secondary_exposures: res.secondary_exposures,
+          secondary_exposures: this._cleanExposures(res.secondary_exposures),
         };
       })
       .filter((item) => item !== null);
@@ -213,6 +219,7 @@ const Evaluator = {
           format.is_experiment_active = experimentActive;
           format.is_user_in_experiment = userInExperiment;
         }
+
         return format;
       },
     );
@@ -226,6 +233,10 @@ const Evaluator = {
           format.is_experiment_active = true;
           format.is_user_in_experiment = true;
         }
+        format.explicit_parameters = format.explicit_parameters ?? [];
+        format.undelegated_secondary_exposures = this._cleanExposures(
+          res.undelegated_secondary_exposures ?? [],
+        );
         return format;
       },
     );
@@ -249,15 +260,35 @@ const Evaluator = {
   },
 
   _specToInitializeResponse(spec, res) {
-    return {
+    const output = {
       name: getHashedName(spec.name),
       value: res.fetch_from_server ? {} : res.json_value,
       group: res.rule_id,
       rule_id: res.rule_id,
       is_device_based:
         spec.idType != null && spec.idType.toLowerCase() === 'stableid',
-      secondary_exposures: res.secondary_exposures,
+      secondary_exposures: this._cleanExposures(res.secondary_exposures),
     };
+
+    if (res.explicit_parameters) {
+      output['explicit_parameters'] = res.explicit_parameters;
+    }
+
+    return output;
+  },
+
+  _cleanExposures(exposures) {
+    const seen = {};
+    return exposures
+      .map((exposure) => {
+        const key = `${exposure.gate}|${exposure.gateValue}|${exposure.ruleID}`;
+        if (seen[key]) {
+          return null;
+        }
+        seen[key] = true;
+        return exposure;
+      })
+      .filter((exposure) => exposure != null);
   },
 
   shutdown() {
@@ -294,16 +325,28 @@ const Evaluator = {
       if (ruleResult.fetch_from_server) {
         return ConfigEvaluation.fetchFromServer();
       }
+
       secondary_exposures = secondary_exposures.concat(
         ruleResult.secondary_exposures,
       );
+
       if (ruleResult.value === true) {
+        const delegatedResult = this._evalDelegate(
+          user,
+          rule,
+          secondary_exposures,
+        );
+        if (delegatedResult) {
+          return delegatedResult;
+        }
+
         const pass = this._evalPassPercent(user, rule, config);
         return new ConfigEvaluation(
           pass,
           ruleResult.rule_id,
           secondary_exposures,
           pass ? ruleResult.json_value : config.defaultValue,
+          config.explicitParameters,
           ruleResult.config_delegate,
         );
       }
@@ -314,7 +357,24 @@ const Evaluator = {
       'default',
       secondary_exposures,
       config.defaultValue,
+      config.explicitParameters,
     );
+  },
+
+  _evalDelegate(user, rule, exposures) {
+    const config = SpecStore.store.configs[rule.configDelegate];
+    if (!config) {
+      return null;
+    }
+
+    const delegatedResult = this._eval(user, config);
+    delegatedResult.config_delegate = rule.configDelegate;
+    delegatedResult.undelegated_secondary_exposures = exposures;
+    delegatedResult.explicit_parameters = config.explicitParameters;
+    delegatedResult.secondary_exposures = exposures.concat(
+      delegatedResult.secondary_exposures,
+    );
+    return delegatedResult;
   },
 
   _evalPassPercent(user, rule, config) {
@@ -361,18 +421,6 @@ const Evaluator = {
       if (result.exposures) {
         secondaryExposures = secondaryExposures.concat(result.exposures);
       }
-    }
-
-    if (pass && SpecStore.store.configs[rule.configDelegate]) {
-      const delegatedResult = this._eval(
-        user,
-        SpecStore.store.configs[rule.configDelegate],
-      );
-      delegatedResult.config_delegate = rule.configDelegate;
-      delegatedResult.secondary_exposures = secondaryExposures.concat(
-        delegatedResult.secondary_exposures,
-      );
-      return delegatedResult;
     }
 
     return new ConfigEvaluation(

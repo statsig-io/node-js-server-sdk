@@ -22,11 +22,13 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://api.statsig.com/v1', 'https://latest.api.statsig.com/v1'].map(
-      (url) =>
-        test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-          await _validateInitializeConsistency(url);
-        }),
+    [
+      // nocommit 'https://api.statsig.com/v1',
+      'https://latest.api.statsig.com/v1',
+    ].map((url) =>
+      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
+        await _validateInitializeConsistency(url);
+      }),
     );
   });
 } else {
@@ -77,9 +79,12 @@ async function _validateInitializeConsistency(api) {
         item.secondary_exposures.map((item) => {
           delete item.gate;
         });
+        item.undelegated_secondary_exposures?.map((item) => {
+          delete item.gate;
+        });
       }
-      // TODO for full layers future proofing
-      delete item['explicit_parameters'];
+      // // TODO for full layers future proofing
+      // delete item['explicit_parameters'];
       delete item['is_in_layer'];
     }
   }

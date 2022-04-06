@@ -8,21 +8,20 @@ class Layer {
    * @param {string} layerName
    * @param {object} value
    * @param {string?} ruleID
-   * @param {any[]} secondaryExposures
+   * @param {(layer: Layer, key: string) => void | null} logExposure
    */
-  constructor(layerName, value = null, ruleID = '', secondaryExposures = []) {
+  constructor(layerName, value = null, ruleID = '', logExposure = null) {
     if (typeof layerName !== 'string' || layerName.length === 0) {
       layerName = '';
     }
     if (value == null || typeof value !== 'object') {
       value = {};
     }
+
     this.name = layerName;
     this._value = utils.clone(value);
     this._ruleID = ruleID;
-    this._secondaryExposures = Array.isArray(secondaryExposures)
-      ? secondaryExposures
-      : [];
+    this._logExposure = logExposure;
   }
 
   /**
@@ -39,25 +38,30 @@ class Layer {
       defaultValue = null;
     }
 
-    const val = this.getValue(key, defaultValue);
+    const val = this._value[key];
 
     if (val == null) {
       return defaultValue;
     }
 
+    const logAndReturn = () => {
+      this._logExposure?.(this, key);
+      return val;
+    };
+
     if (typeGuard) {
-      return typeGuard(val) ? val : defaultValue;
+      return typeGuard(val) ? logAndReturn() : defaultValue;
     }
 
     if (defaultValue == null) {
-      return val;
+      return logAndReturn();
     }
 
     if (
       typeof val === typeof defaultValue &&
       Array.isArray(defaultValue) === Array.isArray(val)
     ) {
-      return val;
+      return logAndReturn();
     }
 
     return defaultValue;
@@ -81,6 +85,10 @@ class Layer {
       return defaultValue;
     }
 
+    if (this._value[key] != null) {
+      this._logExposure?.(this, key);
+    }
+
     return this._value[key] ?? defaultValue;
   }
 
@@ -89,13 +97,6 @@ class Layer {
    */
   getRuleID() {
     return this._ruleID;
-  }
-
-  /**
-   * @ignore
-   */
-  _getSecondaryExposures() {
-    return this._secondaryExposures;
   }
 }
 

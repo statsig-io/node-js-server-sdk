@@ -55,7 +55,7 @@ async function _validateServerSDKConsistency(api) {
   const featureGateChecks = Object.keys(testData[0].feature_gates).length * 3;
   const dynamicConfigChecks =
     Object.keys(testData[0].dynamic_configs).length * 3;
-  const layerConfigChecks = Object.keys(testData[0].layer_configs).length * 3;
+  const layerConfigChecks = Object.keys(testData[0].layer_configs).length * 4;
 
   const totalChecks =
     testData.length *
@@ -128,12 +128,17 @@ async function _validateServerSDKConsistency(api) {
         sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
+      const sameUndelegatedExposure = compareSecondaryExposures(
+        sdkResult.undelegated_secondary_exposures,
+        serverResult.undelegated_secondary_exposures,
+      );
 
       if (
         JSON.stringify(sdkResult.json_value) !==
           JSON.stringify(serverResult.value) ||
         sdkResult.rule_id !== serverResult.rule_id ||
-        !sameExposure
+        !sameExposure ||
+        !sameUndelegatedExposure
       ) {
         console.log(
           `Test failed for layer ${name}. Server got ${JSON.stringify(
@@ -145,6 +150,7 @@ async function _validateServerSDKConsistency(api) {
       expect(sdkResult.json_value).toMatchObject(serverResult.value);
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
+      expect(sameUndelegatedExposure).toBe(true);
     }
   });
   await Promise.all(promises);
