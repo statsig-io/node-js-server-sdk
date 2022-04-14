@@ -19,6 +19,14 @@ const fetcher = {
     fetcher.localMode = localMode;
   },
 
+  /**
+   *
+   * @param {*} url
+   * @param {*} sdkKey
+   * @param {*} body
+   * @param {*} timeout
+   * @returns Promise<any>
+   */
   dispatch: function (url, sdkKey, body, timeout) {
     this.init();
     return fetcher.dispatcher.enqueue(this.post(url, sdkKey, body), timeout);

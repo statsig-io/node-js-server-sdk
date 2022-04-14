@@ -95,7 +95,7 @@ const statsig = {
     return (
       rejection ??
       this._getGateValue(normalizedUser, gateName).then((gate) => {
-        return gate.value;
+        return gate?.value === true ?? false;
       })
     );
   },
@@ -281,7 +281,7 @@ const statsig = {
    * @param {object} user
    * @param {string} name
    * @param {string} usage
-   * @return {{rejection: Promise | undefined, normalizedUser: object | undefined}}
+   * @return {{rejection: Promise | null, normalizedUser: object | null}}
    */
   _validateInputs(user, name, usage) {
     const result = { rejection: null, normalizedUser: null };
@@ -387,30 +387,41 @@ const statsig = {
         /** @type {Layer} */ layer,
         /** @type {string} */ parameterName,
       ) => {
-        if (statsig._ready !== true) {
+        if (statsig._ready !== true || ret == null) {
           return;
         }
-
         statsig._logger.logLayerExposure(user, layer, parameterName, ret);
       };
-
-      const config = new Layer(
+      const layer = new Layer(
         layerName,
         ret?.json_value,
         ret?.rule_id,
         logFunc,
       );
 
-      return Promise.resolve(config);
+      return Promise.resolve(layer);
     }
 
     if (ret?.config_delegate) {
-      return this._fetchConfig(user, ret.config_delegate);
+      return this._fetchConfig(user, ret.config_delegate)
+        .then((config) => {
+          return Promise.resolve(
+            new Layer(layerName, config?.value, config?._ruleID),
+          );
+        })
+        .catch(() => {
+          return Promise.resolve(new Layer(layerName));
+        });
     }
 
     return Promise.resolve(new Layer(layerName));
   },
 
+  /**
+   * @param {object} user
+   * @param {string} name
+   * @returns {Promise<DynamicConfig>}
+   */
   _fetchConfig(user, name) {
     return fetcher
       .dispatch(
@@ -430,6 +441,9 @@ const statsig = {
         return Promise.resolve(
           new DynamicConfig(name, resJSON.value, resJSON.rule_id),
         );
+      })
+      .catch(() => {
+        return Promise.resolve(new DynamicConfig(name));
       });
   },
 };

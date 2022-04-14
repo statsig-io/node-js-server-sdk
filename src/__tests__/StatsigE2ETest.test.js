@@ -20,6 +20,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
+    postedLogs = {};
 
     const fetch = require('node-fetch');
     fetch.mockImplementation((url, params) => {
@@ -36,10 +37,35 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
         });
       }
       if (url.includes('get_id_lists')) {
-        postedLogs = JSON.parse(params.body);
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
+        });
+      }
+      if (url.includes('check_gate')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              name: 'gate_name',
+              value: true,
+              rule_id: 'fallback_from_server',
+            }),
+        });
+      }
+      if (url.includes('get_config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              name: 'config_name',
+              value: {
+                newParam: 'I come from a land down under',
+                walk: 10000,
+                go: true,
+              },
+              rule_id: 'fallback_from_server',
+            }),
         });
       }
       return Promise.reject();
@@ -71,6 +97,13 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       'on_for_statsig_email',
     );
     expect(failingEmail).toEqual(false);
+
+    // fetch from server does not log an exposure
+    const fetchFromServer = await statsig.checkGate(
+      statsigUser,
+      'fetch_from_server_fallback',
+    );
+    expect(fetchFromServer).toEqual(true);
 
     statsig.shutdown();
     expect(postedLogs.events.length).toEqual(3);
@@ -109,6 +142,14 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.get('number', 0)).toEqual(4);
     expect(config.get('string', '')).toEqual('default');
     expect(config.get('boolean', false)).toEqual(true);
+
+    // fetch from server does not log an exposure
+    config = await statsig.getConfig(statsigUser, 'test_config_fallback');
+    expect(config.get('newParam', 'default')).toEqual(
+      'I come from a land down under',
+    );
+    expect(config.get('walk', 10)).toEqual(10000);
+    expect(config.get('go', false)).toEqual(true);
 
     statsig.shutdown();
     expect(postedLogs.events.length).toEqual(2);
@@ -151,6 +192,26 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
       '2RamGsERWbWMIMnSfOlQuX',
     );
+  });
+
+  test('Verify getLayer and exposure logs', async () => {
+    const statsig = require('../index');
+    await statsig.initialize('secret-123');
+
+    // should delegate to a bad config, which fetches from the server
+    let layer = await statsig.getLayer(
+      statsigUser,
+      'd_layer_delegate_to_fallback',
+    );
+    expect(layer.get('newParam', 'default')).toEqual(
+      'I come from a land down under',
+    );
+    expect(layer.get('walk', 10)).toEqual(10000);
+    expect(layer.get('go', false)).toEqual(true);
+
+    statsig.shutdown();
+    // fallback does not log an exposure, so nothing gets set here
+    expect(postedLogs.events).toBeUndefined();
   });
 
   test('Verify logEvent', async () => {
