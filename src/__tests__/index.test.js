@@ -437,7 +437,7 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0 ; ii < 10000; ii++) {
+    for (let ii = 0; ii < 10000; ii++) {
       await statsig.getConfig(user, configName);
     }
 
@@ -461,7 +461,7 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0 ; ii < 10000; ii++) {
+    for (let ii = 0; ii < 10000; ii++) {
       user.userID = ii;
       await statsig.getConfig(user, configName);
     }
@@ -480,7 +480,7 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0 ; ii < 10000; ii++) {
+    for (let ii = 0; ii < 10000; ii++) {
       jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
         return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
           string: '12345',
@@ -606,10 +606,10 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     let str_1k = str_64;
     // create a 1k long string
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       str_1k += str_1k;
     }
-    expect(str_1k.length).toBe(1024);
+    expect(str_1k.length).toBe(2048);
     return statsig.initialize(secretKey).then(() => {
       let bigUser = {
         userID: str_64 + 'more',
