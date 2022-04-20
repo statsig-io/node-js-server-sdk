@@ -11,6 +11,7 @@ const { Layer } = require('./Layer');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
+const MAX_USER_SIZE = 2048;
 let hasLoggedNoUserIdWarning = false;
 
 /**
@@ -482,9 +483,9 @@ function trimUserObjIfNeeded(user) {
     );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
   }
-  if (shouldTrimParam(user, MAX_OBJ_SIZE)) {
+  if (shouldTrimParam(user, MAX_USER_SIZE)) {
     user.custom = {};
-    if (shouldTrimParam(user, MAX_OBJ_SIZE)) {
+    if (shouldTrimParam(user, MAX_USER_SIZE)) {
       console.warn(
         'statsigSDK> User object is too large, only keeping the user ID.',
       );
