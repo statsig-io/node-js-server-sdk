@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+// @ts-ignore
 const fetch = require('node-fetch');
 
 let secret = process.env.test_api_key;
@@ -22,7 +23,7 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://statsigapi.net/v1', 'https://latest.statsigapi.net/v1'].map(
+    ['https://statsigapi.net/v1', 'https://staging.statsigapi.net/v1'].map(
       (url) =>
         test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
           await _validateServerSDKConsistency(url);
@@ -62,8 +63,8 @@ async function _validateServerSDKConsistency(api) {
     (featureGateChecks + dynamicConfigChecks + layerConfigChecks);
   expect.assertions(totalChecks);
 
-  const statsig = require('../index');
-  const { Evaluator } = require('../Evaluator');
+  const statsig = require('../../dist/src/index');
+  const { Evaluator } = require('../../dist/src/Evaluator');
   await statsig.initialize(secret, { api: api });
 
   const promises = testData.map(async (data) => {
@@ -76,11 +77,14 @@ async function _validateServerSDKConsistency(api) {
       const sdkResult = Evaluator.checkGate(user, name);
       const serverResult = gates[name];
       const sameExposure = compareSecondaryExposures(
+        // @ts-ignore
         sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
       if (
+        // @ts-ignore
         sdkResult.value !== serverResult.value ||
+        // @ts-ignore
         sdkResult.rule_id !== serverResult.rule_id ||
         !sameExposure
       ) {
@@ -91,7 +95,9 @@ async function _validateServerSDKConsistency(api) {
         );
       }
 
+      // @ts-ignore
       expect(sdkResult.value).toEqual(serverResult.value);
+      // @ts-ignore
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
     }
@@ -100,12 +106,15 @@ async function _validateServerSDKConsistency(api) {
       const sdkResult = Evaluator.getConfig(user, name);
       const serverResult = configs[name];
       const sameExposure = compareSecondaryExposures(
+        // @ts-ignore
         sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
       if (
+        // @ts-ignore
         JSON.stringify(sdkResult.json_value) !==
           JSON.stringify(serverResult.value) ||
+        // @ts-ignore
         sdkResult.rule_id !== serverResult.rule_id ||
         !sameExposure
       ) {
@@ -116,7 +125,9 @@ async function _validateServerSDKConsistency(api) {
         );
       }
 
+      // @ts-ignore
       expect(sdkResult.json_value).toMatchObject(serverResult.value);
+      // @ts-ignore
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
     }
@@ -125,17 +136,21 @@ async function _validateServerSDKConsistency(api) {
       const sdkResult = Evaluator.getLayer(user, name);
       const serverResult = layers[name];
       const sameExposure = compareSecondaryExposures(
+        // @ts-ignore
         sdkResult.secondary_exposures,
         serverResult.secondary_exposures,
       );
       const sameUndelegatedExposure = compareSecondaryExposures(
+        // @ts-ignore
         sdkResult.undelegated_secondary_exposures,
         serverResult.undelegated_secondary_exposures,
       );
 
       if (
+        // @ts-ignore
         JSON.stringify(sdkResult.json_value) !==
           JSON.stringify(serverResult.value) ||
+        // @ts-ignore
         sdkResult.rule_id !== serverResult.rule_id ||
         !sameExposure ||
         !sameUndelegatedExposure
@@ -147,7 +162,9 @@ async function _validateServerSDKConsistency(api) {
         );
       }
 
+      // @ts-ignore
       expect(sdkResult.json_value).toMatchObject(serverResult.value);
+      // @ts-ignore
       expect(sdkResult.rule_id).toEqual(serverResult.rule_id);
       expect(sameExposure).toBe(true);
       expect(sameUndelegatedExposure).toBe(true);

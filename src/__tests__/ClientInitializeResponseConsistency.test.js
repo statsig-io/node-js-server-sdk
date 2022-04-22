@@ -22,13 +22,11 @@ if (secret) {
       jest.resetModules();
     });
 
-    [
-      // nocommit 'https://api.statsig.com/v1',
-      'https://latest.api.statsig.com/v1',
-    ].map((url) =>
-      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-        await _validateInitializeConsistency(url);
-      }),
+    ['https://api.statsig.com/v1', 'https://staging.api.statsig.com/v1'].map(
+      (url) =>
+        test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
+          await _validateInitializeConsistency(url);
+        }),
     );
   });
 } else {
@@ -89,7 +87,7 @@ async function _validateInitializeConsistency(api) {
     }
   }
 
-  const statsig = require('../index');
+  const statsig = require('../../dist/src/index');
   await statsig.initialize(secret, { api: api });
 
   const sdkInitializeResponse = statsig.getClientInitializeResponse(user);
