@@ -62,9 +62,13 @@ function isUserIdentifiable(user) {
   if (user == null) return false;
   if (typeof user !== 'object') return false;
   const userID = user.userID;
+  const customIDs = user.customIDs;
   return (
     typeof userID === 'number' ||
-    (typeof userID === 'string' && userID.length > 0)
+    typeof userID === 'string' ||
+    (customIDs != null &&
+      typeof customIDs === 'object' &&
+      Object.keys(customIDs).length !== 0)
   );
 }
 

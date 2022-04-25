@@ -5,7 +5,7 @@ declare module 'statsig-node' {
    * A dictionary of additional fields can be provided under the "custom" field
    */
   export type StatsigUser = {
-    userID: string;
+    userID?: string;
     email?: string;
     ip?: string;
     userAgent?: string;

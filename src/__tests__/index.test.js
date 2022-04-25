@@ -158,49 +158,76 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('cannot call checkGate(), getConfig(), or getExperiment() with no user or userID', async () => {
+  test('cannot call checkGate(), getConfig(), or getExperiment() with no user or userID or customID', async () => {
     const statsig = require('../index');
     expect.assertions(6);
 
     await statsig.initialize(secretKey);
     await expect(statsig.checkGate(null, 'test_gate')).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
     await expect(
       statsig.checkGate({ email: '123@gmail.com' }, 'test_gate'),
     ).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
 
     await expect(statsig.getConfig(null, 'test_config')).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
     await expect(
       statsig.getConfig({ email: '123@gmail.com' }, 'test_config'),
     ).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
 
     await expect(statsig.getExperiment(null, 'test_exp')).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
     await expect(
       statsig.getExperiment({ email: '123@gmail.com' }, 'test_exp'),
     ).rejects.toEqual(
       new Error(
-        'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
     );
+  });
+
+  test('can call checkGate(), getConfig(), or getExperiment() with no userID if you provide a customID', async () => {
+    const statsig = require('../index');
+    expect.assertions(4);
+
+    await statsig.initialize(secretKey);
+    await expect(
+      statsig.checkGate({ customIDs: { test: '123' } }, 'test_gate123'),
+    ).resolves.toEqual(false);
+    const config = await statsig.getConfig(
+      { customIDs: { test: '123' } },
+      'test_config123',
+    );
+    expect(config.getValue()).toEqual({});
+
+    const exp = await statsig.getExperiment(
+      { customIDs: { test: '123' } },
+      'test_exp',
+    );
+    expect(exp.getValue()).toEqual({});
+
+    const layer = await statsig.getLayer(
+      { customIDs: { test: '123' } },
+      'test_exp',
+    );
+    expect(layer.get('test', 14)).toEqual(14);
   });
 
   test('Verify cannot call getConfig() or getExperiment() with no config name', () => {

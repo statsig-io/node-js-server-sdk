@@ -294,10 +294,10 @@ const statsig = {
       result.rejection = Promise.reject(
         new Error(`Must pass a valid ${usage} to check`),
       );
-    } else if (!isUserValid(user)) {
+    } else if (!isUserIdentifiable(user)) {
       result.rejection = Promise.reject(
         new Error(
-          'Must pass a valid user with a userID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+          'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
         ),
       );
     } else {
@@ -457,14 +457,6 @@ function shouldTrimParam(obj, size) {
   }
   if (typeof obj === 'number') return obj.toString().length > size;
   return false;
-}
-
-function isUserValid(user) {
-  return (
-    user != null &&
-    typeof user === 'object' &&
-    (typeof user.userID === 'string' || typeof user.userID === 'number')
-  );
 }
 
 function normalizeUser(user) {
