@@ -1,12 +1,52 @@
 const ip3country = require('ip3country');
-const { ConfigSpec, ConfigRule, ConfigCondition } = require('./ConfigSpec');
+const {
+  ConfigSpec,
+  ConfigRule,
+  ConfigCondition,
+  FETCH_FROM_SERVER,
+} = require('./ConfigSpec');
 const SpecStore = require('./SpecStore');
 const shajs = require('sha.js');
 const parseUserAgent = require('./utils/parseUserAgent');
-const ConfigEvaluation = require('./ConfigEvaluation').default;
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
+
+class ConfigEvaluation {
+  /**
+   * @param {boolean} value
+   * @param {string} rule_id
+   * @param {any[]} secondary_exposures
+   * @param {any[] | undefined} undelegated_secondary_exposures
+   * @param {object | boolean} json_value
+   * @param {string | undefined} config_delegate
+   * @param {boolean} fetch_from_server
+   * @param {string[] | undefined} explicit_parameters
+   */
+  constructor(
+    value,
+    rule_id = '',
+    secondary_exposures = [],
+    json_value = null,
+    explicit_parameters = undefined,
+    config_delegate = undefined,
+    fetch_from_server = false,
+    undelegated_secondary_exposures = [],
+  ) {
+    this.value = value;
+    this.rule_id = rule_id;
+    this.json_value = json_value;
+    this.secondary_exposures = secondary_exposures;
+    this.undelegated_secondary_exposures = undelegated_secondary_exposures;
+    this.config_delegate = config_delegate;
+    this.fetch_from_server = fetch_from_server;
+    this.explicit_parameters = explicit_parameters;
+  }
+
+  static fetchFromServer() {
+    return new ConfigEvaluation(false, '', [], null, null, null, true);
+  }
+}
 
 const Evaluator = {
   async init(options, secretKey) {
@@ -456,6 +496,10 @@ const Evaluator = {
         return { passes: false, fetchFromServer: true };
     }
 
+    if (value === FETCH_FROM_SERVER) {
+      return { passes: false, fetchFromServer: true };
+    }
+
     const op = condition.operator?.toLowerCase();
     let evalResult = false;
     switch (op) {
@@ -850,4 +894,4 @@ function arrayAny(value, array, fn) {
   return false;
 }
 
-module.exports = { Evaluator };
+module.exports = { Evaluator, ConfigEvaluation };

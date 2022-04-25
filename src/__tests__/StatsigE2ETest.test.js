@@ -1,4 +1,3 @@
-let statsig;
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./download_config_spec.json'),
 );
@@ -74,7 +73,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify checkGate and exposure logs', async () => {
-    statsig = require('../../dist/src/index');
+    const statsig = require('../index');
     await statsig.initialize('secret-123');
     expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
       INIT_RESPONSE,
@@ -133,7 +132,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getConfig and exposure logs', async () => {
-    const statsig = require('../../dist/src/index');
+    const statsig = require('../index');
     await statsig.initialize('secret-123');
     let config = await statsig.getConfig(statsigUser, 'test_config');
     expect(config.get('number', 0)).toEqual(7);
@@ -166,7 +165,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getExperiment and exposure logs', async () => {
-    const statsig = require('../../dist/src/index');
+    const statsig = require('../index');
     await statsig.initialize('secret-123');
     let experiment = await statsig.getExperiment(
       statsigUser,
@@ -196,7 +195,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getLayer and exposure logs', async () => {
-    const statsig = require('../../dist/src/index');
+    const statsig = require('../index');
     await statsig.initialize('secret-123');
 
     // should delegate to a bad config, which fetches from the server
@@ -216,7 +215,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify logEvent', async () => {
-    const statsig = require('../../dist/src/index');
+    const statsig = require('../index');
     await statsig.initialize('secret-123');
     statsig.logEvent(statsigUser, 'add_to_cart', 'SKU_12345', {
       price: '9.99',

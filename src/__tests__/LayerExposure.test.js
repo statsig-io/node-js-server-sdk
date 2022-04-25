@@ -1,4 +1,5 @@
-const Statsig = require('../../dist/src/index');
+const { Layer } = require('../Layer');
+const Statsig = require('../index');
 const fetch = require('node-fetch');
 
 jest.mock('node-fetch');

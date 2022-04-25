@@ -1,16 +1,5 @@
 {
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules/",
-    "typings/",
-    "src/__tests__/*",
-    "src/utils/__tests__/*",
-    "dist/",
-    "dist/**/*",
-    "dist/src/**/*",
-    "build/",
-    "tsconfig.json"
-  ],
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,

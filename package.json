@@ -4,8 +4,8 @@
   "description": "Statsig Node.js SDK for usage in multi-user server environments.",
   "main": "dist/src/index.js",
   "scripts": {
-    "prepare": "rm -rf dist/ && tsc",
-    "test": "npm run prepare && jest",
+    "prepare": "tsc",
+    "test": "jest",
     "docs": "jsdoc2md src/index.js src/typedefs.js src/DynamicConfig.js > docs/generated.md"
   },
   "keywords": [

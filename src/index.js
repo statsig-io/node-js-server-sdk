@@ -1,14 +1,13 @@
-import { DynamicConfig } from './DynamicConfig';
-import { Layer } from './Layer';
-import { StatsigOptionsType } from './StatsigOptionsType';
-import { StatsigUser } from './StatsigUser';
-
 const fetcher = require('./utils/StatsigFetcher');
+const { DynamicConfig } = require('./DynamicConfig');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
 const { Evaluator } = require('./Evaluator');
 const StatsigOptions = require('./StatsigOptions');
+
+const typedefs = require('./typedefs');
+const { Layer } = require('./Layer');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -18,37 +17,27 @@ let hasLoggedNoUserIdWarning = false;
 /**
  * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
  */
-export default class StatsigServer {
-  private _pendingInitPromise: Promise<void> | null = null;
-  private _ready: boolean = false;
-  private _options: StatsigOptionsType;
-  private _logger: typeof LogEventProcessor;
-  private _secretKey: string;
-
-  public constructor(secretKey: string, options: object = {}) {
-    this._secretKey = secretKey;
-    this._options = StatsigOptions(options);
-    this._pendingInitPromise = null;
-    this._ready = false;
-  }
-
+const statsig = {
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
+   * @param {string} secretKey - The secret key for this project from the statsig console. Secret keys should be kept secure on the server side, and not used for client-side integrations
+   * @param {typedefs.StatsigOptions} [options={}] - manual sdk configuration for advanced setup
+   * @returns {Promise<void>} - a promise which rejects only if you fail to provide a proper SDK Key
    * @throws Error if a Server Secret Key is not provided
    */
-  public initializeAsync(): Promise<void> {
-    if (this._pendingInitPromise != null) {
-      return this._pendingInitPromise;
+  initialize(secretKey, options = {}) {
+    if (statsig._pendingInitPromise) {
+      return statsig._pendingInitPromise;
     }
 
-    if (this._ready === true) {
+    if (statsig._ready === true) {
       return Promise.resolve();
     }
 
     if (
-      typeof this._secretKey !== 'string' ||
-      this._secretKey.length === 0 ||
-      !this._secretKey.startsWith('secret-')
+      typeof secretKey !== 'string' ||
+      secretKey.length === 0 ||
+      !secretKey.startsWith('secret-')
     ) {
       return Promise.reject(
         new Error(
@@ -56,43 +45,48 @@ export default class StatsigServer {
         ),
       );
     }
+    statsig._ready = false;
+    statsig._secretKey = secretKey;
+    statsig._options = StatsigOptions(options);
+    fetcher.setLocal(statsig._options.localMode);
+    statsig._logger = LogEventProcessor(statsig._options, statsig._secretKey);
 
-    fetcher.setLocal(this._options.localMode);
-    this._logger = LogEventProcessor(this._options, this._secretKey);
-
-    const initPromise = Evaluator.init(this._options, this._secretKey).finally(
-      () => {
-        this._ready = true;
-        this._pendingInitPromise = null;
-      },
-    );
+    const initPromise = Evaluator.init(
+      statsig._options,
+      statsig._secretKey,
+    ).finally(() => {
+      statsig._ready = true;
+      statsig._pendingInitPromise = null;
+    });
     if (
-      this._options.initTimeoutMs != null &&
-      this._options.initTimeoutMs > 0
+      statsig._options.initTimeoutMs != null &&
+      statsig._options.initTimeoutMs > 0
     ) {
-      this._pendingInitPromise = Promise.race([
+      statsig._pendingInitPromise = Promise.race([
         initPromise,
         new Promise((resolve) => {
           setTimeout(() => {
-            this._ready = true;
-            this._pendingInitPromise = null;
-            resolve(undefined);
-          }, this._options.initTimeoutMs);
+            statsig._ready = true;
+            resolve();
+          }, statsig._options.initTimeoutMs);
         }),
       ]);
     } else {
-      this._pendingInitPromise = initPromise;
+      statsig._pendingInitPromise = initPromise;
     }
 
-    return this._pendingInitPromise;
-  }
+    return statsig._pendingInitPromise;
+  },
 
   /**
    * Check the value of a gate configured in the statsig console
+   * @param {typedefs.StatsigUser} user - the user to check this gate value for
+   * @param {string} gateName - the name of the gate to check
+   * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
    * @throws Error if the gateName is not provided or not a non-empty string
    */
-  public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
+  checkGate(user, gateName) {
     const { rejection, normalizedUser } = this._validateInputs(
       user,
       gateName,
@@ -105,17 +99,17 @@ export default class StatsigServer {
         return gate?.value === true ?? false;
       })
     );
-  }
+  },
 
   /**
    * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
+   * @param {string} configName - the name of the dynamic config to get
+   * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
    * @throws Error if the configName is not provided or not a non-empty string
    */
-  public getConfig(
-    user: StatsigUser,
-    configName: string,
-  ): Promise<DynamicConfig> {
+  getConfig(user, configName) {
     const { rejection, normalizedUser } = this._validateInputs(
       user,
       configName,
@@ -123,17 +117,17 @@ export default class StatsigServer {
     );
 
     return rejection ?? this._getConfigValue(normalizedUser, configName);
-  }
+  },
 
   /**
    * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the dyamic config
+   * @param {string} experimentName - the name of the experiment to get
+   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config
    * @throws Error if initialize() was not called first
    * @throws Error if the experimentName is not provided or not a non-empty string
    */
-  public getExperiment(
-    user: StatsigUser,
-    experimentName: string,
-  ): Promise<DynamicConfig> {
+  getExperiment(user, experimentName) {
     const { rejection, normalizedUser } = this._validateInputs(
       user,
       experimentName,
@@ -141,14 +135,17 @@ export default class StatsigServer {
     );
 
     return rejection ?? this._getConfigValue(normalizedUser, experimentName);
-  }
+  },
 
   /**
    * Checks the value of a config for a given user
+   * @param {typedefs.StatsigUser} user - the user to evaluate for the layer
+   * @param {string} layerName - the name of the layer to get
+   * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
    */
-  public getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
+  getLayer(user, layerName) {
     const { rejection, normalizedUser } = this._validateInputs(
       user,
       layerName,
@@ -156,40 +153,33 @@ export default class StatsigServer {
     );
 
     return rejection ?? this._getLayerValue(normalizedUser, layerName);
-  }
+  },
 
   /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment
+   * @param {typedefs.StatsigUser} user - the user associated with this event
+   * @param {string} eventName - the name of the event (name = Purchase)
+   * @param {?string | number} value - the value associated with the event (value = 10)
+   * @param {?Record<string, string>} metadata - other attributes associated with this event (metadata = {item_name: 'banana', currency: 'USD'})
    * @throws Error if initialize() was not called first
    */
-  public logEvent(
-    user: StatsigUser,
-    eventName: string,
-    value: string | number | null = null,
-    metadata: Record<string, string> | null = null,
-  ) {
+  logEvent(user, eventName, value = null, metadata = null) {
     this.logEventObject({
       eventName: eventName,
       user: user,
       value: value,
       metadata: metadata,
     });
-  }
+  },
 
-  public logEventObject(eventObject: {
-    eventName: string;
-    user: StatsigUser;
-    value?: string | number | null;
-    metadata?: Record<string, unknown>;
-    time?: string | null;
-  }) {
+  logEventObject(eventObject) {
     let eventName = eventObject.eventName;
     let user = eventObject.user || null;
     let value = eventObject.value || null;
     let metadata = eventObject.metadata || null;
     let time = eventObject.time || null;
 
-    if (!(this._ready === true && this._logger != null)) {
+    if (statsig._ready == null) {
       throw new Error(
         'statsigSDK::logEvent> Must call initialize() before logEvent().',
       );
@@ -206,7 +196,7 @@ export default class StatsigServer {
         'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
       );
     }
-    user = normalizeUser(user, this._options);
+    user = normalizeUser(user);
     if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
       console.warn(
         'statsigSDK::logEvent> eventName is too long, trimming to ' +
@@ -240,25 +230,25 @@ export default class StatsigServer {
       event.setTime(time);
     }
 
-    this._logger.log(event);
-  }
+    statsig._logger.log(event);
+  },
 
   /**
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state
    */
-  public shutdown() {
-    if (this._logger == null) {
+  shutdown() {
+    if (statsig._logger == null) {
       return;
     }
-    this._ready = false;
-    this._logger.flush(false);
+    statsig._ready = null;
+    statsig._logger.flush(false);
     fetcher.shutdown();
     Evaluator.shutdown();
-  }
+  },
 
-  public getClientInitializeResponse(user: StatsigUser) {
-    if (this._ready !== true) {
+  getClientInitializeResponse(user) {
+    if (statsig._ready !== true) {
       return Promise.reject(
         new Error(
           'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
@@ -266,13 +256,9 @@ export default class StatsigServer {
       );
     }
     return Evaluator.getClientInitializeResponse(user);
-  }
+  },
 
-  public overrideGate(
-    gateName: string,
-    value: boolean,
-    userID: string | null = '',
-  ) {
+  overrideGate(gateName, value, userID = '') {
     if (typeof value !== 'boolean') {
       console.warn(
         'statsigSDK> Attempted to override a gate with a non boolean value',
@@ -280,13 +266,9 @@ export default class StatsigServer {
       return;
     }
     Evaluator.overrideGate(gateName, value, userID);
-  }
+  },
 
-  public overrideConfig(
-    configName: string,
-    value: Record<string, unknown>,
-    userID: string | null = '',
-  ) {
+  overrideConfig(configName, value, userID = '') {
     if (typeof value !== 'object') {
       console.warn(
         'statsigSDK> Attempted to override a config with a non object value',
@@ -294,11 +276,17 @@ export default class StatsigServer {
       return;
     }
     Evaluator.overrideConfig(configName, value, userID);
-  }
+  },
 
-  private _validateInputs(user: StatsigUser, name: string, usage: string) {
+  /**
+   * @param {object} user
+   * @param {string} name
+   * @param {string} usage
+   * @return {{rejection: Promise | null, normalizedUser: object | null}}
+   */
+  _validateInputs(user, name, usage) {
     const result = { rejection: null, normalizedUser: null };
-    if (this._ready !== true) {
+    if (statsig._ready !== true) {
       result.rejection = Promise.reject(
         new Error('Must call initialize() first.'),
       );
@@ -313,16 +301,18 @@ export default class StatsigServer {
         ),
       );
     } else {
-      result.normalizedUser = normalizeUser(user, this._options);
+      result.normalizedUser = normalizeUser(user);
     }
 
     return result;
-  }
+  },
 
-  private _getGateValue(
-    user: StatsigUser,
-    gateName: string,
-  ): Promise<{ value: boolean }> {
+  /**
+   * @param {object} user
+   * @param {string} gateName
+   * @return {Promise<{value: boolean}>}}
+   */
+  _getGateValue(user, gateName) {
     let ret = Evaluator.checkGate(user, gateName) ?? {
       value: false,
       rule_id: '',
@@ -332,7 +322,7 @@ export default class StatsigServer {
     };
 
     if (!ret.fetch_from_server) {
-      this._logger.logGateExposure(
+      statsig._logger.logGateExposure(
         user,
         gateName,
         ret.value,
@@ -344,8 +334,8 @@ export default class StatsigServer {
 
     return fetcher
       .dispatch(
-        this._options.api + '/check_gate',
-        this._secretKey,
+        statsig._options.api + '/check_gate',
+        statsig._secretKey,
         Object.assign({
           user: user,
           gateName: gateName,
@@ -356,12 +346,14 @@ export default class StatsigServer {
       .then((res) => {
         return res.json();
       });
-  }
+  },
 
-  private _getConfigValue(
-    user: StatsigUser,
-    configName: string,
-  ): Promise<DynamicConfig> {
+  /**
+   * @param {{ [x: string]: any; }} user
+   * @param {string} configName
+   * @returns {Promise<DynamicConfig>}
+   */
+  _getConfigValue(user, configName) {
     const ret = Evaluator.getConfig(user, configName);
     if (!ret?.fetch_from_server) {
       const config = new DynamicConfig(
@@ -371,7 +363,7 @@ export default class StatsigServer {
         ret?.secondary_exposures,
       );
 
-      this._logger.logConfigExposure(
+      statsig._logger.logConfigExposure(
         user,
         configName,
         config.getRuleID(),
@@ -382,19 +374,24 @@ export default class StatsigServer {
     }
 
     return this._fetchConfig(user, configName);
-  }
+  },
 
-  private _getLayerValue(user: StatsigUser, layerName: string): Promise<Layer> {
+  /**
+   * @param {object} user
+   * @param {string} layerName
+   * @return {Promise<Layer>}
+   */
+  _getLayerValue(user, layerName) {
     let ret = Evaluator.getLayer(user, layerName);
-    if (ret != null && !ret.fetch_from_server) {
+    if (!ret?.fetch_from_server) {
       const logFunc = (
         /** @type {Layer} */ layer,
         /** @type {string} */ parameterName,
       ) => {
-        if (this._logger == null) {
+        if (statsig._ready !== true || ret == null) {
           return;
         }
-        this._logger.logLayerExposure(user, layer, parameterName, ret);
+        statsig._logger.logLayerExposure(user, layer, parameterName, ret);
       };
       const layer = new Layer(
         layerName,
@@ -419,16 +416,18 @@ export default class StatsigServer {
     }
 
     return Promise.resolve(new Layer(layerName));
-  }
+  },
 
-  private _fetchConfig(
-    user: StatsigUser,
-    name: string,
-  ): Promise<DynamicConfig> {
+  /**
+   * @param {object} user
+   * @param {string} name
+   * @returns {Promise<DynamicConfig>}
+   */
+  _fetchConfig(user, name) {
     return fetcher
       .dispatch(
-        this._options.api + '/get_config',
-        this._secretKey,
+        statsig._options.api + '/get_config',
+        statsig._secretKey,
         {
           user: user,
           configName: name,
@@ -447,23 +446,20 @@ export default class StatsigServer {
       .catch(() => {
         return Promise.resolve(new DynamicConfig(name));
       });
-  }
-}
+  },
+};
 
-function shouldTrimParam(
-  param: object | string | number | null | unknown,
-  size: number,
-): boolean {
-  if (param == null) return false;
-  if (typeof param === 'string') return param.length > size;
-  if (typeof param === 'object') {
-    return JSON.stringify(param).length > size;
+function shouldTrimParam(obj, size) {
+  if (obj == null) return false;
+  if (typeof obj === 'string') return obj.length > size;
+  if (typeof obj === 'object') {
+    return JSON.stringify(obj).length > size;
   }
-  if (typeof param === 'number') return param.toString().length > size;
+  if (typeof obj === 'number') return obj.toString().length > size;
   return false;
 }
 
-function isUserValid(user: StatsigUser): boolean {
+function isUserValid(user) {
   return (
     user != null &&
     typeof user === 'object' &&
@@ -471,19 +467,15 @@ function isUserValid(user: StatsigUser): boolean {
   );
 }
 
-function normalizeUser(
-  user: StatsigUser,
-  options: StatsigOptionsType,
-): StatsigUser {
+function normalizeUser(user) {
   user = trimUserObjIfNeeded(user);
-  if (options?.environment != null) {
-    user['statsigEnvironment'] = options?.environment;
+  if (statsig._options?.environment != null) {
+    user['statsigEnvironment'] = statsig._options?.environment;
   }
   return user;
 }
 
-function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
-  // @ts-ignore
+function trimUserObjIfNeeded(user) {
   if (user == null) return {};
   if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
@@ -506,3 +498,5 @@ function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
   }
   return user;
 }
+
+module.exports = statsig;

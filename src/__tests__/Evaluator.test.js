@@ -239,8 +239,7 @@ describe('Test condition evaluation', () => {
     ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: 'sth'}}, false],
   ]
 
-  const { Evaluator } = require('../Evaluator');
-  const ConfigEvaluation = require('../ConfigEvaluation').default;
+  const { Evaluator, ConfigEvaluation } = require('../Evaluator');
   jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
     if (gateName === 'gate_pass') {
       return new ConfigEvaluation(true, 'my_rule');
@@ -449,7 +448,7 @@ describe('Test condition evaluation', () => {
 
 describe('testing checkGate and getConfig', () => {
   const { DynamicConfig } = require('../DynamicConfig');
-  const ConfigEvaluation = require('../ConfigEvaluation').default;
+  const { ConfigEvaluation } = require('../Evaluator');
 
   let Evaluator;
   let fetch;
