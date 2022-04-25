@@ -1,5 +1,3 @@
-const FETCH_FROM_SERVER = 'FETCH_FROM_SERVER';
-
 class ConfigSpec {
   constructor(specJSON) {
     this.name = specJSON.name;
@@ -60,5 +58,4 @@ module.exports = {
   ConfigSpec,
   ConfigRule,
   ConfigCondition,
-  FETCH_FROM_SERVER,
 };

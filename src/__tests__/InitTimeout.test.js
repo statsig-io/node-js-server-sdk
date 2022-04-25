@@ -1,12 +1,3 @@
-const timeoutMs = (ms) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  }).then((_) => {
-    return TIMED_OUT;
-  });
-
-const TIMED_OUT = Symbol();
-
 describe('Test local mode with overrides', () => {
   jest.setTimeout(3000);
   const exampleConfigSpecs = require('./jest.setup');
@@ -20,6 +11,7 @@ describe('Test local mode with overrides', () => {
     jest.resetModules();
     jest.restoreAllMocks();
 
+    // @ts-ignore
     fetch = require('node-fetch');
     jest.mock('node-fetch', () => jest.fn());
 
@@ -53,7 +45,7 @@ describe('Test local mode with overrides', () => {
   });
 
   test('Verify initialize() returns early when the network request takes too long', async () => {
-    const statsig = require('../index');
+    const statsig = require('../../dist/src/index');
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 250,
     });
@@ -64,7 +56,7 @@ describe('Test local mode with overrides', () => {
     jest.advanceTimersByTime(200);
 
     await prom;
-    expect(statsig._ready).toBeTruthy();
+    expect(statsig._instance['_ready']).toBeTruthy();
     expect(prom).resolves.toBe(undefined);
     expect(
       statsig.checkGate(
@@ -75,7 +67,7 @@ describe('Test local mode with overrides', () => {
   });
 
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {
-    const statsig = require('../index');
+    const statsig = require('../../dist/src/index');
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 3000,
     });
@@ -83,7 +75,7 @@ describe('Test local mode with overrides', () => {
     jest.spyOn(global.Date, 'now').mockImplementation(() => now + 1200);
     jest.advanceTimersByTime(1200);
     await prom;
-    expect(statsig._ready).toBeTruthy();
+    expect(statsig._instance['_ready']).toBeTruthy();
     expect(
       statsig.checkGate(
         { userID: 'test_user_id', email: 'test@nfl.com' },

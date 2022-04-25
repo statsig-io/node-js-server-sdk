@@ -14,7 +14,7 @@ describe('Test local mode with overrides', () => {
   });
 
   it('initalize resolves and all values are defualts', async () => {
-    const statsig = require('../index');
+    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     expect(statsig.checkGate({ userID: 'test' }, 'any_gate')).resolves.toEqual(
@@ -35,7 +35,7 @@ describe('Test local mode with overrides', () => {
   });
 
   it('gate overrides work', async () => {
-    const statsig = require('../index');
+    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     const userOne = { userID: '1', email: 'testuser@statsig.com' };
@@ -60,6 +60,7 @@ describe('Test local mode with overrides', () => {
     ).resolves.toEqual(true);
 
     // non boolean wont override
+    // @ts-ignore
     statsig.overrideGate('different_gate', 'not a boolean');
     expect(statsig.checkGate(userOne, 'different_gate')).resolves.toEqual(
       false,
@@ -73,7 +74,7 @@ describe('Test local mode with overrides', () => {
   });
 
   it('config overrides work', async () => {
-    const statsig = require('../index');
+    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     const userOne = { userID: '1', email: 'testuser@statsig.com' };
@@ -108,6 +109,7 @@ describe('Test local mode with overrides', () => {
     expect(u3config.getValue()).toEqual({ all: true });
 
     // non objects wont override
+    // @ts-ignore
     statsig.overrideConfig('different_config', 'not an object');
     u1config = await statsig.getConfig(userOne, 'different_config');
     expect(u1config.getValue()).toEqual({});
