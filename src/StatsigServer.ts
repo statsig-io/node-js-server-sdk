@@ -4,11 +4,11 @@ import { Evaluator } from './Evaluator';
 import { Layer } from './Layer';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import { StatsigUser } from './StatsigUser';
+import LogEventProcessor from './LogEventProcessor';
 
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const LogEvent = require('./LogEvent');
-const LogEventProcessor = require('./LogEventProcessor');
 const StatsigOptions = require('./StatsigOptions');
 
 const MAX_VALUE_SIZE = 64;
@@ -23,7 +23,7 @@ export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
   private _ready: boolean = false;
   private _options: StatsigOptionsType;
-  private _logger: typeof LogEventProcessor;
+  private _logger: LogEventProcessor;
   private _secretKey: string;
   private _evaluator: Evaluator;
 
@@ -61,7 +61,7 @@ export default class StatsigServer {
     }
 
     fetcher.setLocal(this._options.localMode);
-    this._logger = LogEventProcessor(this._options, this._secretKey);
+    this._logger = new LogEventProcessor(this._options, this._secretKey);
 
     const initPromise = this._evaluator.init().finally(() => {
       this._ready = true;
@@ -77,7 +77,7 @@ export default class StatsigServer {
           setTimeout(() => {
             this._ready = true;
             this._pendingInitPromise = null;
-            resolve(undefined);
+            resolve(null);
           }, this._options.initTimeoutMs);
         }) as Promise<void>,
       ]);

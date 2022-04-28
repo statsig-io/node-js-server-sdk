@@ -61,7 +61,7 @@ describe('Test local mode with overrides', () => {
 
     await prom;
     expect(statsig._instance['_ready']).toBeTruthy();
-    expect(prom).resolves.toBe(undefined);
+    expect(prom).resolves;
     expect(
       statsig.checkGate(
         { userID: 'test_user_id', email: 'test@nfl.com' },

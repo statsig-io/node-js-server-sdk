@@ -1,8 +1,8 @@
-// @ts-ignore
-import { Evaluator } from '../Evaluator';
 import ConfigEvaluation from '../ConfigEvaluation';
 import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
 const exampleConfigSpecs = require('./jest.setup');
+// @ts-ignore
+import { Evaluator } from '../Evaluator';
 
 describe('Test condition evaluation', () => {
   const baseTime = 1609459200000;
@@ -276,6 +276,7 @@ describe('Test condition evaluation', () => {
       idLists: { list_1: { ids: { '7NRRgkdK': true, pmWkWSBC: true } } },
       configs: {},
     };
+    // @ts-ignore
     mockedEvaluator.store = store;
     params.forEach(
       ([

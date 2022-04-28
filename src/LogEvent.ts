@@ -1,7 +1,16 @@
+import { StatsigUser } from './StatsigUser';
+
 const { clone } = require('./utils/core');
 
-class LogEvent {
-  constructor(eventName) {
+export default class LogEvent {
+  private time: number;
+  private eventName: string;
+  private user: StatsigUser | null = null;
+  private value: string | number | null = null;
+  private metadata: Record<string, unknown> | null = null;
+  private secondaryExposures: Record<string, unknown>[] = [];
+
+  public constructor(eventName: string) {
     if (eventName == null || typeof eventName !== 'string') {
       console.error('statsigSDK> EventName needs to be a string.');
       eventName = 'invalid_event';
@@ -10,7 +19,7 @@ class LogEvent {
     this.eventName = eventName;
   }
 
-  setUser(user) {
+  public setUser(user: StatsigUser) {
     if (user != null && typeof user !== 'object') {
       console.warn(
         'statsigSDK> User is not set because it needs to be an object.',
@@ -21,7 +30,7 @@ class LogEvent {
     this.user.privateAttributes = null;
   }
 
-  setValue(value) {
+  public setValue(value: string | number | null) {
     if (value == null) {
       return;
     }
@@ -34,7 +43,7 @@ class LogEvent {
     }
   }
 
-  setMetadata(metadata) {
+  public setMetadata(metadata: Record<string, unknown>) {
     if (metadata != null && typeof metadata !== 'object') {
       console.warn(
         'statsigSDK> Metadata is not set because it needs to be an object.',
@@ -44,7 +53,7 @@ class LogEvent {
     this.metadata = clone(metadata);
   }
 
-  setTime(time) {
+  public setTime(time: number) {
     if (time != null && typeof time !== 'number') {
       console.warn(
         'statsigSDK>Timestamp is not set because it needs to be a number.',
@@ -54,15 +63,15 @@ class LogEvent {
     this.time = time;
   }
 
-  setSecondaryExposures(exposures) {
+  public setSecondaryExposures(exposures: Record<string, unknown>[]) {
     this.secondaryExposures = Array.isArray(exposures) ? exposures : [];
   }
 
-  validate() {
+  public validate(): boolean {
     return typeof this.eventName === 'string' && this.eventName.length > 0;
   }
 
-  toObject() {
+  public toObject(): Record<string, unknown> {
     return {
       eventName: this.eventName,
       metadata: this.metadata,

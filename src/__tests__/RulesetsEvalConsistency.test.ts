@@ -68,6 +68,7 @@ async function _validateServerSDKConsistency(api) {
   expect.assertions(totalChecks);
 
   await statsig.initialize(secret, { api: api });
+  const evaluator = statsig._instance._evaluator;
 
   const promises = testData.map(async (data) => {
     const user = data.user;
