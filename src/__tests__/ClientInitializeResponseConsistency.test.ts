@@ -1,6 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+// @ts-ignore
 const fetch = require('node-fetch');
+
+import Evaluator from '../Evaluator';
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
 
 let secret = process.env.test_api_key;
 if (!secret) {
@@ -87,7 +93,6 @@ async function _validateInitializeConsistency(api) {
     }
   }
 
-  const statsig = require('../../dist/src/index');
   await statsig.initialize(secret, { api: api });
 
   const sdkInitializeResponse = statsig.getClientInitializeResponse(user);

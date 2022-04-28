@@ -1,4 +1,6 @@
 import { DynamicConfig } from './DynamicConfig';
+// @ts-ignore
+import { Evaluator } from './Evaluator';
 import { Layer } from './Layer';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import { StatsigUser } from './StatsigUser';
@@ -7,7 +9,6 @@ const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 const LogEvent = require('./LogEvent');
 const LogEventProcessor = require('./LogEventProcessor');
-const { Evaluator } = require('./Evaluator');
 const StatsigOptions = require('./StatsigOptions');
 
 const MAX_VALUE_SIZE = 64;
@@ -24,12 +25,14 @@ export default class StatsigServer {
   private _options: StatsigOptionsType;
   private _logger: typeof LogEventProcessor;
   private _secretKey: string;
+  private _evaluator: Evaluator;
 
   public constructor(secretKey: string, options: object = {}) {
     this._secretKey = secretKey;
     this._options = StatsigOptions(options);
     this._pendingInitPromise = null;
     this._ready = false;
+    this._evaluator = new Evaluator(this._options, this._secretKey);
   }
 
   /**
@@ -60,12 +63,10 @@ export default class StatsigServer {
     fetcher.setLocal(this._options.localMode);
     this._logger = LogEventProcessor(this._options, this._secretKey);
 
-    const initPromise = Evaluator.init(this._options, this._secretKey).finally(
-      () => {
-        this._ready = true;
-        this._pendingInitPromise = null;
-      },
-    );
+    const initPromise = this._evaluator.init().finally(() => {
+      this._ready = true;
+      this._pendingInitPromise = null;
+    });
     if (
       this._options.initTimeoutMs != null &&
       this._options.initTimeoutMs > 0
@@ -78,7 +79,7 @@ export default class StatsigServer {
             this._pendingInitPromise = null;
             resolve(undefined);
           }, this._options.initTimeoutMs);
-        }),
+        }) as Promise<void>,
       ]);
     } else {
       this._pendingInitPromise = initPromise;
@@ -190,9 +191,7 @@ export default class StatsigServer {
     let time = eventObject.time || null;
 
     if (!(this._ready === true && this._logger != null)) {
-      throw new Error(
-        'statsigSDK::logEvent> Must call initialize() before logEvent().',
-      );
+      throw new Error('Must call initialize() first.');
     }
     if (typeof eventName !== 'string' || eventName.length === 0) {
       console.error(
@@ -254,7 +253,7 @@ export default class StatsigServer {
     this._ready = false;
     this._logger.flush(false);
     fetcher.shutdown();
-    Evaluator.shutdown();
+    this._evaluator.shutdown();
   }
 
   public getClientInitializeResponse(user: StatsigUser) {
@@ -265,7 +264,7 @@ export default class StatsigServer {
         ),
       );
     }
-    return Evaluator.getClientInitializeResponse(user);
+    return this._evaluator.getClientInitializeResponse(user);
   }
 
   public overrideGate(
@@ -279,7 +278,7 @@ export default class StatsigServer {
       );
       return;
     }
-    Evaluator.overrideGate(gateName, value, userID);
+    this._evaluator.overrideGate(gateName, value, userID);
   }
 
   public overrideConfig(
@@ -293,7 +292,7 @@ export default class StatsigServer {
       );
       return;
     }
-    Evaluator.overrideConfig(configName, value, userID);
+    this._evaluator.overrideConfig(configName, value, userID);
   }
 
   private _validateInputs(user: StatsigUser, name: string, usage: string) {
@@ -323,7 +322,7 @@ export default class StatsigServer {
     user: StatsigUser,
     gateName: string,
   ): Promise<{ value: boolean }> {
-    let ret = Evaluator.checkGate(user, gateName) ?? {
+    let ret = this._evaluator.checkGate(user, gateName) ?? {
       value: false,
       rule_id: '',
       secondary_exposures: [],
@@ -362,7 +361,7 @@ export default class StatsigServer {
     user: StatsigUser,
     configName: string,
   ): Promise<DynamicConfig> {
-    const ret = Evaluator.getConfig(user, configName);
+    const ret = this._evaluator.getConfig(user, configName);
     if (!ret?.fetch_from_server) {
       const config = new DynamicConfig(
         configName,
@@ -385,7 +384,7 @@ export default class StatsigServer {
   }
 
   private _getLayerValue(user: StatsigUser, layerName: string): Promise<Layer> {
-    let ret = Evaluator.getLayer(user, layerName);
+    let ret = this._evaluator.getLayer(user, layerName);
     if (ret != null && !ret.fetch_from_server) {
       const logFunc = (
         /** @type {Layer} */ layer,

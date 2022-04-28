@@ -1,20 +1,29 @@
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
+
+let hitNetwork = false;
+
+jest.mock('node-fetch', () => jest.fn());
+// @ts-ignore
+const fetch = require('node-fetch');
+// @ts-ignore
+fetch.mockImplementation((url) => {
+  hitNetwork = true;
+  return Promise.reject(new Error('Should not access network in local mode'));
+});
+
 describe('Test local mode with overrides', () => {
   jest.mock('node-fetch', () => jest.fn());
-  let hitNetwork = false;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
-    const fetch = require('node-fetch');
-    fetch.mockImplementation(() => {
-      hitNetwork = true;
-      return Promise.reject(
-        new Error('Should not access network in local mode'),
-      );
-    });
+
+    statsig._instance = null;
   });
 
   it('initalize resolves and all values are defualts', async () => {
-    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     expect(statsig.checkGate({ userID: 'test' }, 'any_gate')).resolves.toEqual(
@@ -35,7 +44,6 @@ describe('Test local mode with overrides', () => {
   });
 
   it('gate overrides work', async () => {
-    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     const userOne = { userID: '1', email: 'testuser@statsig.com' };
@@ -74,7 +82,6 @@ describe('Test local mode with overrides', () => {
   });
 
   it('config overrides work', async () => {
-    const statsig = require('../../dist/src/index');
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
     const userOne = { userID: '1', email: 'testuser@statsig.com' };

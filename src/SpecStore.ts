@@ -1,4 +1,4 @@
-const { ConfigSpec } = require('./ConfigSpec');
+import { ConfigSpec } from './ConfigSpec';
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
 const fetch = require('node-fetch');
@@ -6,16 +6,41 @@ const fetch = require('node-fetch');
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
 
-const SpecStore = {
-  async init(
+type IDList = {
+  creationTime: number;
+  fileID: string;
+  ids: Record<string, boolean>;
+  readBytes: number;
+  url: string;
+};
+
+export type ConfigStore = {
+  gates: Record<string, ConfigSpec>;
+  configs: Record<string, ConfigSpec>;
+  idLists: Record<string, IDList>;
+  layers: Record<string, ConfigSpec>;
+};
+
+export default class SpecStore {
+  private api: string;
+  private rulesUpdatedCallback: (rules: string, time: number) => void | null =
+    null;
+  private secretKey: string;
+  private time: number;
+  private store: ConfigStore;
+  private syncInterval: number;
+  private idListSyncInterval: number;
+  private initialized: boolean;
+  private syncTimer: NodeJS.Timer;
+  private idListsSyncTimer: NodeJS.Timer;
+
+  public constructor(
     options,
     secretKey,
     syncInterval = SYNC_INTERVAL,
     idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
   ) {
-    this.options = options;
     this.api = options.api;
-    this.bootstrapValues = options.bootstrapValues;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback;
     this.secretKey = secretKey;
     this.time = 0;
@@ -27,16 +52,48 @@ const SpecStore = {
     if (options?.bootstrapValues != null) {
       try {
         specsJSON = JSON.parse(options.bootstrapValues);
+        this._process(specsJSON);
+        this.initialized = true;
       } catch (e) {
         console.error(
           'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
         );
       }
     }
+  }
 
+  public getGate(gateName: string): ConfigSpec | null {
+    return this.store.gates[gateName] ?? null;
+  }
+
+  public getConfig(configName: string): ConfigSpec | null {
+    return this.store.configs[configName] ?? null;
+  }
+
+  public getLayer(layerName: string): ConfigSpec | null {
+    return this.store.layers[layerName] ?? null;
+  }
+
+  public getIDList(listName: string): IDList | null {
+    return this.store.idLists[listName] ?? null;
+  }
+
+  public getAllGates(): Record<string, ConfigSpec> {
+    return this.store.gates;
+  }
+
+  public getAllConfigs(): Record<string, ConfigSpec> {
+    return this.store.configs;
+  }
+
+  public getAllLayers(): Record<string, ConfigSpec> {
+    return this.store.layers;
+  }
+
+  public async init(): Promise<void> {
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
     // need to wait for _syncValues() to finish before returning.
-    if (specsJSON != null && this._process(specsJSON)) {
+    if (this.initialized) {
       this._syncValues();
     } else {
       await this._syncValues();
@@ -44,13 +101,13 @@ const SpecStore = {
 
     await this._syncIDLists();
     this.initialized = true;
-  },
+  }
 
-  isServingChecks() {
+  public isServingChecks() {
     return this.time !== 0;
-  },
+  }
 
-  async _syncValues() {
+  private async _syncValues(): Promise<void> {
     try {
       const response = await fetcher.post(
         this.api + '/download_config_specs',
@@ -63,7 +120,6 @@ const SpecStore = {
       const specsString = await response.text();
       const processResult = this._process(JSON.parse(specsString));
       if (processResult) {
-        this.bootstrapValues = specsString;
         if (
           this.rulesUpdatedCallback != null &&
           typeof this.rulesUpdatedCallback === 'function'
@@ -82,10 +138,10 @@ const SpecStore = {
     this.syncTimer = setTimeout(() => {
       this._syncValues();
     }, this.syncInterval);
-  },
+  }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
-  _process(specsJSON) {
+  private _process(specsJSON: Record<string, unknown>): boolean {
     if (!specsJSON?.has_updates) {
       return false;
     }
@@ -141,13 +197,12 @@ const SpecStore = {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
       this.store.layers = updatedLayers;
-      this.time = specsJSON.time ?? this.time;
+      this.time = (specsJSON.time as number) ?? this.time;
     }
-
     return !parseFailed;
-  },
+  }
 
-  async _syncIDLists() {
+  private async _syncIDLists(): Promise<void> {
     try {
       const response = await fetcher.post(
         this.api + '/get_id_lists',
@@ -253,9 +308,9 @@ const SpecStore = {
     this.syncTimer = setTimeout(() => {
       this._syncIDLists();
     }, this.idListSyncInterval);
-  },
+  }
 
-  shutdown() {
+  public shutdown(): void {
     if (this.syncTimer != null) {
       clearTimeout(this.syncTimer);
       this.syncTimer = null;
@@ -264,7 +319,7 @@ const SpecStore = {
       clearTimeout(this.idListsSyncTimer);
       this.idListsSyncTimer = null;
     }
-  },
-};
+  }
+}
 
 module.exports = SpecStore;

@@ -1,7 +1,7 @@
 let nodeFetch = null;
 try {
   nodeFetch = require('node-fetch');
-} catch(err) {
+} catch (err) {
   // Ignore
 }
 
@@ -14,4 +14,4 @@ function safeFetch(...args) {
   }
 }
 
-module.exports = safeFetch; 
+module.exports = safeFetch;

@@ -2,6 +2,10 @@ const fs = require('fs');
 const path = require('path');
 // @ts-ignore
 const fetch = require('node-fetch');
+import Evaluator from '../Evaluator';
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
 
 let secret = process.env.test_api_key;
 if (!secret) {
@@ -48,7 +52,7 @@ async function _validateServerSDKConsistency(api) {
     headers: {
       'Content-type': 'application/json; charset=UTF-8',
       'STATSIG-API-KEY': secret,
-      'STATSIG-CLIENT-TIME': Date.now(),
+      'STATSIG-CLIENT-TIME': Date.now() + '',
     },
   });
   const testData = (await response.json()).data;
@@ -63,8 +67,6 @@ async function _validateServerSDKConsistency(api) {
     (featureGateChecks + dynamicConfigChecks + layerConfigChecks);
   expect.assertions(totalChecks);
 
-  const statsig = require('../../dist/src/index');
-  const { Evaluator } = require('../../dist/src/Evaluator');
   await statsig.initialize(secret, { api: api });
 
   const promises = testData.map(async (data) => {
@@ -74,7 +76,7 @@ async function _validateServerSDKConsistency(api) {
     const layers = data.layer_configs;
 
     for (const name in gates) {
-      const sdkResult = Evaluator.checkGate(user, name);
+      const sdkResult = statsig._instance._evaluator.checkGate(user, name);
       const serverResult = gates[name];
       const sameExposure = compareSecondaryExposures(
         // @ts-ignore
@@ -103,7 +105,7 @@ async function _validateServerSDKConsistency(api) {
     }
 
     for (const name in configs) {
-      const sdkResult = Evaluator.getConfig(user, name);
+      const sdkResult = statsig._instance._evaluator.getConfig(user, name);
       const serverResult = configs[name];
       const sameExposure = compareSecondaryExposures(
         // @ts-ignore
@@ -133,7 +135,7 @@ async function _validateServerSDKConsistency(api) {
     }
 
     for (const name in layers) {
-      const sdkResult = Evaluator.getLayer(user, name);
+      const sdkResult = statsig._instance._evaluator.getLayer(user, name);
       const serverResult = layers[name];
       const sameExposure = compareSecondaryExposures(
         // @ts-ignore

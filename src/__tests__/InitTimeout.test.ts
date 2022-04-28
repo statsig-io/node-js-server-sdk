@@ -1,9 +1,44 @@
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
+
+const exampleConfigSpecs = require('./jest.setup');
+
+jest.mock('node-fetch', () => jest.fn());
+// @ts-ignore
+const fetch = require('node-fetch');
+
+const jsonResponse = {
+  time: Date.now(),
+  feature_gates: [exampleConfigSpecs.gate, exampleConfigSpecs.disabled_gate],
+  dynamic_configs: [exampleConfigSpecs.config],
+  layer_configs: [],
+  id_lists: {},
+  has_updates: true,
+};
+
+// @ts-ignore
+fetch.mockImplementation((url) => {
+  if (url.includes('download_config_specs')) {
+    return new Promise((res) => {
+      setTimeout(
+        () =>
+          res({
+            ok: true,
+            json: () => Promise.resolve(jsonResponse),
+            text: () => Promise.resolve(JSON.stringify(jsonResponse)),
+          }),
+        1000,
+      );
+    });
+  }
+  return Promise.reject();
+});
+
 describe('Test local mode with overrides', () => {
   jest.setTimeout(3000);
-  const exampleConfigSpecs = require('./jest.setup');
-  jest.useFakeTimers();
 
-  let fetch;
+  jest.useFakeTimers();
 
   beforeEach(() => {
     let now = Date.now();
@@ -11,41 +46,10 @@ describe('Test local mode with overrides', () => {
     jest.resetModules();
     jest.restoreAllMocks();
 
-    // @ts-ignore
-    fetch = require('node-fetch');
-    jest.mock('node-fetch', () => jest.fn());
-
-    const jsonResponse = {
-      time: Date.now(),
-      feature_gates: [
-        exampleConfigSpecs.gate,
-        exampleConfigSpecs.disabled_gate,
-      ],
-      dynamic_configs: [exampleConfigSpecs.config],
-      layer_configs: [],
-      id_lists: {},
-      has_updates: true,
-    };
-    fetch.mockImplementation((url) => {
-      if (url.includes('download_config_specs')) {
-        return new Promise((res) => {
-          setTimeout(
-            () =>
-              res({
-                ok: true,
-                json: () => Promise.resolve(jsonResponse),
-                text: () => Promise.resolve(JSON.stringify(jsonResponse)),
-              }),
-            1000,
-          );
-        });
-      }
-      return Promise.reject();
-    });
+    statsig._instance = null;
   });
 
   test('Verify initialize() returns early when the network request takes too long', async () => {
-    const statsig = require('../../dist/src/index');
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 250,
     });
@@ -67,7 +71,6 @@ describe('Test local mode with overrides', () => {
   });
 
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {
-    const statsig = require('../../dist/src/index');
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 3000,
     });

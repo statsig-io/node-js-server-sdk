@@ -1,7 +1,31 @@
-const Statsig = require('../../dist/src/index');
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
+
+// @ts-ignore
 const fetch = require('node-fetch');
 
-jest.mock('node-fetch');
+jest.mock('node-fetch', () => jest.fn());
+
+let logs = {};
+// @ts-ignore
+fetch.mockImplementation((url, params) => {
+  if (url.includes('download_config_specs')) {
+    return Promise.resolve({
+      ok: true,
+      text: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
+    });
+  }
+
+  if (url.includes('log_event')) {
+    logs = JSON.parse(params.body);
+    return Promise.resolve({
+      ok: true,
+    });
+  }
+
+  return Promise.reject();
+});
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./layer_exposure_download_config_specs.json'),
@@ -9,49 +33,30 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
 
 describe('Layer Exposure Logging', () => {
   const user = { userID: 'dloomb' };
-  let logs = {};
 
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
     logs = {};
-
-    fetch.mockImplementation((url, params) => {
-      if (url.includes('download_config_specs')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
-        });
-      }
-
-      if (url.includes('log_event')) {
-        logs = JSON.parse(params.body);
-        return Promise.resolve({
-          ok: true,
-        });
-      }
-
-      return Promise.reject();
-    });
   });
 
   it('does not log on invalid types', async () => {
-    await Statsig.initialize('secret-key');
+    await statsig.initialize('secret-key');
 
-    const layer = await Statsig.getLayer(user, 'unallocated_layer');
+    const layer = await statsig.getLayer(user, 'unallocated_layer');
     layer.get('an_int', 'err');
-    Statsig.shutdown();
+    statsig.shutdown();
 
     expect(logs).toEqual({});
   });
 
   describe.each([['getValue'], ['get']])('with method "%s"', (method) => {
     it('logs layers without an allocated experiment correctly', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      let layer = await Statsig.getLayer(user, 'unallocated_layer');
+      let layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('an_int', 0);
-      Statsig.shutdown();
+      statsig.shutdown();
 
       expect(logs['events'].length).toEqual(1);
 
@@ -69,15 +74,15 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs explicit and implicit parameters correctly', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      let layer = await Statsig.getLayer(
+      let layer = await statsig.getLayer(
         user,
         'explicit_vs_implicit_parameter_layer',
       );
       layer[method]('an_int', 0);
       layer[method]('a_string', 'err');
-      Statsig.shutdown();
+      statsig.shutdown();
 
       expect(logs['events'].length).toEqual(2);
 
@@ -107,9 +112,9 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs different object types correctly', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      let layer = await Statsig.getLayer(
+      let layer = await statsig.getLayer(
         user,
         'different_object_type_logging_layer',
       );
@@ -120,7 +125,7 @@ describe('Layer Exposure Logging', () => {
       layer[method]('a_string', 'err');
       layer[method]('an_array', []);
       layer[method]('an_object', {});
-      Statsig.shutdown();
+      statsig.shutdown();
 
       expect(logs['events'].length).toEqual(7);
 
@@ -142,14 +147,14 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs the correct name and user values', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      let layer = await Statsig.getLayer(
+      let layer = await statsig.getLayer(
         { userID: 'dan', email: 'd@n.com' },
         'unallocated_layer',
       );
       layer[method]('an_int', 0);
-      Statsig.shutdown();
+      statsig.shutdown();
 
       expect(logs['events'].length).toEqual(1);
 
@@ -166,19 +171,19 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('does not log on get layer', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      await Statsig.getLayer(user, 'unallocated_layer');
-      Statsig.shutdown();
+      await statsig.getLayer(user, 'unallocated_layer');
+      statsig.shutdown();
 
       expect(logs).toEqual({});
     });
 
     it('does not log when shutdown', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      const layer = await Statsig.getLayer(user, 'unallocated_layer');
-      Statsig.shutdown();
+      const layer = await statsig.getLayer(user, 'unallocated_layer');
+      statsig.shutdown();
 
       layer[method]('an_int', 0);
 
@@ -186,11 +191,11 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('does not log non existent keys', async () => {
-      await Statsig.initialize('secret-key');
+      await statsig.initialize('secret-key');
 
-      const layer = await Statsig.getLayer(user, 'unallocated_layer');
+      const layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('a_string', 'err');
-      Statsig.shutdown();
+      statsig.shutdown();
 
       expect(logs).toEqual({});
     });

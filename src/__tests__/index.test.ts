@@ -1,9 +1,48 @@
+import ConfigEvaluation from '../ConfigEvaluation';
+import * as statsigsdk from '../index';
+// @ts-ignore
+const statsig = statsigsdk.default;
+
 const { DynamicConfig } = require('../DynamicConfig');
 const exampleConfigSpecs = require('./jest.setup');
 
+jest.useFakeTimers();
+
+jest.mock('node-fetch', () => jest.fn());
+// @ts-ignore
+const fetch = require('node-fetch');
+// @ts-ignore
+fetch.mockImplementation((url) => {
+  if (url.includes('check_gate')) {
+    return Promise.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          name: 'gate_server',
+          value: true,
+          rule_id: 'rule_id_gate_server',
+        }),
+    });
+  } else if (url.includes('get_config')) {
+    return Promise.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          name: 'config_server',
+          value: {
+            string: '123',
+            number: 123,
+          },
+          rule_id: 'rule_id_config_server',
+        }),
+    });
+  }
+  return Promise.reject();
+});
+
 describe('Verify behavior of top level index functions', () => {
   const LogEvent = require('../LogEvent');
-  jest.mock('node-fetch', () => jest.fn());
+
   const secretKey = 'secret-key';
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
@@ -12,35 +51,7 @@ describe('Verify behavior of top level index functions', () => {
     jest.restoreAllMocks();
     jest.resetModules();
 
-    // @ts-ignore
-    const fetch = require('node-fetch');
-    fetch.mockImplementation((url) => {
-      if (url.includes('check_gate')) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              name: 'gate_server',
-              value: true,
-              rule_id: 'rule_id_gate_server',
-            }),
-        });
-      } else if (url.includes('get_config')) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              name: 'config_server',
-              value: {
-                string: '123',
-                number: 123,
-              },
-              rule_id: 'rule_id_config_server',
-            }),
-        });
-      }
-      return Promise.reject();
-    });
+    statsig._instance = null;
 
     // ensure Date.now() returns the same value in each test
     let now = Date.now();
@@ -48,8 +59,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify initialize() returns an error when a secret key is not provided', async () => {
-    const statsig = require('../../dist/src/index');
-    // @ts-ignore intentionally testing incorrect param type
     return expect(statsig.initialize()).rejects.toEqual(
       new Error(
         'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
@@ -58,7 +67,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify initialize() returns an error when an empty secret key is provided', async () => {
-    const statsig = require('../../dist/src/index');
     return expect(statsig.initialize('')).rejects.toEqual(
       new Error(
         'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
@@ -67,7 +75,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify initialize() returns an error when a client key is provided', async () => {
-    const statsig = require('../../dist/src/index');
     return expect(
       statsig.initialize('client-abcdefg1234567890'),
     ).rejects.toEqual(
@@ -78,7 +85,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify logEvent() throws if called before initialize()', () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
 
     try {
@@ -89,7 +95,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call checkGate() before initialize()', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(2);
 
     try {
@@ -102,7 +107,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call getConfig() before initialize()', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(2);
 
     try {
@@ -115,7 +119,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call getExperiment() before initialize()', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(2);
 
     try {
@@ -128,26 +131,17 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify internal components are initialized properly after initialize() is called with a secret Key', async () => {
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
     expect.assertions(5);
     return statsig.initialize(secretKey).then(() => {
-      // @ts-ignore
-      expect(statsig._instance['_secretKey']).toBe(secretKey);
-      // @ts-ignore
-      expect(statsig._instance['_logger']).toBeDefined();
-      // @ts-ignore
-      expect(statsig._instance['_options'].api).toBe(
-        'https://statsigapi.net/v1',
-      );
-      // @ts-ignore
-      expect(statsig._instance['_ready']).toBe(true);
-      expect(Evaluator.initialized).toBe(true);
+      expect(statsig._instance._secretKey).toBe(secretKey);
+      expect(statsig._instance._logger).toBeDefined();
+      expect(statsig._instance._options.api).toBe('https://statsigapi.net/v1');
+      expect(statsig._instance._ready).toBe(true);
+      expect(statsig._instance._evaluator.initialized).toBe(true);
     });
   });
 
   test('Verify cannot call checkGate() with no gate name', () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(2);
 
     return statsig.initialize(secretKey).then(() => {
@@ -161,7 +155,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call checkGate() with invalid gate name', () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(2);
 
     return statsig.initialize(secretKey).then(() => {
@@ -175,7 +168,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('cannot call checkGate(), getConfig(), or getExperiment() with no user or userID or customID', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(6);
 
     await statsig.initialize(secretKey);
@@ -220,7 +212,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('can call checkGate(), getConfig(), or getExperiment() with no userID if you provide a customID', async () => {
-    const statsig = require('../index');
     expect.assertions(4);
 
     await statsig.initialize(secretKey);
@@ -247,7 +238,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call getConfig() or getExperiment() with no config name', () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(3);
 
     return statsig.initialize(secretKey).then(() => {
@@ -265,7 +255,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call getConfig() with invalid config name', () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(3);
 
     return statsig.initialize(secretKey).then(() => {
@@ -285,15 +274,12 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify when Evaluator fails, checkGate() returns correct value and does not lot an exposure', async () => {
     expect.assertions(2);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-      return ConfigEvaluation.fetchFromServer();
-    });
     await statsig.initialize(secretKey);
-
+    jest
+      .spyOn(statsig._instance._evaluator, 'checkGate')
+      .mockImplementation((user, gateName) => {
+        return ConfigEvaluation.fetchFromServer();
+      });
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_server';
 
@@ -308,26 +294,23 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify Evaluator returns correct value for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-      if (gateName === 'gate_pass') {
-        return new ConfigEvaluation(true, 'rule_id_pass', [
-          { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
-        ]);
-      }
-
-      if (gateName === 'gate_server') {
-        return ConfigEvaluation.fetchFromServer();
-      }
-
-      return new ConfigEvaluation(false, 'rule_id_fail');
-    });
-
     await statsig.initialize(secretKey);
+
+    jest
+      .spyOn(statsig._instance._evaluator, 'checkGate')
+      .mockImplementation((user, gateName) => {
+        if (gateName === 'gate_pass') {
+          return new ConfigEvaluation(true, 'rule_id_pass', [
+            { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
+          ]);
+        }
+
+        if (gateName === 'gate_server') {
+          return ConfigEvaluation.fetchFromServer();
+        }
+
+        return new ConfigEvaluation(false, 'rule_id_fail');
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_pass';
@@ -356,26 +339,24 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify Evaluator returns correct value (for failed gates) for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'checkGate').mockImplementation((user, gateName) => {
-      if (gateName === 'gate_pass') {
-        return new ConfigEvaluation(true, 'rule_id_pass', []);
-      }
-
-      if (gateName === 'gate_server') {
-        return ConfigEvaluation.fetchFromServer();
-      }
-
-      return new ConfigEvaluation(false, 'rule_id_fail', []);
-    });
-
     // also set and verify environment is passed on to user as statsigEnvironment
     await statsig.initialize(secretKey, {
       environment: { tier: 'production' },
     });
+
+    jest
+      .spyOn(statsig._instance._evaluator, 'checkGate')
+      .mockImplementation((user, gateName) => {
+        if (gateName === 'gate_pass') {
+          return new ConfigEvaluation(true, 'rule_id_pass', []);
+        }
+
+        if (gateName === 'gate_server') {
+          return ConfigEvaluation.fetchFromServer();
+        }
+
+        return new ConfigEvaluation(false, 'rule_id_fail', []);
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_fail';
@@ -403,15 +384,12 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify when Evaluator fails to evaluate, getConfig() and getExperiment() return correct value and do not log exposures', async () => {
     expect.assertions(5);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'getConfig').mockImplementation(() => {
-      return ConfigEvaluation.fetchFromServer();
-    });
-
     await statsig.initialize(secretKey);
+    jest
+      .spyOn(statsig._instance._evaluator, 'getConfig')
+      .mockImplementation(() => {
+        return ConfigEvaluation.fetchFromServer();
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_server';
@@ -434,18 +412,15 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
     expect.assertions(6);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-      return new ConfigEvaluation(true, 'rule_id_config', [], {
-        string: '12345',
-        number: 12345,
-      });
-    });
     await statsig.initialize(secretKey);
+    jest
+      .spyOn(statsig._instance._evaluator, 'getConfig')
+      .mockImplementation((_, configName) => {
+        return new ConfigEvaluation(true, 'rule_id_config', [], {
+          string: '12345',
+          number: 12345,
+        });
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
@@ -478,17 +453,16 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify that getConfig() and getExperiment() are deduped with same metadata', async () => {
     expect.assertions(1);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-      return new ConfigEvaluation(true, 'rule_id_config', [], {
-        string: '12345',
-        number: 12345,
-      });
-    });
     await statsig.initialize(secretKey);
+
+    jest
+      .spyOn(statsig._instance._evaluator, 'getConfig')
+      .mockImplementation((_, configName) => {
+        return new ConfigEvaluation(true, 'rule_id_config', [], {
+          string: '12345',
+          number: 12345,
+        });
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
@@ -504,17 +478,16 @@ describe('Verify behavior of top level index functions', () => {
   test('Verify that getConfig() and getExperiment() are not deduped with different user', async () => {
     expect.assertions(1);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
-    // @ts-ignore
-    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-      return new ConfigEvaluation(true, 'rule_id_config', [], {
-        string: '12345',
-        number: 12345,
-      });
-    });
     await statsig.initialize(secretKey);
+
+    jest
+      .spyOn(statsig._instance._evaluator, 'getConfig')
+      .mockImplementation((_, configName) => {
+        return new ConfigEvaluation(true, 'rule_id_config', [], {
+          string: '12345',
+          number: 12345,
+        });
+      });
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
@@ -530,10 +503,6 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify that getConfig() and getExperiment() are not deduped with different metadata', async () => {
     expect.assertions(1);
-
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    const ConfigEvaluation = require('../ConfigEvaluation').default;
     await statsig.initialize(secretKey);
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
@@ -542,11 +511,13 @@ describe('Verify behavior of top level index functions', () => {
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     for (let ii = 0; ii < 10000; ii++) {
       // @ts-ignore
-      jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
-          string: '12345',
+      jest
+        .spyOn(statsig._instance._evaluator, 'getConfig')
+        .mockImplementation((_, configName) => {
+          return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
+            string: '12345',
+          });
         });
-      });
       await statsig.getConfig(user, configName);
     }
 
@@ -556,12 +527,13 @@ describe('Verify behavior of top level index functions', () => {
   test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
     expect.assertions(3);
 
-    const statsig = require('../../dist/src/index');
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    jest.spyOn(Evaluator, 'getConfig').mockImplementation(() => {
-      return null;
-    });
     await statsig.initialize(secretKey);
+
+    jest
+      .spyOn(statsig._instance._evaluator, 'getConfig')
+      .mockImplementation(() => {
+        return null;
+      });
 
     const configName = 'non_existent_config';
     let config = new DynamicConfig(configName);
@@ -581,7 +553,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify logEvent() does not log if eventName is null', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -591,7 +562,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify logEvent() does not log if eventName is empty string', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -601,7 +571,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify logEvent() does not log if eventName is an object', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -612,7 +581,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify logEventObject can override timestamp', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -632,7 +600,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify Event is logged without user', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -642,7 +609,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify Event is logged', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -652,7 +618,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify Event is logged', async () => {
-    const statsig = require('../../dist/src/index');
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -662,8 +627,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify big user object and log event are getting trimmed', async () => {
-    const statsig = require('../../dist/src/index');
-
     expect.assertions(2);
     let str_1k = str_64;
     // create a 1k long string
@@ -696,7 +659,6 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify shutdown makes the SDK not ready', async () => {
-    const statsig = require('../../dist/src/index');
     // @ts-ignore
     const fetch = require('node-fetch');
     expect.assertions(2);
@@ -710,19 +672,7 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('calling initialize() multiple times will only make 1 request and resolve together', async () => {
-    expect.assertions(4);
-    const statsig = require('../../dist/src/index');
-    let count = 0;
-    const { Evaluator } = require('../../dist/src/Evaluator');
-    jest.spyOn(Evaluator, 'init').mockImplementation(() => {
-      // @ts-ignore
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          count++;
-          resolve();
-        }, 1000);
-      });
-    });
+    expect.assertions(3);
 
     // initialize() twice simultaneously results in 1 promise
     const v1 = statsig.initialize(secretKey);
@@ -732,15 +682,9 @@ describe('Verify behavior of top level index functions', () => {
 
     // initialize() again after the first one completes resolves right away
     await expect(statsig.initialize(secretKey)).resolves.not.toThrow();
-    expect(count).toEqual(1);
   });
 
   test('statsigoptions bootstrapValues is being used to bootstrap rules', async () => {
-    const statsig = require('../../dist/src/index');
-    // @ts-ignore
-    const fetch = require('node-fetch');
-    fetch.mockImplementation(() => Promise.reject({}));
-
     const jsonResponse = {
       time: Date.now(),
       feature_gates: [
@@ -766,58 +710,6 @@ describe('Verify behavior of top level index functions', () => {
     );
     expect(passGate).toBe(true);
     expect(failGate).toBe(false);
-  });
-
-  test('statsigoptions bootstrapValues is replacecd with a newer value when fetch completes and updatedRulesCallback is called', async () => {
-    const statsig = require('../../dist/src/index');
-    // @ts-ignore
-    const fetch = require('node-fetch');
-    expect.assertions(4);
-
-    const newTime = Date.now() + 1000;
-    const jsonResponse = {
-      time: newTime,
-      feature_gates: [
-        exampleConfigSpecs.gate,
-        exampleConfigSpecs.disabled_gate,
-      ],
-      dynamic_configs: [exampleConfigSpecs.config],
-      layer_configs: [],
-      has_updates: true,
-    };
-
-    fetch.mockImplementation((url) => {
-      if (url.includes('download_config_specs')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(JSON.stringify(jsonResponse)),
-          has_update: true,
-        });
-      }
-      return Promise.reject();
-    });
-
-    await statsig.initialize(secretKey, {
-      bootstrapValues: JSON.stringify({
-        time: Date.now(),
-        feature_gates: [exampleConfigSpecs.disabled_gate],
-        has_updates: true,
-      }),
-      rulesUpdatedCallback: (json, time) => {
-        expect(time).toEqual(newTime);
-        expect(json).toEqual(JSON.stringify(jsonResponse));
-      },
-    });
-
-    let passGate = await statsig.checkGate(
-      { userID: '123', email: 'tore@nfl.com' },
-      exampleConfigSpecs.gate.name,
-    );
-    let failGate = await statsig.checkGate(
-      { userID: '123', email: 'tore@gmail.com' },
-      exampleConfigSpecs.gate.name,
-    );
-    expect(passGate).toBe(true);
-    expect(failGate).toBe(false);
+    // TODO verify network gates overwrite bootstrap values
   });
 });

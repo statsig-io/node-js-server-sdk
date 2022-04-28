@@ -1,50 +1,74 @@
+import ConfigEvaluation from './ConfigEvaluation';
+
+import SpecStore from './SpecStore';
+import { StatsigUser } from './StatsigUser';
+import { ConfigSpec, ConfigRule, ConfigCondition } from './ConfigSpec';
+import { StatsigOptionsType } from './StatsigOptionsType';
+
 const ip3country = require('ip3country');
-const { ConfigSpec, ConfigRule, ConfigCondition } = require('./ConfigSpec');
-const SpecStore = require('./SpecStore');
+
 const shajs = require('sha.js');
 const parseUserAgent = require('./utils/parseUserAgent');
-const ConfigEvaluation = require('./ConfigEvaluation').default;
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
 
-const Evaluator = {
-  async init(options, secretKey) {
-    await SpecStore.init(options, secretKey);
+type InitializeResponse = {
+  name: string;
+  value: unknown;
+  group: string;
+  rule_id: string;
+  is_device_based: boolean;
+  secondary_exposures: unknown;
+};
+
+export default class Evaluator {
+  private gateOverrides: Record<string, Record<string, boolean>>;
+  private configOverrides: Record<string, Record<string, unknown>>;
+  private initialized: boolean = false;
+
+  private store: SpecStore;
+
+  public constructor(options: StatsigOptionsType, secretKey: string) {
+    this.store = new SpecStore(options, secretKey);
+    this.gateOverrides = {};
+    this.configOverrides = {};
+  }
+
+  public async init(): Promise<void> {
+    await this.store.init();
     try {
       await ip3country.init();
     } catch (err) {
       // Ignore: this is optional
     }
-    this.gateOverrides = {};
-    this.configOverrides = {};
     this.initialized = true;
-  },
+  }
 
-  overrideGate(gateName, value, userID = null) {
-    let overrides = this.gateOverrides[gateName];
-    if (overrides == null) {
-      overrides = {};
-    }
+  public overrideGate(
+    gateName: string,
+    value: boolean,
+    userID: string | null = null,
+  ): void {
+    let overrides = this.gateOverrides[gateName] ?? {};
     overrides[userID == null ? '' : userID] = value;
     this.gateOverrides[gateName] = overrides;
-  },
+  }
 
-  overrideConfig(configName, value, userID = '') {
-    let overrides = this.configOverrides[configName];
-    if (overrides == null) {
-      overrides = {};
-    }
+  public overrideConfig(
+    configName: string,
+    value: Record<string, unknown>,
+    userID: string | null = '',
+  ): void {
+    let overrides = this.configOverrides[configName] ?? {};
     overrides[userID == null ? '' : userID] = value;
     this.configOverrides[configName] = overrides;
-  },
+  }
 
-  /**
-   * @param {{ userID: string | number; }} user
-   * @param {string} gateName
-   * @returns {ConfigEvaluation}
-   */
-  lookupGateOverride(user, gateName) {
+  public lookupGateOverride(
+    user: StatsigUser,
+    gateName: string,
+  ): ConfigEvaluation | null {
     const overrides = this.gateOverrides[gateName];
     if (overrides == null) {
       return null;
@@ -63,14 +87,12 @@ const Evaluator = {
       return new ConfigEvaluation(allOverride, 'override');
     }
     return null;
-  },
+  }
 
-  /**
-   * @param {{ userID: string | number; }} user
-   * @param {string} configName
-   * @returns {ConfigEvaluation}
-   */
-  lookupConfigOverride(user, configName) {
+  public lookupConfigOverride(
+    user: StatsigUser,
+    configName: string,
+  ): ConfigEvaluation | null {
     const overrides = this.configOverrides[configName];
     if (overrides == null) {
       return null;
@@ -90,69 +112,56 @@ const Evaluator = {
       return new ConfigEvaluation(true, 'override', [], allOverride);
     }
     return null;
-  },
+  }
 
-  /**
-   * returns a object with 'value' and 'rule_id' properties, or null if used incorrectly (e.g. gate name does not exist or not initialized)
-   * or 'FETCH_FROM_SERVER', which needs to be handled by caller by calling server endpoint directly
-   * @param {object} user
-   * @param {string} gateName
-   * @returns {ConfigEvaluation | null}
-   */
-  checkGate(user, gateName) {
+  public checkGate(
+    user: StatsigUser,
+    gateName: string,
+  ): ConfigEvaluation | null {
     if (!this.initialized) {
       return null;
     }
 
     return (
       this.lookupGateOverride(user, gateName) ??
-      this._evalConfig(user, SpecStore.store.gates[gateName])
+      this._evalConfig(user, this.store.getGate(gateName))
     );
-  },
+  }
 
-  /**
-   * returns a ConfigEvaluation object, or null if used incorrectly (e.g. config name does not exist or not initialized).
-   * The ConfigEvaluation may have fetchFromServer equal to true, which needs to be handled by caller by calling server endpoint directly
-   * @param {object} user
-   * @param {string} configName
-   * @returns {ConfigEvaluation}
-   */
-  getConfig(user, configName) {
+  public getConfig(
+    user: StatsigUser,
+    configName: string,
+  ): ConfigEvaluation | null {
     if (!this.initialized) {
       return null;
     }
 
     return (
       this.lookupConfigOverride(user, configName) ??
-      this._evalConfig(user, SpecStore.store.configs[configName])
+      this._evalConfig(user, this.store.getConfig(configName))
     );
-  },
+  }
 
-  /**
-   * @param {any} user
-   * @param {string | number} layerName
-   * @returns {ConfigEvaluation | null}
-   */
-  getLayer(user, layerName) {
+  public getLayer(
+    user: StatsigUser,
+    layerName: string,
+  ): ConfigEvaluation | null {
     if (!this.initialized) {
       return null;
     }
 
-    return this._evalConfig(user, SpecStore.store.layers[layerName]);
-  },
+    return this._evalConfig(user, this.store.getLayer(layerName));
+  }
 
-  /**
-   *
-   * @param {object} user
-   * @returns {Record<string, unknown>}
-   */
-  getClientInitializeResponse(user) {
-    if (!SpecStore.isServingChecks()) {
+  public getClientInitializeResponse(
+    user: StatsigUser,
+  ): Record<string, unknown> {
+    if (!this.store.isServingChecks()) {
       return null;
     }
-    const gates = Object.entries(SpecStore.store.gates)
+    const gates = Object.entries(this.store.getAllGates())
       .map(([gate, spec]) => {
-        if (spec.entity === 'segment') {
+        if (spec?.entity === 'segment') {
           return null;
         }
         const res = this._eval(user, spec);
@@ -165,7 +174,7 @@ const Evaluator = {
       })
       .filter((item) => item !== null);
 
-    const configs = Object.entries(SpecStore.store.configs).map(
+    const configs = Object.entries(this.store.getAllConfigs()).map(
       ([config, spec]) => {
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
@@ -176,7 +185,9 @@ const Evaluator = {
           );
           const experimentActive = this._isExperimentActive(spec);
           // These parameters only control sticky experiments on the client
+          // @ts-ignore
           format.is_experiment_active = experimentActive;
+          // @ts-ignore
           format.is_user_in_experiment = userInExperiment;
         }
 
@@ -184,16 +195,21 @@ const Evaluator = {
       },
     );
 
-    const layers = Object.entries(SpecStore.store.layers).map(
+    const layers = Object.entries(this.store.getAllLayers()).map(
       ([layer, spec]) => {
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         if (res.config_delegate != null) {
+          // @ts-ignore
           format.allocated_experiment_name = getHashedName(res.config_delegate);
+          // @ts-ignore
           format.is_experiment_active = true;
+          // @ts-ignore
           format.is_user_in_experiment = true;
         }
+        // @ts-ignore
         format.explicit_parameters = format.explicit_parameters ?? [];
+        // @ts-ignore
         format.undelegated_secondary_exposures = this._cleanExposures(
           res.undelegated_secondary_exposures ?? [],
         );
@@ -217,9 +233,12 @@ const Evaluator = {
       has_updates: true,
       time: 0, // set the time to 0 so this doesnt interfere with polling
     };
-  },
+  }
 
-  _specToInitializeResponse(spec, res) {
+  private _specToInitializeResponse(
+    spec: ConfigSpec,
+    res: ConfigEvaluation,
+  ): InitializeResponse {
     const output = {
       name: getHashedName(spec.name),
       value: res.fetch_from_server ? {} : res.json_value,
@@ -235,9 +254,9 @@ const Evaluator = {
     }
 
     return output;
-  },
+  }
 
-  _cleanExposures(exposures) {
+  private _cleanExposures(exposures) {
     const seen = {};
     return exposures
       .map((exposure) => {
@@ -249,11 +268,11 @@ const Evaluator = {
         return exposure;
       })
       .filter((exposure) => exposure != null);
-  },
+  }
 
-  shutdown() {
-    SpecStore.shutdown();
-  },
+  public shutdown() {
+    this.store.shutdown();
+  }
 
   /**
    * @param {object} user
@@ -266,7 +285,7 @@ const Evaluator = {
     }
 
     return this._eval(user, config);
-  },
+  }
 
   /**
    * @param {object} user
@@ -319,10 +338,10 @@ const Evaluator = {
       config.defaultValue,
       config.explicitParameters,
     );
-  },
+  }
 
-  _evalDelegate(user, rule, exposures) {
-    const config = SpecStore.store.configs[rule.configDelegate];
+  _evalDelegate(user: StatsigUser, rule: ConfigRule, exposures) {
+    const config = this.store.getConfig(rule.configDelegate);
     if (!config) {
       return null;
     }
@@ -335,7 +354,7 @@ const Evaluator = {
       delegatedResult.secondary_exposures,
     );
     return delegatedResult;
-  },
+  }
 
   _evalPassPercent(user, rule, config) {
     const hash = computeUserHash(
@@ -348,7 +367,7 @@ const Evaluator = {
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
     );
-  },
+  }
 
   _getUnitID(user, idType) {
     if (typeof idType === 'string' && idType.toLowerCase() !== 'userid') {
@@ -357,7 +376,7 @@ const Evaluator = {
       );
     }
     return user?.userID;
-  },
+  }
 
   /**
    * @param {object} user
@@ -389,7 +408,7 @@ const Evaluator = {
       secondaryExposures,
       rule.returnValue,
     );
-  },
+  }
 
   /**
    * Evaluates the current condition, returns a boolean if the user pass or fail the condition,
@@ -408,7 +427,7 @@ const Evaluator = {
         return { passes: true };
       case 'fail_gate':
       case 'pass_gate':
-        const gateResult = Evaluator.checkGate(user, target);
+        const gateResult = this.checkGate(user, target);
         if (gateResult?.fetch_from_server) {
           return { passes: false, fetchFromServer: true };
         }
@@ -427,7 +446,7 @@ const Evaluator = {
         };
       case 'ip_based':
         // this would apply to things like 'country', 'region', etc.
-        value = getFromUser(user, field) ?? getFromIP(user, field);
+        value = getFromUser(user, field) ?? this.getFromIP(user, field);
         break;
       case 'ua_based':
         // this would apply to things like 'os', 'browser', etc.
@@ -599,7 +618,7 @@ const Evaluator = {
         break;
       case 'in_segment_list':
       case 'not_in_segment_list': {
-        const list = SpecStore.store.idLists[target]?.ids;
+        const list = this.store.getIDList(target)?.ids;
         value = hashUnitIDForIDList(value);
         let inList = typeof list === 'object' && list[value] === true;
         evalResult = op === 'in_segment_list' ? inList : !inList;
@@ -609,7 +628,7 @@ const Evaluator = {
         return { passes: false, fetchFromServer: true };
     }
     return { passes: evalResult };
-  },
+  }
 
   _isExperimentActive(experimentConfig) {
     for (const rule of experimentConfig.rules) {
@@ -622,7 +641,7 @@ const Evaluator = {
       }
     }
     return false;
-  },
+  }
 
   _isUserAllocatedToExperiment(user, experimentConfig) {
     for (const rule of experimentConfig.rules) {
@@ -637,9 +656,17 @@ const Evaluator = {
       }
     }
     return false;
-  },
+  }
 
-  ip2country(ip) {
+  private getFromIP(user, field) {
+    const ip = getFromUser(user, 'ip');
+    if (ip == null || field !== 'country') {
+      return null;
+    }
+    return this.ip2country(ip);
+  }
+
+  public ip2country(ip: string | number): string | null {
     if (!this.initialized) {
       return null;
     }
@@ -653,8 +680,8 @@ const Evaluator = {
       // TODO: log
     }
     return null;
-  },
-};
+  }
+}
 
 function computeUserHash(userHash) {
   const buffer = shajs('sha256').update(userHash).digest();
@@ -695,14 +722,6 @@ function getFromUser(user, field) {
     user?.privateAttributes?.[field] ??
     user?.privateAttributes?.[field.toLowerCase()]
   );
-}
-
-function getFromIP(user, field) {
-  const ip = getFromUser(user, 'ip');
-  if (ip == null || field !== 'country') {
-    return null;
-  }
-  return Evaluator.ip2country(ip);
 }
 
 function getFromUserAgent(user, field) {
