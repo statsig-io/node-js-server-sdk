@@ -1,6 +1,6 @@
 import { StatsigUser } from './StatsigUser';
-import { DynamicConfig } from './DynamicConfig';
-import { Layer } from './Layer';
+import DynamicConfig from './DynamicConfig';
+import Layer from './Layer';
 import StatsigServer from './StatsigServer';
 import { StatsigOptionsType } from './StatsigOptionsType';
 

@@ -2,8 +2,8 @@ import ConfigEvaluation from '../ConfigEvaluation';
 import * as statsigsdk from '../index';
 // @ts-ignore
 const statsig = statsigsdk.default;
-
-const { DynamicConfig } = require('../DynamicConfig');
+import LogEvent from '../LogEvent';
+import DynamicConfig from '../DynamicConfig';
 const exampleConfigSpecs = require('./jest.setup');
 
 jest.useFakeTimers();
@@ -41,8 +41,6 @@ fetch.mockImplementation((url) => {
 });
 
 describe('Verify behavior of top level index functions', () => {
-  const LogEvent = require('../LogEvent');
-
   const secretKey = 'secret-key';
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
@@ -312,13 +310,13 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail');
       });
 
-    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_pass';
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser({
-      userID: 123,
+      userID: '123',
     });
     gateExposure.setMetadata({
       gate: gateName,
@@ -358,13 +356,14 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail', []);
       });
 
-    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
     let gateName = 'gate_fail';
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
     gateExposure.setUser({
-      userID: 123,
+      userID: '123',
+      // @ts-ignore
       statsigEnvironment: { tier: 'production' },
     });
     gateExposure.setMetadata({
@@ -422,13 +421,13 @@ describe('Verify behavior of top level index functions', () => {
         });
       });
 
-    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     const configExposure = new LogEvent('statsig::config_exposure');
     configExposure.setUser({
-      userID: 123,
+      userID: '123',
     });
     configExposure.setMetadata({
       config: configName,
@@ -464,7 +463,7 @@ describe('Verify behavior of top level index functions', () => {
         });
       });
 
-    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
@@ -489,12 +488,12 @@ describe('Verify behavior of top level index functions', () => {
         });
       });
 
-    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     for (let ii = 0; ii < 10000; ii++) {
-      user.userID = ii;
+      user.userID = ii + '';
       await statsig.getConfig(user, configName);
     }
 

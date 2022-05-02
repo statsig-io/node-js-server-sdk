@@ -1,4 +1,4 @@
-const { Layer } = require('../Layer');
+import Layer from '../Layer';
 
 describe('Verify behavior of Layer', () => {
   const testLayer = new Layer(

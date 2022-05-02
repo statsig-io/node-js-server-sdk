@@ -321,5 +321,3 @@ export default class SpecStore {
     }
   }
 }
-
-module.exports = SpecStore;

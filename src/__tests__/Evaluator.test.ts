@@ -1,8 +1,8 @@
 import ConfigEvaluation from '../ConfigEvaluation';
 import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
 const exampleConfigSpecs = require('./jest.setup');
-// @ts-ignore
-import { Evaluator } from '../Evaluator';
+import Evaluator from '../Evaluator';
+import SpecStore from '../SpecStore';
 
 describe('Test condition evaluation', () => {
   const baseTime = 1609459200000;
@@ -267,12 +267,13 @@ describe('Test condition evaluation', () => {
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
-    const SpecStore = require('../SpecStore');
     const store = new SpecStore(
       { api: 'https://statsigapi.net/v1' },
       'secret-dummy',
     );
+    // @ts-ignore
     store.store = {
+      // @ts-ignore
       idLists: { list_1: { ids: { '7NRRgkdK': true, pmWkWSBC: true } } },
       configs: {},
     };

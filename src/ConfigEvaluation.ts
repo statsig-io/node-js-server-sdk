@@ -2,7 +2,7 @@ export default class ConfigEvaluation {
   public value: boolean;
   public rule_id: string;
   public secondary_exposures: Record<string, string>[];
-  public json_value: Record<string, unknown> | boolean;
+  public json_value: Record<string, unknown>;
   public explicit_parameters: string[] | undefined;
   public config_delegate: string | undefined;
   public fetch_from_server: boolean;
@@ -12,7 +12,7 @@ export default class ConfigEvaluation {
     value,
     rule_id = '',
     secondary_exposures = [],
-    json_value = null,
+    json_value = {},
     explicit_parameters = undefined,
     config_delegate = undefined,
     fetch_from_server = false,

@@ -1,4 +1,4 @@
-const { Layer } = require('../Layer');
+import Layer from '../Layer';
 
 describe('Verify behavior of Layer', () => {
   const testLayer = new Layer(
@@ -26,7 +26,9 @@ describe('Verify behavior of Layer', () => {
   });
 
   test('Test constructor', () => {
+    // @ts-ignore intentional mistyping test
     const layer = new Layer('name', 123);
+    // @ts-ignore intentional mistyping test
     expect(layer.get()).toStrictEqual(null);
   });
 
@@ -47,6 +49,7 @@ describe('Verify behavior of Layer', () => {
   });
 
   test('Test get key not found', () => {
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('key_not_found')).toBeNull();
     expect(testLayer.get('key_not_found', null)).toBeNull();
     expect(testLayer.get('key_not_found', true)).toStrictEqual(true);
@@ -95,14 +98,17 @@ describe('Verify behavior of Layer', () => {
   test('Test typed getting with matching types', () => {
     expect(testLayer.get('boolStr1', '123')).toStrictEqual('true');
     expect(testLayer.get('boolStr1', null)).toStrictEqual('true');
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('boolStr1')).toStrictEqual('true');
 
     expect(testLayer.get('number', 123)).toStrictEqual(2);
     expect(testLayer.get('number', null)).toStrictEqual(2);
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('number')).toStrictEqual(2);
 
     expect(testLayer.get('bool', false)).toStrictEqual(true);
     expect(testLayer.get('bool', null)).toStrictEqual(true);
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('bool')).toStrictEqual(true);
 
     expect(testLayer.get('object', {})).toStrictEqual({
@@ -113,6 +119,7 @@ describe('Verify behavior of Layer', () => {
       key: 'value',
       key2: 123,
     });
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('object')).toStrictEqual({
       key: 'value',
       key2: 123,
@@ -120,6 +127,7 @@ describe('Verify behavior of Layer', () => {
 
     expect(testLayer.get('arr', [])).toStrictEqual([1, 2, 'three']);
     expect(testLayer.get('arr', null)).toStrictEqual([1, 2, 'three']);
+    // @ts-ignore intentional mistyping test
     expect(testLayer.get('arr')).toStrictEqual([1, 2, 'three']);
   });
 
@@ -134,7 +142,9 @@ describe('Verify behavior of Layer', () => {
 
   test('Behavior of dummy layers', () => {
     const dummyLayer = new Layer('layerName');
+    // @ts-ignore intentional mistyping test
     expect(dummyLayer.get()).toBeNull();
+    // @ts-ignore intentional mistyping test
     expect(dummyLayer.get('test_field')).toBeNull();
     expect(dummyLayer.get('str', 'default_value')).toEqual('default_value');
     expect(dummyLayer.get('bool', true)).toEqual(true);
@@ -142,6 +152,7 @@ describe('Verify behavior of Layer', () => {
     expect(dummyLayer.get('arr', [1, 2, 3])).toEqual([1, 2, 3]);
     expect(dummyLayer.get('obj', { key: 'value' })).toEqual({ key: 'value' });
 
+    // @ts-ignore intentional mistyping test
     expect(dummyLayer.getValue()).toEqual(null);
     expect(dummyLayer.getValue('test_field')).toEqual(null);
     expect(dummyLayer.getValue('str', 'default_value')).toEqual(

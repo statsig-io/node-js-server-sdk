@@ -82,5 +82,3 @@ export default class LogEvent {
     };
   }
 }
-
-module.exports = LogEvent;

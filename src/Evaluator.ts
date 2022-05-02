@@ -868,5 +868,3 @@ function arrayAny(value, array, fn) {
   }
   return false;
 }
-
-module.exports = { Evaluator };

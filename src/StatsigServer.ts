@@ -1,14 +1,13 @@
-import { DynamicConfig } from './DynamicConfig';
-// @ts-ignore
-import { Evaluator } from './Evaluator';
-import { Layer } from './Layer';
+import DynamicConfig from './DynamicConfig';
+import Evaluator from './Evaluator';
+import Layer from './Layer';
+import LogEvent from './LogEvent';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import { StatsigUser } from './StatsigUser';
 import LogEventProcessor from './LogEventProcessor';
 
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
-const LogEvent = require('./LogEvent');
 const StatsigOptions = require('./StatsigOptions');
 
 const MAX_VALUE_SIZE = 64;
@@ -409,7 +408,7 @@ export default class StatsigServer {
       return this._fetchConfig(user, ret.config_delegate)
         .then((config) => {
           return Promise.resolve(
-            new Layer(layerName, config?.value, config?._ruleID),
+            new Layer(layerName, config?.value, config?.getRuleID()),
           );
         })
         .catch(() => {
