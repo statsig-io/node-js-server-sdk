@@ -496,27 +496,110 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledTimes(10000);
   });
 
-  test('Verify that getConfig() and getExperiment() are not deduped with different metadata', async () => {
-    expect.assertions(1);
+  test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
+    expect.assertions(6);
 
     const statsig = require('../index');
     const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {
+        string: '12345',
+        number: 12345,
+      });
+    });
     await statsig.initialize(secretKey);
 
     let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0; ii < 10000; ii++) {
-      jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
-          string: '12345',
-        });
+    const configExposure = new LogEvent('statsig::config_exposure');
+    configExposure.setUser({
+      userID: 123,
+    });
+    configExposure.setMetadata({
+      config: configName,
+      ruleID: 'rule_id_config',
+    });
+    configExposure.setSecondaryExposures([]);
+
+    await statsig.getConfig(user, configName).then((data) => {
+      expect(data.getValue('number')).toStrictEqual(12345);
+      expect(data.getValue('string')).toStrictEqual('12345');
+    });
+
+    await statsig.getExperiment(user, configName).then((data) => {
+      expect(data.getValue('number')).toStrictEqual(12345);
+      expect(data.getValue('string')).toStrictEqual('12345');
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1); // Dedupe logic kicks in
+    expect(spy).toHaveBeenCalledWith(configExposure);
+  });
+
+  test('Verify that checkGate() getConfig() and getExperiment() are deduped with same metadata', async () => {
+    expect.assertions(1);
+
+    const statsig = require('../index');
+    const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {
+        string: '12345',
+        number: 12345,
       });
+    });
+    jest.spyOn(Evaluator, 'checkGate').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {});
+    });
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123, privateAttributes: { secret: 'do not log' } };
+    let configName = 'config_downloaded';
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    for (let ii = 0 ; ii < 10000; ii++) {
       await statsig.getConfig(user, configName);
+      await statsig.checkGate(user, "test_gate");
     }
 
-    expect(spy).toHaveBeenCalledTimes(10000);
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  test('Verify that checkGate() getConfig() and getExperiment() are not deduped with different customIDs', async () => {
+    expect.assertions(2);
+
+    const statsig = require('../index');
+    const { Evaluator, ConfigEvaluation } = require('../Evaluator');
+    jest.spyOn(Evaluator, 'getConfig').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {
+        string: '12345',
+        number: 12345,
+      });
+    });
+    jest.spyOn(Evaluator, 'checkGate').mockImplementation((_, configName) => {
+      return new ConfigEvaluation(true, 'rule_id_config', [], {});
+    });
+    await statsig.initialize(secretKey);
+
+    let user = { userID: 123, customIDs: {"project": "def", company: "abc"}, privateAttributes: { secret: 'do not log' } };
+    let configName = 'config_downloaded';
+    const gateName = "test";
+
+    const spy = jest.spyOn(statsig._logger, 'log');
+    for (let ii = 0 ; ii < 10000; ii++) {
+      await statsig.getConfig(user, configName);
+      await statsig.checkGate(user, gateName);
+    }
+
+    expect(spy).toHaveBeenCalledTimes(2);
+
+    for (let ii = 0 ; ii < 10000; ii++) {
+      user.customIDs.project = ii + "";
+      await statsig.getConfig(user, configName);
+      await statsig.checkGate(user, gateName);
+    }
+
+    expect(spy).toHaveBeenCalledTimes(20002);
   });
 
   test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
