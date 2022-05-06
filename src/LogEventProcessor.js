@@ -177,7 +177,7 @@ function LogEventProcessor(options, secretKey) {
 
     let metadataKey = '';
     if (metadata && typeof(metadata) === 'object') {
-      customIdKey = Object.values(metadata).join();
+      metadataKey = Object.values(metadata).join();
     }
 
     const keyList = [ 
