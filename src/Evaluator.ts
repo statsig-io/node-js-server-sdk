@@ -5,10 +5,11 @@ import { StatsigUser } from './StatsigUser';
 import { ConfigSpec, ConfigRule, ConfigCondition } from './ConfigSpec';
 import { StatsigOptionsType } from './StatsigOptionsType';
 
-const ip3country = require('ip3country');
+import shajs from 'sha.js';
+import parseUserAgent from './utils/parseUserAgent';
+import StatsigFetcher from './utils/StatsigFetcher';
 
-const shajs = require('sha.js');
-const parseUserAgent = require('./utils/parseUserAgent');
+const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -29,8 +30,8 @@ export default class Evaluator {
 
   private store: SpecStore;
 
-  public constructor(options: StatsigOptionsType, secretKey: string) {
-    this.store = new SpecStore(options, secretKey);
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptionsType) {
+    this.store = new SpecStore(fetcher, options);
     this.gateOverrides = {};
     this.configOverrides = {};
   }

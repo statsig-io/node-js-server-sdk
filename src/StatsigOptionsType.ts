@@ -6,9 +6,11 @@ export type StatsigOptionsType = {
   bootstrapValues?: string;
   environment?: StatsigEnvironment;
   localMode?: boolean;
-  rulesUpdatedCallback?: { (rulesJSON: string, time: number): void };
+  rulesUpdatedCallback?: RulesUpdatedCallback;
   initTimeoutMs?: number;
 };
+
+export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
 
 export type StatsigEnvironment = {
   tier?: 'production' | 'staging' | 'development';

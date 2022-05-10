@@ -5,10 +5,10 @@ import LogEvent from './LogEvent';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import { StatsigUser } from './StatsigUser';
 import LogEventProcessor from './LogEventProcessor';
+import StatsigOptions from './StatsigOptions';
+import StatsigFetcher from './utils/StatsigFetcher';
 
-const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
-const StatsigOptions = require('./StatsigOptions');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -21,17 +21,19 @@ let hasLoggedNoUserIdWarning = false;
 export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
   private _ready: boolean = false;
-  private _options: StatsigOptionsType;
+  private _options: StatsigOptions;
   private _logger: LogEventProcessor;
   private _secretKey: string;
   private _evaluator: Evaluator;
+  private _fetcher: StatsigFetcher;
 
-  public constructor(secretKey: string, options: object = {}) {
+  public constructor(secretKey: string, options: StatsigOptionsType = {}) {
     this._secretKey = secretKey;
-    this._options = StatsigOptions(options);
+    this._options = new StatsigOptions(options);
     this._pendingInitPromise = null;
     this._ready = false;
-    this._evaluator = new Evaluator(this._options, this._secretKey);
+    this._fetcher = new StatsigFetcher(this._secretKey, this._options);
+    this._evaluator = new Evaluator(this._fetcher, this._options);
   }
 
   /**
@@ -59,8 +61,7 @@ export default class StatsigServer {
       );
     }
 
-    fetcher.setLocal(this._options.localMode);
-    this._logger = new LogEventProcessor(this._options, this._secretKey);
+    this._logger = new LogEventProcessor(this._fetcher, this._options);
 
     const initPromise = this._evaluator.init().finally(() => {
       this._ready = true;
@@ -251,7 +252,7 @@ export default class StatsigServer {
     }
     this._ready = false;
     this._logger.flush(false);
-    fetcher.shutdown();
+    this._fetcher.shutdown();
     this._evaluator.shutdown();
   }
 
@@ -340,10 +341,9 @@ export default class StatsigServer {
       return Promise.resolve({ value: ret.value });
     }
 
-    return fetcher
+    return this._fetcher
       .dispatch(
         this._options.api + '/check_gate',
-        this._secretKey,
         Object.assign({
           user: user,
           gateName: gateName,
@@ -352,6 +352,7 @@ export default class StatsigServer {
         5000,
       )
       .then((res) => {
+        // @ts-ignore
         return res.json();
       });
   }
@@ -423,10 +424,9 @@ export default class StatsigServer {
     user: StatsigUser,
     name: string,
   ): Promise<DynamicConfig> {
-    return fetcher
+    return this._fetcher
       .dispatch(
         this._options.api + '/get_config',
-        this._secretKey,
         {
           user: user,
           configName: name,
@@ -435,6 +435,7 @@ export default class StatsigServer {
         5000,
       )
       .then((res) => {
+        // @ts-ignore
         return res.json();
       })
       .then((resJSON) => {

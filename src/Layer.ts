@@ -1,4 +1,4 @@
-const utils = require('./utils/core');
+import { clone } from './utils/core';
 
 type ExposeLayer = (layer: Layer, key: string) => void;
 
@@ -25,7 +25,7 @@ export default class Layer {
     }
 
     this.name = layerName;
-    this._value = utils.clone(value);
+    this._value = clone(value);
     this._ruleID = ruleID;
     this._logExposure = logExposure;
   }

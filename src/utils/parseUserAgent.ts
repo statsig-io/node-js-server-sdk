@@ -1,8 +1,8 @@
-const uaparser = require('ua-parser-js');
+import uaparser from 'ua-parser-js';
 
 // This exists only to provide compatibility for useragent library that's used
 // everywhere else.
-function parseUserAgent(uaString) {
+export default function parseUserAgent(uaString) {
   const res = uaparser(uaString);
   if (res.os.name === 'Mac OS') {
     res.os.name = 'Mac OS X';
@@ -15,5 +15,3 @@ function parseUserAgent(uaString) {
   }
   return res;
 }
-
-module.exports = parseUserAgent;

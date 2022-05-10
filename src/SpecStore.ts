@@ -1,5 +1,6 @@
 import { ConfigSpec } from './ConfigSpec';
-const fetcher = require('./utils/StatsigFetcher');
+import { StatsigOptionsType } from './StatsigOptionsType';
+import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 const fetch = require('node-fetch');
 
@@ -25,7 +26,6 @@ export default class SpecStore {
   private api: string;
   private rulesUpdatedCallback: (rules: string, time: number) => void | null =
     null;
-  private secretKey: string;
   private time: number;
   private store: ConfigStore;
   private syncInterval: number;
@@ -33,16 +33,17 @@ export default class SpecStore {
   private initialized: boolean;
   private syncTimer: NodeJS.Timer;
   private idListsSyncTimer: NodeJS.Timer;
+  private fetcher: StatsigFetcher;
 
   public constructor(
-    options,
-    secretKey,
+    fetcher: StatsigFetcher,
+    options: StatsigOptionsType,
     syncInterval = SYNC_INTERVAL,
     idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
   ) {
+    this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback;
-    this.secretKey = secretKey;
     this.time = 0;
     this.store = { gates: {}, configs: {}, idLists: {}, layers: {} };
     this.syncInterval = syncInterval;
@@ -109,14 +110,14 @@ export default class SpecStore {
 
   private async _syncValues(): Promise<void> {
     try {
-      const response = await fetcher.post(
+      const response = await this.fetcher.post(
         this.api + '/download_config_specs',
-        this.secretKey,
         {
           statsigMetadata: getStatsigMetadata(),
           sinceTime: this.time,
         },
       );
+      // @ts-ignore
       const specsString = await response.text();
       const processResult = this._process(JSON.parse(specsString));
       if (processResult) {
@@ -204,13 +205,13 @@ export default class SpecStore {
 
   private async _syncIDLists(): Promise<void> {
     try {
-      const response = await fetcher.post(
+      const response = await this.fetcher.post(
         this.api + '/get_id_lists',
-        this.secretKey,
         {
           statsigMetadata: getStatsigMetadata(),
         },
       );
+      // @ts-ignore
       const parsed = await response.json();
       let promises = [];
       if (typeof parsed === 'object') {

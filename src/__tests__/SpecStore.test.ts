@@ -1,5 +1,7 @@
 import SpecStore from '../SpecStore';
 import { ConfigSpec } from '../ConfigSpec';
+import StatsigFetcher from '../utils/StatsigFetcher';
+import StatsigOptions from '../StatsigOptions';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -68,7 +70,8 @@ describe('Verify behavior of SpecStore', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    store = new SpecStore({}, 'secret-123', 1000, 1000);
+    const net = new StatsigFetcher("secret-", new StatsigOptions({}));
+    store = new SpecStore(net, {}, 1000, 1000);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });

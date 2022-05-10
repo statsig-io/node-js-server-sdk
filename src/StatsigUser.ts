@@ -1,5 +1,5 @@
 export type StatsigUser = {
-  userID: string;
+  userID?: string;
   email?: string;
   ip?: string;
   userAgent?: string;

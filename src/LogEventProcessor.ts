@@ -3,6 +3,7 @@ import LogEvent from './LogEvent';
 import { StatsigUser } from './StatsigUser';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import ConfigEvaluation from './ConfigEvaluation';
+import StatsigFetcher from './utils/StatsigFetcher';
 const Layer = require('./Layer');
 const fetcher = require('./utils/StatsigFetcher');
 
@@ -17,7 +18,7 @@ const deduperInterval = 60 * 1000;
 
 export default class LogEventProcessor {
   private options: StatsigOptionsType;
-  private secretKey: string;
+  private fetcher: StatsigFetcher;
 
   private queue: LogEvent[];
   private flushTimer: NodeJS.Timer;
@@ -26,9 +27,9 @@ export default class LogEventProcessor {
   private deduper: Set<string>;
   private deduperTimer: NodeJS.Timer;
 
-  public constructor(options: StatsigOptionsType, secretKey: string) {
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptionsType) {
     this.options = options;
-    this.secretKey = secretKey;
+    this.fetcher = fetcher;
 
     this.queue = [];
     this.deduper = new Set();
@@ -86,14 +87,14 @@ export default class LogEventProcessor {
 
     if (!waitForResponse) {
       // we are exiting, fire and forget
-      fetcher
-        .post(this.options.api + '/log_event', this.secretKey, body, 0)
+      this.fetcher
+        .post(this.options.api + '/log_event', body, 0)
         .catch((e) => {});
       return;
     }
 
-    fetcher
-      .post(this.options.api + '/log_event', this.secretKey, body, 5, 10000)
+    this.fetcher
+      .post(this.options.api + '/log_event', body, 5, 10000)
       .catch((e) => {
         this.logStatsigInternal(null, 'log_event_failed', {
           error: e?.message || 'log_event_failed',

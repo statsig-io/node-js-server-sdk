@@ -5,7 +5,8 @@ try {
   // Ignore
 }
 
-function safeFetch(...args) {
+export default function safeFetch(...args) {
+  
   if (nodeFetch) {
     return nodeFetch(...args);
   } else {
@@ -13,5 +14,3 @@ function safeFetch(...args) {
     return fetch(...args);
   }
 }
-
-module.exports = safeFetch;

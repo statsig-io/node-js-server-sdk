@@ -1,6 +1,7 @@
-const uuidv4 = require('uuid');
+import uuidv4 from 'uuid';
+import { StatsigUser } from '../StatsigUser';
 
-function getSDKVersion() {
+function getSDKVersion(): string {
   try {
     return require('../../package.json')?.version ?? '';
   } catch (err) {
@@ -8,7 +9,7 @@ function getSDKVersion() {
   }
 }
 
-function getSDKType() {
+function getSDKType(): string {
   try {
     return require('../../package.json')?.name ?? 'statsig-node';
   } catch (err) {
@@ -16,11 +17,11 @@ function getSDKType() {
   }
 }
 
-function generateID() {
+function generateID(): string {
   return uuidv4();
 }
 
-function clone(obj) {
+function clone(obj: Record<string, unknown> | null): Record<string, unknown> | null {
   if (obj == null) {
     return null;
   }
@@ -28,7 +29,7 @@ function clone(obj) {
 }
 
 // Return a number if num can be parsed to a number, otherwise return null
-function getNumericValue(num) {
+function getNumericValue(num): number | null {
   if (num == null) {
     return null;
   }
@@ -40,7 +41,7 @@ function getNumericValue(num) {
 }
 
 // Return the boolean value of the input if it can be casted into a boolean, null otherwise
-function getBoolValue(val) {
+function getBoolValue(val): boolean | null {
   if (val == null) {
     return null;
   } else if (val.toString().toLowerCase() === 'true') {
@@ -51,14 +52,19 @@ function getBoolValue(val) {
   return null;
 }
 
-function getStatsigMetadata() {
+export type StatsigMetadata = {
+  sdkType: string,
+  sdkVersion: string,
+}
+
+function getStatsigMetadata(): StatsigMetadata {
   return {
     sdkType: getSDKType(),
     sdkVersion: getSDKVersion(),
   };
 }
 
-function isUserIdentifiable(user) {
+function isUserIdentifiable(user: StatsigUser | null): boolean {
   if (user == null) return false;
   if (typeof user !== 'object') return false;
   const userID = user.userID;
@@ -72,7 +78,7 @@ function isUserIdentifiable(user) {
   );
 }
 
-module.exports = {
+export {
   clone,
   generateID,
   getBoolValue,

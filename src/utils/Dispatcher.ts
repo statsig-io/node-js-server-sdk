@@ -1,7 +1,16 @@
-class Dispatcher {
-  queue;
-  drainInterval;
-  drainTimer;
+
+type Entry = {
+  expiry: number;
+  promise: Promise<unknown>;
+  taskCompleted: boolean;
+  resolver?: ((value: unknown) => void) | null;
+  rejector?: ((error?: unknown) => void) | null;
+};
+
+export default class Dispatcher {
+  private queue: Entry[];
+  private drainInterval: number;
+  private drainTimer: NodeJS.Timer;
 
   constructor(drainIntervalms = 200) {
     this.queue = [];
@@ -9,16 +18,18 @@ class Dispatcher {
     this.drainTimer = this._scheduleDrain();
   }
 
-  enqueue(promise, timeoutms) {
-    let entry = {
+  public enqueue<T>(promise: Promise<unknown>, timeoutms: number): Promise<T> {
+    let entry: Entry = {
       expiry: Date.now() + timeoutms,
       promise: promise,
       taskCompleted: false,
+      resolver: null,
+      rejector: null
     };
 
-    const dispatcherPromise = new Promise((res, rej) => {
+    const dispatcherPromise = new Promise<T>((res, rej) => {
       entry.resolver = res;
-      entry.rejecter = rej;
+      entry.rejector = rej;
     });
 
     this.queue.push(entry);
@@ -35,7 +46,7 @@ class Dispatcher {
       },
       (err) => {
         markCompleted(entry);
-        entry.rejecter(err);
+        entry.rejector(err);
         return err;
       },
     );
@@ -43,11 +54,11 @@ class Dispatcher {
     return dispatcherPromise;
   }
 
-  _scheduleDrain() {
+  private _scheduleDrain(): NodeJS.Timer {
     return setTimeout(this._drainQueue.bind(this), this.drainInterval);
   }
 
-  _drainQueue() {
+  private _drainQueue() {
     let oldQueue = this.queue;
     this.queue = [];
     const now = Date.now();
@@ -56,7 +67,7 @@ class Dispatcher {
         if (entry.expiry > now) {
           this.queue.push(entry);
         } else {
-          entry.rejecter('time_out');
+          entry.rejector('time_out');
         }
       }
     }, this);
@@ -64,11 +75,9 @@ class Dispatcher {
     this.drainTimer = this._scheduleDrain();
   }
 
-  _shutdown() {
+  public shutdown() {
     if (this.drainTimer != null) {
       clearTimeout(this.drainTimer);
     }
   }
 }
-
-module.exports = Dispatcher;

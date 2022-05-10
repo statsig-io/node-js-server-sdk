@@ -1,6 +1,6 @@
 import { StatsigUser } from './StatsigUser';
 
-const { clone } = require('./utils/core');
+import { clone } from './utils/core';
 
 export default class LogEvent {
   private time: number;

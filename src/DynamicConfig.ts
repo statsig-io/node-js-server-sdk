@@ -1,4 +1,4 @@
-const utils = require('./utils/core');
+import { clone } from './utils/core';
 
 /**
  * Returns the data for a DynamicConfig in the statsig console via typed get functions
@@ -22,7 +22,7 @@ export default class DynamicConfig {
       value = {};
     }
     this.name = configName;
-    this.value = utils.clone(value);
+    this.value = clone(value);
     this._ruleID = ruleID;
     this._secondaryExposures = Array.isArray(secondaryExposures)
       ? secondaryExposures

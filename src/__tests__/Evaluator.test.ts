@@ -3,6 +3,8 @@ import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
 const exampleConfigSpecs = require('./jest.setup');
 import Evaluator from '../Evaluator';
 import SpecStore from '../SpecStore';
+import StatsigOptions from '../StatsigOptions';
+import StatsigFetcher from '../utils/StatsigFetcher';
 
 describe('Test condition evaluation', () => {
   const baseTime = 1609459200000;
@@ -242,7 +244,8 @@ describe('Test condition evaluation', () => {
     ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: 'sth'}}, false],
   ]
 
-  const mockedEvaluator = new Evaluator({}, 'secret-123');
+  const fetcher = new StatsigFetcher('secret-123', new StatsigOptions({}));
+  const mockedEvaluator = new Evaluator(fetcher, {});
   jest
     .spyOn(mockedEvaluator, 'checkGate')
     .mockImplementation((user, gateName) => {
@@ -267,9 +270,10 @@ describe('Test condition evaluation', () => {
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
+    const network = new StatsigFetcher('secret-123', new StatsigOptions({}));
     const store = new SpecStore(
+      network,
       { api: 'https://statsigapi.net/v1' },
-      'secret-dummy',
     );
     // @ts-ignore
     store.store = {
@@ -492,9 +496,10 @@ describe('testing checkGate and getConfig', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
+    const network = new StatsigFetcher('secret-123', new StatsigOptions({}));
     evaluator = new Evaluator(
+      network,
       { api: 'https://statsigapi.net/v1' },
-      'secret-123',
     );
 
     let now = Date.now();
