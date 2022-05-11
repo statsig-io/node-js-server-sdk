@@ -1,7 +1,8 @@
 let nodeFetch = null;
 try {
-  nodeFetch = require('node-fetch');
-} catch(err) {
+  var webpackBypass = '';
+  nodeFetch = require(`node-fetch${webpackBypass}`);
+} catch (err) {
   // Ignore
 }
 
