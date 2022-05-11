@@ -5,7 +5,6 @@ import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
 import StatsigOptions from './StatsigOptions';
 const Layer = require('./Layer');
-const fetcher = require('./utils/StatsigFetcher');
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
 const LAYER_EXPOSURE_EVENT = 'layer_exposure';

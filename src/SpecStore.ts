@@ -1,6 +1,5 @@
 import { ConfigSpec } from './ConfigSpec';
 import StatsigOptions from './StatsigOptions';
-import { StatsigOptionsType } from './StatsigOptionsType';
 import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 const fetch = require('node-fetch');
