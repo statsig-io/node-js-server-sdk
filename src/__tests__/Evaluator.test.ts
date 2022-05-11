@@ -245,7 +245,7 @@ describe('Test condition evaluation', () => {
   ]
 
   const fetcher = new StatsigFetcher('secret-123', new StatsigOptions({}));
-  const mockedEvaluator = new Evaluator(fetcher, {});
+  const mockedEvaluator = new Evaluator(fetcher, new StatsigOptions({}));
   jest
     .spyOn(mockedEvaluator, 'checkGate')
     .mockImplementation((user, gateName) => {
@@ -273,7 +273,7 @@ describe('Test condition evaluation', () => {
     const network = new StatsigFetcher('secret-123', new StatsigOptions({}));
     const store = new SpecStore(
       network,
-      { api: 'https://statsigapi.net/v1' },
+      new StatsigOptions({ api: 'https://statsigapi.net/v1' }),
     );
     // @ts-ignore
     store.store = {
@@ -307,6 +307,7 @@ describe('Test condition evaluation', () => {
           json.field = null;
         }
         const condition = new ConfigCondition(json);
+        // @ts-ignore
         const result = mockedEvaluator._evalCondition(user, condition);
         if (
           result.passes !== evalPasses ||
@@ -337,29 +338,29 @@ describe('Test condition evaluation', () => {
 
   it('evals gates correctly', () => {
     expect(mockedEvaluator._eval({}, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', [], false),
+      new ConfigEvaluation(false, 'default', [], {}),
     );
     expect(mockedEvaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', [], false),
+      new ConfigEvaluation(false, 'default', [], {}),
     );
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], true));
+    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}));
     expect(
       mockedEvaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], true));
+    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}));
     expect(
       mockedEvaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'default', [], false));
+    ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'disabled', [], false));
+    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}));
     expect(
       mockedEvaluator._eval(
         { custom: { email: 'tore@nfl.com' } },
         disabledGateSpec,
       ),
-    ).toEqual(new ConfigEvaluation(false, 'disabled', [], false));
+    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}));
   });
 
   it('implements pass percentage correctly', () => {
@@ -368,7 +369,7 @@ describe('Test condition evaluation', () => {
       if (
         mockedEvaluator._eval(
           {
-            userID: Math.random(),
+            userID: Math.random() + '',
             email: 'tore@packers.com',
             // @ts-ignore
           },
@@ -385,7 +386,7 @@ describe('Test condition evaluation', () => {
   it('implements pass percentage correctly', () => {
     let valueID1 = mockedEvaluator._eval(
       {
-        userID: Math.random(),
+        userID: Math.random() + '',
         email: 'tore@packers.com',
         customIDs: { teamID: '3' },
       },
@@ -393,7 +394,7 @@ describe('Test condition evaluation', () => {
     ).value;
     let valueID2 = mockedEvaluator._eval(
       {
-        userID: Math.random(),
+        userID: Math.random() + '',
         email: 'tore@packers.com',
         customIDs: { teamID: '2' },
       },
@@ -409,7 +410,7 @@ describe('Test condition evaluation', () => {
     });
     const failResult = mockedEvaluator._eval(
       {
-        userID: Math.random(),
+        userID: Math.random() + '',
         email: 'tore@packers.com',
         // @ts-ignore
       },
@@ -424,7 +425,7 @@ describe('Test condition evaluation', () => {
     });
     const passResult = mockedEvaluator._eval(
       {
-        userID: Math.random(),
+        userID: Math.random() + '',
         email: 'tore@packers.com',
       },
       halfPassGateSpec,
@@ -458,9 +459,11 @@ describe('Test condition evaluation', () => {
       ).rule_id,
     ).toEqual('rule_id_config');
     expect(
+      // @ts-expect-error
       mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).json_value,
     ).toEqual({});
     expect(
+      // @ts-expect-error
       mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).rule_id,
     ).toEqual('rule_id_config_public');
   });
@@ -499,7 +502,7 @@ describe('testing checkGate and getConfig', () => {
     const network = new StatsigFetcher('secret-123', new StatsigOptions({}));
     evaluator = new Evaluator(
       network,
-      { api: 'https://statsigapi.net/v1' },
+      new StatsigOptions({ api: 'https://statsigapi.net/v1' }),
     );
 
     let now = Date.now();
@@ -523,7 +526,7 @@ describe('testing checkGate and getConfig', () => {
         exampleConfigSpecs.gate.name,
       ),
     ).toEqual(
-      new ConfigEvaluation(true, exampleConfigSpecs.gate.rules[0].id, [], true),
+      new ConfigEvaluation(true, exampleConfigSpecs.gate.rules[0].id, [], {}),
     );
 
     // should evaluate to false
@@ -532,7 +535,7 @@ describe('testing checkGate and getConfig', () => {
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name,
       ),
-    ).toEqual(new ConfigEvaluation(false, 'default', [], false));
+    ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
 
     // non-existent gate should return null
     expect(

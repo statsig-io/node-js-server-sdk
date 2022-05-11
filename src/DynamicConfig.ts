@@ -22,7 +22,7 @@ export default class DynamicConfig {
       value = {};
     }
     this.name = configName;
-    this.value = clone(value);
+    this.value = clone(value) ?? {};
     this._ruleID = ruleID;
     this._secondaryExposures = Array.isArray(secondaryExposures)
       ? secondaryExposures
@@ -31,13 +31,12 @@ export default class DynamicConfig {
 
   public get<T>(
     key: string,
-    defaultValue: T,
-    typeGuard: (value: unknown) => value is T | null = null,
-  ): T {
+    defaultValue: T | null,
+    typeGuard: ((value: unknown) => value is T | null) | null = null,
+  ): T | null {
     if (defaultValue === undefined) {
       defaultValue = null;
     }
-
     // @ts-ignore
     const val = this.getValue(key, defaultValue);
 
@@ -45,8 +44,8 @@ export default class DynamicConfig {
       return defaultValue;
     }
 
-    if (typeGuard) {
-      return typeGuard(val) ? val : defaultValue;
+    if (typeGuard != null) {
+      return typeGuard(val) ? val as T : defaultValue;
     }
 
     if (defaultValue == null) {

@@ -22,13 +22,13 @@ export default class StatsigFetcher {
     this.sdkKey = secretKey;
   }
 
-  public dispatch<T>(url: string, body: Record<string, unknown>, timeout: number): Promise<T> {
-    return this.dispatcher.enqueue(this.post<T>(url, body), timeout);
+  public dispatch(url: string, body: Record<string, unknown>, timeout: number): Promise<Response> {
+    return this.dispatcher.enqueue(this.post(url, body), timeout);
   }
 
-  public post<T>(url: string, body: Record<string, unknown>, retries: number = 0, backoff: number = 1000): Promise<T | null> {
+  public post(url: string, body: Record<string, unknown>, retries: number = 0, backoff: number = 1000): Promise<Response> {
     if (this.localMode) {
-      return Promise.resolve(null);
+      return Promise.resolve(new Response());
     }
     const counter = this.leakyBucket[url];
     if (counter != null && counter >= 1000) {
@@ -43,6 +43,7 @@ export default class StatsigFetcher {
     } else {
       this.leakyBucket[url] = counter + 1;
     }
+    
     const params = {
       method: 'POST',
       body: JSON.stringify(body),
@@ -90,7 +91,7 @@ export default class StatsigFetcher {
     }
   }
 
-  private _retry<T>(url: string, body: Record<string, unknown>, retries: number, backoff: number): Promise<T> {
+  private _retry(url: string, body: Record<string, unknown>, retries: number, backoff: number): Promise<Response> {
     return new Promise((resolve, reject) => {
       this.pendingTimers.push(
         setTimeout(() => {

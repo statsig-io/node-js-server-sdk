@@ -1,4 +1,5 @@
 import { ConfigSpec } from './ConfigSpec';
+import StatsigOptions from './StatsigOptions';
 import { StatsigOptionsType } from './StatsigOptionsType';
 import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
@@ -24,30 +25,32 @@ export type ConfigStore = {
 
 export default class SpecStore {
   private api: string;
-  private rulesUpdatedCallback: (rules: string, time: number) => void | null =
-    null;
+  private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
   private time: number;
   private store: ConfigStore;
   private syncInterval: number;
   private idListSyncInterval: number;
   private initialized: boolean;
-  private syncTimer: NodeJS.Timer;
-  private idListsSyncTimer: NodeJS.Timer;
+  private syncTimer: NodeJS.Timer | null;
+  private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
 
   public constructor(
     fetcher: StatsigFetcher,
-    options: StatsigOptionsType,
+    options: StatsigOptions,
     syncInterval = SYNC_INTERVAL,
     idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
   ) {
     this.fetcher = fetcher;
     this.api = options.api;
-    this.rulesUpdatedCallback = options.rulesUpdatedCallback;
+    this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
     this.time = 0;
     this.store = { gates: {}, configs: {}, idLists: {}, layers: {} };
     this.syncInterval = syncInterval;
     this.idListSyncInterval = idListSyncInterval;
+    this.initialized = false;
+    this.syncTimer = null;
+    this.idListsSyncTimer = null;
 
     var specsJSON = null;
     if (options?.bootstrapValues != null) {
@@ -129,9 +132,13 @@ export default class SpecStore {
         }
       }
     } catch (e) {
+      let message = '';
+      if (e instanceof Error) {
+        message = e.message;
+      }
       console.error(
         `statsigSDK::sync> Failed while attempting to sync values: ${
-          e?.message ?? ''
+          message
         }`,
       );
     }
@@ -149,9 +156,9 @@ export default class SpecStore {
 
     let parseFailed = false;
 
-    const updatedGates = {};
-    const updatedConfigs = {};
-    const updatedLayers = {};
+    const updatedGates : Record<string, ConfigSpec> = {};
+    const updatedConfigs : Record<string, ConfigSpec> = {};
+    const updatedLayers : Record<string, ConfigSpec> = {};
     const gateArray = specsJSON?.feature_gates;
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
@@ -255,8 +262,11 @@ export default class SpecStore {
               Range: `bytes=${readSize}-`,
             },
           })
-            .then((res) => {
+            .then((res: Response) => {
               const contentLength = res.headers.get('content-length');
+              if (contentLength == null) {
+                throw new Error('Content-Length for the id list is invalid.');
+              }
               const length = parseInt(contentLength);
               if (typeof length === 'number') {
                 this.store.idLists[name].readBytes += length;
@@ -266,7 +276,7 @@ export default class SpecStore {
               }
               return res.text();
             })
-            .then((data) => {
+            .then((data: string) => {
               const lines = data.split(/\r?\n/);
               if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
                 delete this.store.idLists[name];

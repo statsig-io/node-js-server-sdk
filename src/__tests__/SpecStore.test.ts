@@ -71,7 +71,7 @@ describe('Verify behavior of SpecStore', () => {
     jest.resetModules();
     jest.restoreAllMocks();
     const net = new StatsigFetcher("secret-", new StatsigOptions({}));
-    store = new SpecStore(net, {}, 1000, 1000);
+    store = new SpecStore(net, new StatsigOptions({}), 1000, 1000);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });

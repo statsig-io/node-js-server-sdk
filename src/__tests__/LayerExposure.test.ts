@@ -1,6 +1,6 @@
 import * as statsigsdk from '../index';
 // @ts-ignore
-const statsig = statsigsdk.default;
+let statsig = statsigsdk.default;
 
 // @ts-ignore
 const fetch = require('node-fetch');
@@ -38,6 +38,7 @@ describe('Layer Exposure Logging', () => {
     jest.restoreAllMocks();
     jest.resetModules();
     logs = {};
+    statsig._instance = null;
   });
 
   it('does not log on invalid types', async () => {

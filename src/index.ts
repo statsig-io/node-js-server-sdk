@@ -4,7 +4,58 @@ import Layer from './Layer';
 import StatsigServer from './StatsigServer';
 import { StatsigOptionsType } from './StatsigOptionsType';
 
-const statsig = {
+type StatsigSingleton = {
+  _instance: null | StatsigServer;
+
+  initialize(
+    secretKey: string,
+    options?: StatsigOptionsType,
+  ): Promise<void>;
+
+  checkGate(user: StatsigUser, gateName: string): Promise<boolean>;
+
+  getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig>;
+
+  getExperiment(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig>;
+
+  getLayer(user: StatsigUser, layerName: string): Promise<Layer>;
+
+  logEvent(
+    user: StatsigUser,
+    eventName: string,
+    value?: string | number | null,
+    metadata?: Record<string, unknown> | null,
+  ): void;
+
+  logEventObject(eventObject: {
+    eventName: string;
+    user: StatsigUser;
+    value?: string | number | null;
+    metadata?: Record<string, unknown>;
+    time?: string | null;
+  }): void;
+
+  shutdown(): void;
+
+  getClientInitializeResponse(
+    user: StatsigUser,
+  ): Record<string, unknown> | null;
+
+  overrideGate(gateName: string, value: boolean, userID?: string): void;
+
+  overrideConfig(
+    configName: string,
+    value: Record<string, unknown>,
+    userID?: string,
+  ): void;
+
+  _ensureInitialized(): StatsigServer;
+}
+
+const statsig: StatsigSingleton = {
   _instance: null,
 
   initialize(
@@ -18,26 +69,26 @@ const statsig = {
   },
 
   checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    statsig._ensureInitialized();
-    return statsig._instance.checkGate(user, gateName);
+    const server = statsig._ensureInitialized();
+    return server.checkGate(user, gateName);
   },
 
   getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig> {
-    statsig._ensureInitialized();
-    return statsig._instance.getConfig(user, configName);
+    const server = statsig._ensureInitialized();
+    return server.getConfig(user, configName);
   },
 
   getExperiment(
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    statsig._ensureInitialized();
-    return statsig._instance.getExperiment(user, experimentName);
+    const server = statsig._ensureInitialized();
+    return server.getExperiment(user, experimentName);
   },
 
   getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    statsig._ensureInitialized();
-    return statsig._instance.getLayer(user, layerName);
+    const server = statsig._ensureInitialized();
+    return server.getLayer(user, layerName);
   },
 
   logEvent(
@@ -46,8 +97,8 @@ const statsig = {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ): void {
-    statsig._ensureInitialized();
-    statsig._instance.logEvent(user, eventName, value, metadata);
+    const server = statsig._ensureInitialized();
+    server.logEvent(user, eventName, value, metadata);
   },
 
   logEventObject(eventObject: {
@@ -57,25 +108,25 @@ const statsig = {
     metadata?: Record<string, unknown>;
     time?: string | null;
   }): void {
-    statsig._ensureInitialized();
-    statsig._instance.logEventObject(eventObject);
+    const server = statsig._ensureInitialized();
+    server.logEventObject(eventObject);
   },
 
   shutdown(): void {
-    statsig._ensureInitialized();
-    statsig._instance.shutdown();
+    const server = statsig._ensureInitialized();
+    server.shutdown();
   },
 
   getClientInitializeResponse(
     user: StatsigUser,
   ): Record<string, unknown> | null {
-    statsig._ensureInitialized();
-    return statsig._instance.getClientInitializeResponse(user);
+    const server = statsig._ensureInitialized();
+    return server.getClientInitializeResponse(user);
   },
 
   overrideGate(gateName: string, value: boolean, userID: string = ''): void {
-    statsig._ensureInitialized();
-    statsig._instance.overrideGate(gateName, value, userID);
+    const server = statsig._ensureInitialized();
+    server.overrideGate(gateName, value, userID);
   },
 
   overrideConfig(
@@ -83,14 +134,15 @@ const statsig = {
     value: Record<string, unknown>,
     userID: string = '',
   ): void {
-    statsig._ensureInitialized();
-    statsig._instance.overrideConfig(configName, value, userID);
+    const server = statsig._ensureInitialized();
+    server.overrideConfig(configName, value, userID);
   },
 
-  _ensureInitialized(): void {
+  _ensureInitialized(): StatsigServer {
     if (statsig._instance == null) {
       throw new Error('Must call initialize() first.');
     }
+    return statsig._instance;
   },
 };
 

@@ -3,8 +3,8 @@ type Entry = {
   expiry: number;
   promise: Promise<unknown>;
   taskCompleted: boolean;
-  resolver?: ((value: unknown) => void) | null;
-  rejector?: ((error?: unknown) => void) | null;
+  resolver?: ((value: Response | PromiseLike<Response>) => void) | null;
+  rejector?: ((error?: any) => void) | null;
 };
 
 export default class Dispatcher {
@@ -18,7 +18,7 @@ export default class Dispatcher {
     this.drainTimer = this._scheduleDrain();
   }
 
-  public enqueue<T>(promise: Promise<unknown>, timeoutms: number): Promise<T> {
+  public enqueue(promise: Promise<Response>, timeoutms: number): Promise<Response> {
     let entry: Entry = {
       expiry: Date.now() + timeoutms,
       promise: promise,
@@ -27,26 +27,30 @@ export default class Dispatcher {
       rejector: null
     };
 
-    const dispatcherPromise = new Promise<T>((res, rej) => {
+    const dispatcherPromise = new Promise<Response>((res, rej) => {
       entry.resolver = res;
       entry.rejector = rej;
     });
 
     this.queue.push(entry);
 
-    const markCompleted = ((e) => {
+    const markCompleted = ((e: Entry) => {
       e.taskCompleted = true;
     }).bind(this);
 
     promise.then(
       (result) => {
         markCompleted(entry);
-        entry.resolver(result);
+        if (entry.resolver != null) {
+          entry.resolver(result);
+        }
         return result;
       },
       (err) => {
         markCompleted(entry);
-        entry.rejector(err);
+        if (entry.rejector != null) {
+          entry.rejector();
+        }
         return err;
       },
     );
@@ -67,7 +71,9 @@ export default class Dispatcher {
         if (entry.expiry > now) {
           this.queue.push(entry);
         } else {
-          entry.rejector('time_out');
+          if (entry.rejector != null) {
+            entry.rejector('time_out');
+          }
         }
       }
     }, this);

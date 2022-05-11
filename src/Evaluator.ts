@@ -3,12 +3,13 @@ import ConfigEvaluation from './ConfigEvaluation';
 import SpecStore from './SpecStore';
 import { StatsigUser } from './StatsigUser';
 import { ConfigSpec, ConfigRule, ConfigCondition } from './ConfigSpec';
-import { StatsigOptionsType } from './StatsigOptionsType';
 
-import shajs from 'sha.js';
+import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
+import StatsigOptions from './StatsigOptions';
 
+const shajs = require('sha.js');
 const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -25,12 +26,12 @@ type InitializeResponse = {
 
 export default class Evaluator {
   private gateOverrides: Record<string, Record<string, boolean>>;
-  private configOverrides: Record<string, Record<string, unknown>>;
+  private configOverrides: Record<string, Record<string, Record<string, unknown>>>;
   private initialized: boolean = false;
 
   private store: SpecStore;
 
-  public constructor(fetcher: StatsigFetcher, options: StatsigOptionsType) {
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.store = new SpecStore(fetcher, options);
     this.gateOverrides = {};
     this.configOverrides = {};
@@ -156,7 +157,7 @@ export default class Evaluator {
 
   public getClientInitializeResponse(
     user: StatsigUser,
-  ): Record<string, unknown> {
+  ): Record<string, unknown> | null {
     if (!this.store.isServingChecks()) {
       return null;
     }
@@ -220,7 +221,7 @@ export default class Evaluator {
     return {
       feature_gates: Object.assign(
         {},
-        ...gates.map((item) => ({ [item.name]: item })),
+        ...gates.map((item) => ({ [item!!.name]: item })),
       ),
       dynamic_configs: Object.assign(
         {},
@@ -251,16 +252,17 @@ export default class Evaluator {
     };
 
     if (res.explicit_parameters) {
+      // @ts-ignore
       output['explicit_parameters'] = res.explicit_parameters;
     }
 
     return output;
   }
 
-  private _cleanExposures(exposures) {
-    const seen = {};
+  private _cleanExposures(exposures: Record<string, string>[]): Record<string, string>[] {
+    const seen: Record<string, boolean> = {};
     return exposures
-      .map((exposure) => {
+      .map((exposure: Record<string, string>) => {
         const key = `${exposure.gate}|${exposure.gateValue}|${exposure.ruleID}`;
         if (seen[key]) {
           return null;
@@ -268,19 +270,14 @@ export default class Evaluator {
         seen[key] = true;
         return exposure;
       })
-      .filter((exposure) => exposure != null);
+      .filter(notEmpty);
   }
 
   public shutdown() {
     this.store.shutdown();
   }
 
-  /**
-   * @param {object} user
-   * @param {ConfigSpec | null} config
-   * @returns {ConfigEvaluation | null}
-   */
-  _evalConfig(user, config) {
+  _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation | null {
     if (!config) {
       return null;
     }
@@ -288,17 +285,12 @@ export default class Evaluator {
     return this._eval(user, config);
   }
 
-  /**
-   * @param {object} user
-   * @param {ConfigSpec} config
-   * @returns {ConfigEvaluation}
-   */
-  _eval(user, config) {
+  _eval(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
     if (!config.enabled) {
-      return new ConfigEvaluation(false, 'disabled', [], config.defaultValue);
+      return new ConfigEvaluation(false, 'disabled', [], config.defaultValue as Record<string, unknown>);
     }
 
-    let secondary_exposures = [];
+    let secondary_exposures: Record<string, string>[] = [];
     for (let i = 0; i < config.rules.length; i++) {
       let rule = config.rules[i];
       const ruleResult = this._evalRule(user, rule);
@@ -325,7 +317,7 @@ export default class Evaluator {
           pass,
           ruleResult.rule_id,
           secondary_exposures,
-          pass ? ruleResult.json_value : config.defaultValue,
+          pass ? ruleResult.json_value : config.defaultValue as Record<string, unknown>,
           config.explicitParameters,
           ruleResult.config_delegate,
         );
@@ -336,12 +328,15 @@ export default class Evaluator {
       false,
       'default',
       secondary_exposures,
-      config.defaultValue,
+      config.defaultValue as Record<string, unknown>,
       config.explicitParameters,
     );
   }
 
-  _evalDelegate(user: StatsigUser, rule: ConfigRule, exposures) {
+  _evalDelegate(user: StatsigUser, rule: ConfigRule, exposures: Record<string, string>[]) {
+    if (rule.configDelegate == null) {
+      return null;
+    }
     const config = this.store.getConfig(rule.configDelegate);
     if (!config) {
       return null;
@@ -357,7 +352,7 @@ export default class Evaluator {
     return delegatedResult;
   }
 
-  _evalPassPercent(user, rule, config) {
+  _evalPassPercent(user: StatsigUser, rule: ConfigRule, config: ConfigSpec) {
     const hash = computeUserHash(
       config.salt +
         '.' +
@@ -370,7 +365,7 @@ export default class Evaluator {
     );
   }
 
-  _getUnitID(user, idType) {
+  _getUnitID(user: StatsigUser, idType: string) {
     if (typeof idType === 'string' && idType.toLowerCase() !== 'userid') {
       return (
         user?.customIDs?.[idType] ?? user?.customIDs?.[idType.toLowerCase()]
@@ -379,13 +374,8 @@ export default class Evaluator {
     return user?.userID;
   }
 
-  /**
-   * @param {object} user
-   * @param {ConfigRule} rule
-   * @returns {ConfigEvaluation}
-   */
-  _evalRule(user, rule) {
-    let secondaryExposures = [];
+  _evalRule(user: StatsigUser, rule: ConfigRule) {
+    let secondaryExposures: Record<string, string>[] = [];
     let pass = true;
 
     for (const condition of rule.conditions) {
@@ -407,18 +397,11 @@ export default class Evaluator {
       pass,
       rule.id,
       secondaryExposures,
-      rule.returnValue,
+      rule.returnValue as Record<string, unknown>,
     );
   }
 
-  /**
-   * Evaluates the current condition, returns a boolean if the user pass or fail the condition,
-   * but can also return a fetchFromServer boolean if the condition cannot be evaluated by the SDK.
-   * @param {*} user
-   * @param {ConfigCondition} condition
-   * @returns {{passes: boolean, fetchFromServer?: boolean, exposures?: any[]}}
-   */
-  _evalCondition(user, condition) {
+  _evalCondition(user: StatsigUser, condition: ConfigCondition): {passes: boolean, fetchFromServer?: boolean, exposures?: any[]} {
     let value = null;
     let field = condition.field;
     let target = condition.targetValue;
@@ -428,7 +411,7 @@ export default class Evaluator {
         return { passes: true };
       case 'fail_gate':
       case 'pass_gate':
-        const gateResult = this.checkGate(user, target);
+        const gateResult = this.checkGate(user, target as string);
         if (gateResult?.fetch_from_server) {
           return { passes: false, fetchFromServer: true };
         }
@@ -436,13 +419,13 @@ export default class Evaluator {
 
         let allExposures = gateResult?.secondary_exposures ?? [];
         allExposures.push({
-          gate: target,
+          gate: String(target),
           gateValue: String(value),
           ruleID: gateResult?.rule_id ?? '',
         });
 
         return {
-          passes: condition.type.toLowerCase() === 'fail_gate' ? !value : value,
+          passes: condition.type.toLowerCase() === 'fail_gate' ? !value : !!value,
           exposures: allExposures,
         };
       case 'ip_based':
@@ -481,47 +464,47 @@ export default class Evaluator {
     switch (op) {
       // numerical
       case 'gt':
-        evalResult = numberCompare((a, b) => a > b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a > b)(value, target);
         break;
       case 'gte':
-        evalResult = numberCompare((a, b) => a >= b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a >= b)(value, target);
         break;
       case 'lt':
-        evalResult = numberCompare((a, b) => a < b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a < b)(value, target);
         break;
       case 'lte':
-        evalResult = numberCompare((a, b) => a <= b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a <= b)(value, target);
         break;
 
       // version
       case 'version_gt':
         evalResult = versionCompareHelper((result) => result > 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
       case 'version_gte':
         evalResult = versionCompareHelper((result) => result >= 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
       case 'version_lt':
         evalResult = versionCompareHelper((result) => result < 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
       case 'version_lte':
         evalResult = versionCompareHelper((result) => result <= 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
       case 'version_eq':
         evalResult = versionCompareHelper((result) => result === 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
       case 'version_neq':
         evalResult = versionCompareHelper((result) => result !== 0)(
-          versionCompare(value, target),
+          value, target as string
         );
         break;
 
@@ -587,7 +570,7 @@ export default class Evaluator {
       case 'str_matches':
         try {
           if (String(value).length < 1000) {
-            evalResult = new RegExp(target).test(String(value));
+            evalResult = new RegExp(target as string).test(String(value));
           } else {
             evalResult = false;
           }
@@ -605,21 +588,21 @@ export default class Evaluator {
 
       // dates
       case 'before':
-        evalResult = dateCompare((a, b) => a < b)(value, target);
+        evalResult = dateCompare((a, b) => a < b)(value, target as string);
         break;
       case 'after':
-        evalResult = dateCompare((a, b) => a > b)(value, target);
+        evalResult = dateCompare((a, b) => a > b)(value, target as string);
         break;
       case 'on':
         evalResult = dateCompare((a, b) => {
           a?.setHours(0, 0, 0, 0);
           b?.setHours(0, 0, 0, 0);
           return a?.getTime() === b?.getTime();
-        })(value, target);
+        })(value, target as string);
         break;
       case 'in_segment_list':
       case 'not_in_segment_list': {
-        const list = this.store.getIDList(target)?.ids;
+        const list = this.store.getIDList(target as string)?.ids;
         value = hashUnitIDForIDList(value);
         let inList = typeof list === 'object' && list[value] === true;
         evalResult = op === 'in_segment_list' ? inList : !inList;
@@ -631,7 +614,7 @@ export default class Evaluator {
     return { passes: evalResult };
   }
 
-  _isExperimentActive(experimentConfig) {
+  _isExperimentActive(experimentConfig: ConfigSpec) {
     for (const rule of experimentConfig.rules) {
       const ruleID = rule['id'];
       if (ruleID == null) {
@@ -644,7 +627,7 @@ export default class Evaluator {
     return false;
   }
 
-  _isUserAllocatedToExperiment(user, experimentConfig) {
+  _isUserAllocatedToExperiment(user: StatsigUser, experimentConfig: ConfigSpec) {
     for (const rule of experimentConfig.rules) {
       const ruleID = rule['id'];
       if (ruleID == null) {
@@ -659,7 +642,7 @@ export default class Evaluator {
     return false;
   }
 
-  private getFromIP(user, field) {
+  private getFromIP(user: StatsigUser, field: string) {
     const ip = getFromUser(user, 'ip');
     if (ip == null || field !== 'country') {
       return null;
@@ -684,7 +667,7 @@ export default class Evaluator {
   }
 }
 
-function computeUserHash(userHash) {
+function computeUserHash(userHash: string) {
   const buffer = shajs('sha256').update(userHash).digest();
   if (buffer.readBigUInt64BE) {
     return buffer.readBigUInt64BE();
@@ -700,24 +683,26 @@ function computeUserHash(userHash) {
   return dv.getBigUint64(0, false);
 }
 
-function getHashedName(name) {
+function getHashedName(name: string) {
   return shajs('sha256').update(name).digest('base64');
 }
 
-function hashUnitIDForIDList(unitID) {
+function hashUnitIDForIDList(unitID: string) {
   if (typeof unitID !== 'string' || unitID == null) {
     return '';
   }
   return getHashedName(unitID).substr(0, 8);
 }
 
-function getFromUser(user, field) {
+function getFromUser(user: StatsigUser, field: string): any | null {
   if (typeof user !== 'object') {
     return null;
   }
+  const indexableUser = user as {[field: string]: unknown};
+  
   return (
-    user?.[field] ??
-    user?.[field.toLowerCase()] ??
+    indexableUser[field] ??
+    indexableUser[field.toLowerCase()] ??
     user?.custom?.[field] ??
     user?.custom?.[field.toLowerCase()] ??
     user?.privateAttributes?.[field] ??
@@ -725,7 +710,7 @@ function getFromUser(user, field) {
   );
 }
 
-function getFromUserAgent(user, field) {
+function getFromUserAgent(user: StatsigUser, field: string) {
   const ua = getFromUser(user, 'userAgent');
   if (ua == null) {
     return null;
@@ -753,36 +738,40 @@ function getFromUserAgent(user, field) {
   }
 }
 
-function getFromEnvironment(user, field) {
+function getFromEnvironment(user: StatsigUser, field: string) {
   return (
     user?.statsigEnvironment?.[field] ??
     user?.statsigEnvironment?.[field.toLowerCase()]
   );
 }
 
-function numberCompare(fn) {
-  return (a, b) => {
+function numberCompare(fn: (a: number, b: number) => boolean): (a: unknown, b: unknown) => boolean {
+  return (a: unknown, b: unknown) => {
     return typeof a === 'number' && typeof b === 'number' && fn(a, b);
   };
 }
 
-function versionCompareHelper(fn) {
-  return (result) => {
-    return result === false ? false : fn(result);
+function versionCompareHelper(fn: (res: number) => boolean): (a: string, b: string) => boolean {
+  return (a: string, b: string) => {
+    const comparison = versionCompare(a, b);
+    if (comparison == null) {
+      return false;
+    }
+    return fn(comparison);
   };
 }
 
 // Compare two version strings without the extensions.
 // returns -1, 0, or 1 if first is smaller than, equal to, or larger than second.
 // returns false if any of the version strings is not valid.
-function versionCompare(first, second) {
+function versionCompare(first: string, second: string): number | null {
   if (typeof first !== 'string' || typeof second !== 'string') {
-    return false;
+    return null;
   }
   const version1 = removeVersionExtension(first);
   const version2 = removeVersionExtension(second);
   if (version1.length === 0 || version2.length === 0) {
-    return false;
+    return null;
   }
 
   const parts1 = version1.split('.');
@@ -802,7 +791,7 @@ function versionCompare(first, second) {
       isNaN(n1) ||
       isNaN(n2)
     ) {
-      return false;
+      return null;
     }
     if (n1 < n2) {
       return -1;
@@ -813,7 +802,7 @@ function versionCompare(first, second) {
   return 0;
 }
 
-function removeVersionExtension(version) {
+function removeVersionExtension(version: string): string {
   const hyphenIndex = version.indexOf('-');
   if (hyphenIndex >= 0) {
     return version.substr(0, hyphenIndex);
@@ -821,8 +810,8 @@ function removeVersionExtension(version) {
   return version;
 }
 
-function stringCompare(ignoreCase, fn) {
-  return (a, b) => {
+function stringCompare(ignoreCase: boolean, fn: (a: string, b: string) => boolean): (a: string, b: string) => boolean {
+  return (a: string, b: string): boolean => {
     if (a == null || b == null) {
       return false;
     }
@@ -832,8 +821,8 @@ function stringCompare(ignoreCase, fn) {
   };
 }
 
-function dateCompare(fn) {
-  return (a, b) => {
+function dateCompare(fn: (a: Date, b: Date) => boolean): (a: string, b: string) => boolean {
+  return (a: string, b: string): boolean => {
     if (a == null || b == null) {
       return false;
     }
@@ -858,7 +847,7 @@ function dateCompare(fn) {
   };
 }
 
-function arrayAny(value, array, fn) {
+function arrayAny(value: any, array: unknown, fn: (value: any, otherValue: any) => boolean): boolean {
   if (!Array.isArray(array)) {
     return false;
   }

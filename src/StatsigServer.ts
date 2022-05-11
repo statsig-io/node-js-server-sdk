@@ -7,6 +7,7 @@ import { StatsigUser } from './StatsigUser';
 import LogEventProcessor from './LogEventProcessor';
 import StatsigOptions from './StatsigOptions';
 import StatsigFetcher from './utils/StatsigFetcher';
+import ConfigEvaluation from './ConfigEvaluation';
 
 const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 
@@ -34,6 +35,7 @@ export default class StatsigServer {
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
     this._evaluator = new Evaluator(this._fetcher, this._options);
+    this._logger = new LogEventProcessor(this._fetcher, this._options);
   }
 
   /**
@@ -61,8 +63,6 @@ export default class StatsigServer {
       );
     }
 
-    this._logger = new LogEventProcessor(this._fetcher, this._options);
-
     const initPromise = this._evaluator.init().finally(() => {
       this._ready = true;
       this._pendingInitPromise = null;
@@ -77,7 +77,7 @@ export default class StatsigServer {
           setTimeout(() => {
             this._ready = true;
             this._pendingInitPromise = null;
-            resolve(null);
+            resolve();
           }, this._options.initTimeoutMs);
         }) as Promise<void>,
       ]);
@@ -167,7 +167,7 @@ export default class StatsigServer {
     user: StatsigUser,
     eventName: string,
     value: string | number | null = null,
-    metadata: Record<string, string> | null = null,
+    metadata: Record<string, unknown> | null = null,
   ) {
     this.logEventObject({
       eventName: eventName,
@@ -181,7 +181,7 @@ export default class StatsigServer {
     eventName: string;
     user: StatsigUser;
     value?: string | number | null;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown> | null;
     time?: string | null;
   }) {
     let eventName = eventObject.eventName;
@@ -256,12 +256,10 @@ export default class StatsigServer {
     this._evaluator.shutdown();
   }
 
-  public getClientInitializeResponse(user: StatsigUser) {
+  public getClientInitializeResponse(user: StatsigUser): Record<string, unknown> | null {
     if (this._ready !== true) {
-      return Promise.reject(
-        new Error(
-          'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
-        ),
+      throw new Error(
+        'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
       );
     }
     return this._evaluator.getClientInitializeResponse(user);
@@ -296,7 +294,7 @@ export default class StatsigServer {
   }
 
   private _validateInputs(user: StatsigUser, name: string, usage: string) {
-    const result = { rejection: null, normalizedUser: null };
+    const result : {rejection: null | Promise<never>, normalizedUser: StatsigUser} = { rejection: null, normalizedUser: {} };
     if (this._ready !== true) {
       result.rejection = Promise.reject(
         new Error('Must call initialize() first.'),
@@ -365,7 +363,7 @@ export default class StatsigServer {
     if (!ret?.fetch_from_server) {
       const config = new DynamicConfig(
         configName,
-        ret?.json_value,
+        ret?.json_value as Record<string, unknown>,
         ret?.rule_id,
         ret?.secondary_exposures,
       );
@@ -387,17 +385,17 @@ export default class StatsigServer {
     let ret = this._evaluator.getLayer(user, layerName);
     if (ret != null && !ret.fetch_from_server) {
       const logFunc = (
-        /** @type {Layer} */ layer,
-        /** @type {string} */ parameterName,
+        layer: Layer,
+        parameterName: string,
       ) => {
         if (this._logger == null) {
           return;
         }
-        this._logger.logLayerExposure(user, layer, parameterName, ret);
+        this._logger.logLayerExposure(user, layer, parameterName, ret as ConfigEvaluation);
       };
       const layer = new Layer(
         layerName,
-        ret?.json_value,
+        ret?.json_value as Record<string, unknown>,
         ret?.rule_id,
         logFunc,
       );
@@ -464,7 +462,7 @@ function shouldTrimParam(
 
 function normalizeUser(
   user: StatsigUser,
-  options: StatsigOptionsType,
+  options: StatsigOptions,
 ): StatsigUser {
   user = trimUserObjIfNeeded(user);
   if (options?.environment != null) {
@@ -473,10 +471,9 @@ function normalizeUser(
   return user;
 }
 
-function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
-  // @ts-ignore
+function trimUserObjIfNeeded(user: StatsigUser | null): StatsigUser {
   if (user == null) return {};
-  if (shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
+  if (user.userID != null && shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
       'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
     );

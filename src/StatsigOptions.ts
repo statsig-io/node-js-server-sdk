@@ -6,23 +6,27 @@ export default class StatsigOptions {
 
   public api: string;
   public bootstrapValues: string | null;
-  public environment: StatsigEnvironment;
-  public rulesUpdatedCallback: RulesUpdatedCallback;
+  public environment: StatsigEnvironment | null;
+  public rulesUpdatedCallback: RulesUpdatedCallback | null;
   public localMode: boolean;
   public initTimeoutMs: number;
 
   public constructor(inputOptions: Record<string, unknown>) {
-    this.api = this.getString(inputOptions, 'api', DEFAULT_API);
+    this.api = this.getString(inputOptions, 'api', DEFAULT_API) ?? DEFAULT_API;
     this.bootstrapValues = this.getString(inputOptions, 'bootstrapValues', null);
-    const env = this.getObject(inputOptions, 'environment', null);
-    this.environment = env;
-    this.rulesUpdatedCallback = this.getFunction(inputOptions, 'rulesUpdatedCallback');
+    this.environment = null;
+    if (inputOptions.environment != null) {
+      const env = this.getObject(inputOptions, 'environment', {});
+      this.environment = env as StatsigEnvironment;
+    }
+    const callback = this.getFunction(inputOptions, 'rulesUpdatedCallback');
+    this.rulesUpdatedCallback =  callback ? callback as RulesUpdatedCallback : null;
     this.localMode = this.getBoolean(inputOptions, 'localMode', false);
     this.initTimeoutMs = this.getNumber(inputOptions, 'initTimeoutMs', 0);
   }
 
 
-  private getBoolean(inputOptions, index, defaultValue): boolean {
+  private getBoolean(inputOptions: Record<string, unknown>, index: string, defaultValue: boolean): boolean {
     const b = inputOptions[index];
     if (b == null || typeof b !== 'boolean') {
       return defaultValue;
@@ -30,7 +34,7 @@ export default class StatsigOptions {
     return b;
   }
 
-  private getString(inputOptions, index, defaultValue): string | null {
+  private getString(inputOptions: Record<string, unknown>, index: string, defaultValue: string | null): string | null {
     const str = inputOptions[index];
     if (str == null || typeof str !== 'string') {
       return defaultValue;
@@ -38,15 +42,15 @@ export default class StatsigOptions {
     return str;
   }
 
-  private getObject(inputOptions, index, defaultValue): Record<string, string | undefined> | null {
+  private getObject(inputOptions: Record<string, unknown>, index: string, defaultValue: Record<string, undefined>): Record<string, unknown> {
     const obj = inputOptions[index];
     if (obj == null || typeof obj !== 'object') {
       return defaultValue;
     }
-    return obj;
+    return obj as Record<string, unknown>;
   }
 
-  private getFunction(inputOptions, index) {
+  private getFunction(inputOptions: Record<string, unknown>, index: string) {
     const func = inputOptions[index];
     if (func == null || typeof func !== 'function') {
       return null;
@@ -54,7 +58,7 @@ export default class StatsigOptions {
     return func;
   }
 
-  private getNumber(inputOptions, index, defaultValue): number {
+  private getNumber(inputOptions: Record<string, unknown>, index: string, defaultValue: number): number {
     const obj = inputOptions[index];
     if (obj == null || typeof obj !== 'number') {
       return defaultValue;

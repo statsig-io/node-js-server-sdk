@@ -21,10 +21,11 @@ export class ConfigSpec {
     this.explicitParameters = specJSON.explicitParameters as string[];
   }
 
-  parseRules(rulesJSON) {
+  parseRules(rulesJSON: unknown) {
+    const json = rulesJSON as Record<string, unknown>[];
     var rules = [];
-    for (let i = 0; i < rulesJSON.length; i++) {
-      let rule = new ConfigRule(rulesJSON[i]);
+    for (let i = 0; i < json.length; i++) {
+      let rule = new ConfigRule(json[i]);
       rules.push(rule);
     }
     return rules;
@@ -52,9 +53,10 @@ export class ConfigRule {
     this.configDelegate = (ruleJSON.configDelegate as string) ?? null;
   }
 
-  parseConditions(conditionsJSON) {
-    var conditions = [];
-    conditionsJSON?.forEach((cJSON) => {
+  parseConditions(conditionsJSON: unknown) {
+    const json = conditionsJSON as Record<string, unknown>[];
+    var conditions: ConfigCondition[] = [];
+    json?.forEach((cJSON) => {
       let condition = new ConfigCondition(cJSON);
       conditions.push(condition);
     });

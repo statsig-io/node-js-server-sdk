@@ -3,7 +3,6 @@ const path = require('path');
 // @ts-ignore
 const fetch = require('node-fetch');
 
-import Evaluator from '../Evaluator';
 import * as statsigsdk from '../index';
 // @ts-ignore
 const statsig = statsigsdk.default;

@@ -1,9 +1,9 @@
 const { getStatsigMetadata } = require('./utils/core');
 import LogEvent from './LogEvent';
 import { StatsigUser } from './StatsigUser';
-import { StatsigOptionsType } from './StatsigOptionsType';
 import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
+import StatsigOptions from './StatsigOptions';
 const Layer = require('./Layer');
 const fetcher = require('./utils/StatsigFetcher');
 
@@ -17,7 +17,7 @@ const flushBatchSize = 1000;
 const deduperInterval = 60 * 1000;
 
 export default class LogEventProcessor {
-  private options: StatsigOptionsType;
+  private options: StatsigOptions;
   private fetcher: StatsigFetcher;
 
   private queue: LogEvent[];
@@ -27,7 +27,7 @@ export default class LogEventProcessor {
   private deduper: Set<string>;
   private deduperTimer: NodeJS.Timer;
 
-  public constructor(fetcher: StatsigFetcher, options: StatsigOptionsType) {
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.options = options;
     this.fetcher = fetcher;
 
@@ -35,12 +35,13 @@ export default class LogEventProcessor {
     this.deduper = new Set();
     this.loggedErrors = new Set();
 
+    const processor = this;
     this.flushTimer = setInterval(function () {
-      this.flush();
+      processor.flush();
     }, flushInterval);
 
     this.deduperTimer = setInterval(function () {
-      this.deduper.clear();
+      processor.deduper.clear();
     }, deduperInterval);
   }
 
@@ -179,7 +180,7 @@ export default class LogEventProcessor {
     const isExplicit =
       configEvaluation.explicit_parameters?.includes(parameterName) ?? false;
     if (isExplicit) {
-      allocatedExperiment = configEvaluation.config_delegate;
+      allocatedExperiment = configEvaluation.config_delegate ?? '';
       exposures = configEvaluation.secondary_exposures;
     }
 
@@ -198,10 +199,13 @@ export default class LogEventProcessor {
   }
 
   private isUniqueExposure(
-    user: StatsigUser,
+    user: StatsigUser | null,
     eventName: string,
-    metadata: Record<string, unknown>,
+    metadata: Record<string, unknown> | null,
   ): boolean {
+    if (user == null) {
+      return true;
+    }
     let customIdKey = '';
     if (user.customIDs && typeof user.customIDs === 'object') {
       customIdKey = Object.values(user.customIDs).join();
@@ -209,7 +213,7 @@ export default class LogEventProcessor {
 
     let metadataKey = '';
     if (metadata && typeof metadata === 'object') {
-      customIdKey = Object.values(metadata).join();
+      metadataKey = Object.values(metadata).join();
     }
 
     const keyList = [user.userID, customIdKey, eventName, metadataKey];

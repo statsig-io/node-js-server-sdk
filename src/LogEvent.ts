@@ -27,7 +27,9 @@ export default class LogEvent {
       return;
     }
     this.user = clone(user);
-    this.user.privateAttributes = null;
+    if (this.user != null) {
+      this.user.privateAttributes = null;
+    }
   }
 
   public setValue(value: string | number | null) {
@@ -43,7 +45,10 @@ export default class LogEvent {
     }
   }
 
-  public setMetadata(metadata: Record<string, unknown>) {
+  public setMetadata(metadata: Record<string, unknown> | null) {
+    if (metadata == null) {
+      return;
+    }
     if (metadata != null && typeof metadata !== 'object') {
       console.warn(
         'statsigSDK> Metadata is not set because it needs to be an object.',

@@ -3,24 +3,28 @@ export default class ConfigEvaluation {
   public rule_id: string;
   public secondary_exposures: Record<string, string>[];
   public json_value: Record<string, unknown>;
-  public explicit_parameters: string[] | undefined;
-  public config_delegate: string | undefined;
+  public explicit_parameters: string[] | null;
+  public config_delegate: string | null;
   public fetch_from_server: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
 
   constructor(
-    value,
+    value: boolean,
     rule_id = '',
-    secondary_exposures = [],
-    json_value = {},
-    explicit_parameters = undefined,
-    config_delegate = undefined,
+    secondary_exposures: Record<string, string>[] = [],
+    json_value: Record<string, unknown> | boolean = {},
+    explicit_parameters: string[] | null = null,
+    config_delegate: string | null = null,
     fetch_from_server = false,
     undelegated_secondary_exposures = [],
   ) {
     this.value = value;
     this.rule_id = rule_id;
-    this.json_value = json_value;
+    if (typeof json_value === 'boolean') { // handle legacy gate case
+      this.json_value = {};
+    } else {
+      this.json_value = json_value;
+    }
     this.secondary_exposures = secondary_exposures;
     this.undelegated_secondary_exposures = undelegated_secondary_exposures;
     this.config_delegate = config_delegate;
@@ -29,6 +33,6 @@ export default class ConfigEvaluation {
   }
 
   public static fetchFromServer() {
-    return new ConfigEvaluation(false, '', [], null, null, null, true);
+    return new ConfigEvaluation(false, '', [], {}, undefined, undefined, true);
   }
 }

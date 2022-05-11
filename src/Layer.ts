@@ -13,7 +13,7 @@ export default class Layer {
 
   public constructor(
     layerName: string,
-    value: Record<string, unknown> = null,
+    value: Record<string, unknown> = {},
     ruleID: string = '',
     logExposure: ExposeLayer | null = null,
   ) {
@@ -25,20 +25,19 @@ export default class Layer {
     }
 
     this.name = layerName;
-    this._value = clone(value);
+    this._value = clone(value) ?? {};
     this._ruleID = ruleID;
     this._logExposure = logExposure;
   }
 
   public get<T>(
     key: string,
-    defaultValue: T,
-    typeGuard: (value: unknown) => value is T | null = null,
-  ): T {
+    defaultValue: T | null,
+    typeGuard: ((value: unknown) => value is T | null) | null = null,
+  ): T | null {
     if (defaultValue === undefined) {
       defaultValue = null;
     }
-
     const val = this._value[key];
 
     if (val == null) {

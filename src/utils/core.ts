@@ -1,4 +1,4 @@
-import uuidv4 from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { StatsigUser } from '../StatsigUser';
 
 function getSDKVersion(): string {
@@ -17,6 +17,10 @@ function getSDKType(): string {
   }
 }
 
+function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
+  return value !== null && value !== undefined;
+}
+
 function generateID(): string {
   return uuidv4();
 }
@@ -29,7 +33,7 @@ function clone(obj: Record<string, unknown> | null): Record<string, unknown> | n
 }
 
 // Return a number if num can be parsed to a number, otherwise return null
-function getNumericValue(num): number | null {
+function getNumericValue(num: unknown): number | null {
   if (num == null) {
     return null;
   }
@@ -41,12 +45,12 @@ function getNumericValue(num): number | null {
 }
 
 // Return the boolean value of the input if it can be casted into a boolean, null otherwise
-function getBoolValue(val): boolean | null {
+function getBoolValue(val: unknown): boolean | null {
   if (val == null) {
     return null;
-  } else if (val.toString().toLowerCase() === 'true') {
+  } else if (String(val).toLowerCase() === 'true') {
     return true;
-  } else if (val.toString().toLowerCase() === 'false') {
+  } else if (String(val).toLowerCase() === 'false') {
     return false;
   }
   return null;
@@ -87,4 +91,5 @@ export {
   getSDKType,
   getStatsigMetadata,
   isUserIdentifiable,
+  notEmpty,
 };
