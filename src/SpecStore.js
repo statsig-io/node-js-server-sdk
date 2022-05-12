@@ -1,7 +1,7 @@
 const { ConfigSpec } = require('./ConfigSpec');
 const fetcher = require('./utils/StatsigFetcher');
 const { getStatsigMetadata } = require('./utils/core');
-const fetch = require('node-fetch');
+const safeFetch = require('./utils/safeFetch');
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -193,7 +193,7 @@ const SpecStore = {
           if (fileSize <= readSize) {
             continue;
           }
-          const p = fetch(url, {
+          const p = safeFetch(url, {
             method: 'GET',
             headers: {
               Range: `bytes=${readSize}-`,
