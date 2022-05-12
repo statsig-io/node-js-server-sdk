@@ -1,7 +1,8 @@
 // @ts-ignore
 let nodeFetch: (...args) => Promise<Response> = null;
 try {
-  nodeFetch = require('node-fetch');
+  var webpackBypass = '';
+  nodeFetch = require(`node-fetch${webpackBypass}`);
 } catch (err) {
   // Ignore
 }
@@ -11,6 +12,7 @@ export default function safeFetch(...args): Promise<Response> {
   if (nodeFetch) {
     return nodeFetch(...args);
   } else {
+    // @ts-ignore
     return fetch(...args);
   }
 }

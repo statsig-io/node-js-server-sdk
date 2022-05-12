@@ -185,10 +185,10 @@ export default class StatsigServer {
     time?: string | null;
   }) {
     let eventName = eventObject.eventName;
-    let user = eventObject.user || null;
-    let value = eventObject.value || null;
-    let metadata = eventObject.metadata || null;
-    let time = eventObject.time || null;
+    let user = eventObject.user ?? null;
+    let value = eventObject.value ?? null;
+    let metadata = eventObject.metadata ?? null;
+    let time = eventObject.time ?? null;
 
     if (!(this._ready === true && this._logger != null)) {
       throw new Error('Must call initialize() first.');

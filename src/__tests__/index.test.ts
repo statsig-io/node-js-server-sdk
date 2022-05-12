@@ -579,6 +579,38 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
+  test('Verify logEvent can log a 0 value', async () => {
+    const statsig = require('../index');
+    expect.assertions(2);
+    return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._instance._logger, 'log');
+      statsig.logEvent({userID: "123"}, "test", 0);
+
+      const logEvent = new LogEvent('test');
+      logEvent.setMetadata(null);
+      logEvent.setUser({ userID: '123' });
+      logEvent.setValue(0);
+      expect(spy).toBeCalledWith(logEvent);
+      expect(logEvent.toObject().value).toEqual(0);
+    });
+  });
+
+  test('Verify logEvent can log an empty string value', async () => {
+    const statsig = require('../index');
+    expect.assertions(2);
+    return statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(statsig._instance._logger, 'log');
+      statsig.logEvent({userID: "123"}, "test", '');
+
+      const logEvent = new LogEvent('test');
+      logEvent.setMetadata(null);
+      logEvent.setUser({ userID: '123' });
+      logEvent.setValue('');
+      expect(spy).toBeCalledWith(logEvent);
+      expect(logEvent.toObject().value).toEqual('');
+    });
+  });
+
   test('Verify logEventObject can override timestamp', async () => {
     expect.assertions(1);
     return statsig.initialize(secretKey).then(() => {

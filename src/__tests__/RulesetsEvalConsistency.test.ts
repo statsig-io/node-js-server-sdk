@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-// @ts-ignore
-const fetch = require('node-fetch');
-import Evaluator from '../Evaluator';
+import safeFetch from '../utils/safeFetch';
 import * as statsigsdk from '../index';
 // @ts-ignore
 const statsig = statsigsdk.default;
@@ -46,7 +44,7 @@ if (secret) {
 }
 
 async function _validateServerSDKConsistency(api) {
-  const response = await fetch(api + '/rulesets_e2e_test', {
+  const response = await safeFetch(api + '/rulesets_e2e_test', {
     method: 'POST',
     body: JSON.stringify({}),
     headers: {

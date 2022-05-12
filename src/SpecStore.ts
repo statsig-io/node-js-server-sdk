@@ -2,7 +2,7 @@ import { ConfigSpec } from './ConfigSpec';
 import StatsigOptions from './StatsigOptions';
 import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
-const fetch = require('node-fetch');
+import safeFetch from './utils/safeFetch';
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -255,12 +255,13 @@ export default class SpecStore {
           if (fileSize <= readSize) {
             continue;
           }
-          const p = fetch(url, {
+          const p = safeFetch(url, {
             method: 'GET',
             headers: {
               Range: `bytes=${readSize}-`,
             },
           })
+            // @ts-ignore
             .then((res: Response) => {
               const contentLength = res.headers.get('content-length');
               if (contentLength == null) {
