@@ -9,6 +9,8 @@ describe('Verify behavior of top level index functions', () => {
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
 
+  let SpecStore;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
@@ -779,19 +781,24 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify shutdown makes the SDK not ready', async () => {
+  test('Verify shutdown makes the SDK not ready and clears all the timers', async () => {
     const statsig = require('../index');
-    const fetch = require('node-fetch');
-    expect.assertions(6);
+    SpecStore = require('../SpecStore');
+    expect.assertions(10);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'flush');
       expect(statsig._logger.flushTimer).toBeTruthy();
       expect(statsig._logger.deduperTimer).toBeTruthy();
+      expect(SpecStore.syncTimer).toBeTruthy();
+      expect(SpecStore.idListsSyncTimer).toBeTruthy();
+
       statsig.shutdown();
       expect(spy).toHaveBeenCalledTimes(1);
       expect(statsig._ready).toBeFalsy();
       expect(statsig._logger.flushTimer).toBeNull();
       expect(statsig._logger.deduperTimer).toBeNull();
+      expect(SpecStore.syncTimer).toBeNull();
+      expect(SpecStore.idListsSyncTimer).toBeNull();
     });
   });
 
