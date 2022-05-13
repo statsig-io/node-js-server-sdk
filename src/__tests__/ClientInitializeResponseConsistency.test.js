@@ -23,8 +23,7 @@ if (secret) {
     });
 
     [
-      // nocommit 'https://api.statsig.com/v1',
-      'https://latest.api.statsig.com/v1',
+      'https://api.statsig.com/v1',
     ].map((url) =>
       test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
         await _validateInitializeConsistency(url);
