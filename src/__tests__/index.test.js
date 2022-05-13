@@ -9,6 +9,8 @@ describe('Verify behavior of top level index functions', () => {
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
 
+  let SpecStore;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
@@ -557,9 +559,9 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0 ; ii < 10000; ii++) {
+    for (let ii = 0; ii < 10000; ii++) {
       await statsig.getConfig(user, configName);
-      await statsig.checkGate(user, "test_gate");
+      await statsig.checkGate(user, 'test_gate');
     }
 
     expect(spy).toHaveBeenCalledTimes(2);
@@ -581,20 +583,24 @@ describe('Verify behavior of top level index functions', () => {
     });
     await statsig.initialize(secretKey);
 
-    let user = { userID: 123, customIDs: {"project": "def", company: "abc"}, privateAttributes: { secret: 'do not log' } };
+    let user = {
+      userID: 123,
+      customIDs: { project: 'def', company: 'abc' },
+      privateAttributes: { secret: 'do not log' },
+    };
     let configName = 'config_downloaded';
-    const gateName = "test";
+    const gateName = 'test';
 
     const spy = jest.spyOn(statsig._logger, 'log');
-    for (let ii = 0 ; ii < 10000; ii++) {
+    for (let ii = 0; ii < 10000; ii++) {
       await statsig.getConfig(user, configName);
       await statsig.checkGate(user, gateName);
     }
 
     expect(spy).toHaveBeenCalledTimes(2);
 
-    for (let ii = 0 ; ii < 10000; ii++) {
-      user.customIDs.project = ii + "";
+    for (let ii = 0; ii < 10000; ii++) {
+      user.customIDs.project = ii + '';
       await statsig.getConfig(user, configName);
       await statsig.checkGate(user, gateName);
     }
@@ -665,7 +671,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEvent({userID: "123"}, "test", 0);
+      statsig.logEvent({ userID: '123' }, 'test', 0);
 
       const logEvent = new LogEvent('test');
       logEvent.setMetadata(null);
@@ -681,7 +687,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'log');
-      statsig.logEvent({userID: "123"}, "test", '');
+      statsig.logEvent({ userID: '123' }, 'test', '');
 
       const logEvent = new LogEvent('test');
       logEvent.setMetadata(null);
@@ -775,15 +781,24 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify shutdown makes the SDK not ready', async () => {
+  test('Verify shutdown makes the SDK not ready and clears all the timers', async () => {
     const statsig = require('../index');
-    const fetch = require('node-fetch');
-    expect.assertions(2);
+    SpecStore = require('../SpecStore');
+    expect.assertions(10);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._logger, 'flush');
+      expect(statsig._logger.flushTimer).toBeTruthy();
+      expect(statsig._logger.deduperTimer).toBeTruthy();
+      expect(SpecStore.syncTimer).toBeTruthy();
+      expect(SpecStore.idListsSyncTimer).toBeTruthy();
+
       statsig.shutdown();
       expect(spy).toHaveBeenCalledTimes(1);
       expect(statsig._ready).toBeFalsy();
+      expect(statsig._logger.flushTimer).toBeNull();
+      expect(statsig._logger.deduperTimer).toBeNull();
+      expect(SpecStore.syncTimer).toBeNull();
+      expect(SpecStore.idListsSyncTimer).toBeNull();
     });
   });
 
