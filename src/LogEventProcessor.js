@@ -13,14 +13,15 @@ function LogEventProcessor(options, secretKey) {
   let flushInterval = 60 * 1000;
   let deduperInterval = 60 * 1000;
   let queue = [];
-  let flushTimer = setInterval(function () {
-    processor.flush();
-  }, flushInterval);
-  let deduperTimer = setInterval(function () {
-    deduper.clear();
-  }, deduperInterval);
   let loggedErrors = new Set();
   let deduper = new Set();
+
+  processor.flushTimer = setInterval(function () {
+    processor.flush();
+  }, flushInterval);
+  processor.deduperTimer = setInterval(function () {
+    deduper.clear();
+  }, deduperInterval);
 
   processor.log = function (event, errorKey = null) {
     if (options.localMode) {
@@ -49,8 +50,10 @@ function LogEventProcessor(options, secretKey) {
 
   processor.flush = function (waitForResponse = true) {
     if (!waitForResponse) {
-      clearInterval(flushTimer);
-      clearInterval(deduperTimer);
+      clearInterval(processor.flushTimer);
+      clearInterval(processor.deduperTimer);
+      processor.flushTimer = null;
+      processor.deduperTimer = null;
     }
 
     if (queue.length === 0) {
