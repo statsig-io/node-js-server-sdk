@@ -689,16 +689,22 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify shutdown makes the SDK not ready', async () => {
+  test('Verify shutdown makes the SDK not ready and clears all the timers', async () => {
     // @ts-ignore
     const fetch = require('node-fetch');
-    expect.assertions(2);
+    expect.assertions(6);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'flush');
       statsig.shutdown();
       expect(spy).toHaveBeenCalledTimes(1);
       // @ts-ignore
       expect(statsig._ready).toBeFalsy();
+
+      expect(statsig._instance._logger.flushTimer).toBeNull();
+      expect(statsig._instance._logger.deduperTimer).toBeNull();
+
+      expect(statsig._instance._evaluator.store.syncTimer).toBeNull();
+      expect(statsig._instance._evaluator.store.idListsSyncTimer).toBeNull();
     });
   });
 

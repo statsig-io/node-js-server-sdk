@@ -316,7 +316,7 @@ export default class SpecStore {
       }
     } catch (e) {}
 
-    this.syncTimer = setTimeout(() => {
+    this.idListsSyncTimer = setTimeout(() => {
       this._syncIDLists();
     }, this.idListSyncInterval);
   }

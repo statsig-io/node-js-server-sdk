@@ -20,11 +20,11 @@ export default class LogEventProcessor {
   private fetcher: StatsigFetcher;
 
   private queue: LogEvent[];
-  private flushTimer: NodeJS.Timer;
+  private flushTimer: NodeJS.Timer| null;
 
   private loggedErrors: Set<string>;
   private deduper: Set<string>;
-  private deduperTimer: NodeJS.Timer;
+  private deduperTimer: NodeJS.Timer| null;
 
   public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.options = options;
@@ -71,8 +71,14 @@ export default class LogEventProcessor {
 
   public flush(waitForResponse: boolean = true) {
     if (!waitForResponse) {
-      clearInterval(this.flushTimer);
-      clearInterval(this.deduperTimer);
+      if (this.flushTimer != null) {
+        clearTimeout(this.flushTimer);
+        this.flushTimer = null;
+      }
+      if (this.deduperTimer != null) {
+        clearTimeout(this.deduperTimer);
+        this.deduperTimer = null;
+      }
     }
 
     if (this.queue.length === 0) {

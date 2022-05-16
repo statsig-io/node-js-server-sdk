@@ -403,5 +403,6 @@ describe('Verify behavior of SpecStore', () => {
 
     store.shutdown();
     expect(store.syncTimer).toBeNull();
+    expect(store.idListsSyncTimer).toBeNull();
   });
 });
