@@ -48,14 +48,16 @@ function LogEventProcessor(options, secretKey) {
     }
   };
 
-  processor.flush = function (waitForResponse = true) {
-    if (!waitForResponse) {
-      clearInterval(processor.flushTimer);
-      clearInterval(processor.deduperTimer);
-      processor.flushTimer = null;
-      processor.deduperTimer = null;
-    }
+  processor.shutdown = function () {
+    clearInterval(processor.flushTimer);
+    clearInterval(processor.deduperTimer);
+    processor.flushTimer = null;
+    processor.deduperTimer = null;
 
+    return processor.flush(true);
+  };
+
+  processor.flush = function (fireAndForget = false) {
     if (queue.length === 0) {
       return;
     }
@@ -66,20 +68,20 @@ function LogEventProcessor(options, secretKey) {
       events: oldQueue,
     };
 
-    if (!waitForResponse) {
-      // we are exiting, fire and forget
-      fetcher
-        .post(options.api + '/log_event', secretKey, body, 0)
-        .catch((e) => {});
-      return;
-    }
-
-    fetcher
-      .post(options.api + '/log_event', secretKey, body, 5, 10000)
+    return fetcher
+      .post(
+        options.api + '/log_event',
+        secretKey,
+        body,
+        fireAndForget ? 0 : 5,
+        1000,
+      )
       .catch((e) => {
-        processor.logStatsigInternal(null, 'log_event_failed', {
-          error: e?.message || 'log_event_failed',
-        });
+        if (!fireAndForget) {
+          processor.logStatsigInternal(null, 'log_event_failed', {
+            error: e?.message || 'log_event_failed',
+          });
+        }
       });
   };
 

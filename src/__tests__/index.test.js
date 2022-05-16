@@ -8,6 +8,7 @@ describe('Verify behavior of top level index functions', () => {
   const secretKey = 'secret-key';
   const str_64 =
     '1234567890123456789012345678901234567890123456789012345678901234';
+  let flushedEventCount = 0;
 
   let SpecStore;
 
@@ -16,7 +17,8 @@ describe('Verify behavior of top level index functions', () => {
     jest.resetModules();
 
     const fetch = require('node-fetch');
-    fetch.mockImplementation((url) => {
+    flushedEventCount = 0;
+    fetch.mockImplementation((url, params) => {
       if (url.includes('check_gate')) {
         return Promise.resolve({
           ok: true,
@@ -39,6 +41,12 @@ describe('Verify behavior of top level index functions', () => {
               },
               rule_id: 'rule_id_config_server',
             }),
+        });
+      } else if (url.includes('log_event')) {
+        return Promise.resolve({
+          ok: true,
+        }).then(() => {
+          flushedEventCount += JSON.parse(params.body).events.length;
         });
       }
       return Promise.reject();
@@ -909,5 +917,20 @@ describe('Verify behavior of top level index functions', () => {
     );
     expect(passGate).toBe(true);
     expect(failGate).toBe(false);
+  });
+
+  test('flush() works', async () => {
+    const statsig = require('../index');
+    await statsig.initialize(secretKey);
+    statsig.logEvent({ userID: '123' }, 'my_event1');
+    statsig.logEvent({ userID: '123' }, 'my_event2');
+    statsig.logEvent({ userID: '123' }, 'my_event3');
+    statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
+    statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
+
+    const flushPromise = statsig.flush();
+    expect(flushedEventCount).toEqual(0);
+    await flushPromise;
+    expect(flushedEventCount).toEqual(4);
   });
 });
