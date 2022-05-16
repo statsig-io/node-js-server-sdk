@@ -242,9 +242,16 @@ const statsig = {
       return;
     }
     statsig._ready = null;
-    statsig._logger.flush(false);
+    statsig._logger.shutdown();
     fetcher.shutdown();
     Evaluator.shutdown();
+  },
+
+  async flush() {
+    if (statsig._logger == null) {
+      return Promise.resolve();
+    }
+    return statsig._logger.flush(true);
   },
 
   getClientInitializeResponse(user) {
