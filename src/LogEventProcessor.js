@@ -59,7 +59,7 @@ function LogEventProcessor(options, secretKey) {
 
   processor.flush = function (fireAndForget = false) {
     if (queue.length === 0) {
-      return;
+      return Promise.resolve();
     }
     const oldQueue = queue;
     queue = [];
@@ -82,6 +82,7 @@ function LogEventProcessor(options, secretKey) {
             error: e?.message || 'log_event_failed',
           });
         }
+        return Promise.resolve();
       });
   };
 

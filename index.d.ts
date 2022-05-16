@@ -128,6 +128,11 @@ declare module 'statsig-node' {
   export function shutdown(): void;
 
   /**
+   * Flushes all the events that are currently in the queue to Statsig server right away
+   */
+  export function flush(): Promise<void>;
+
+  /**
    * Returns the initialize values for the given user
    * Can be used to bootstrap a client SDK with up to date values
    * @param user the user to evaluate configurations for
