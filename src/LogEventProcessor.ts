@@ -20,11 +20,11 @@ export default class LogEventProcessor {
   private fetcher: StatsigFetcher;
 
   private queue: LogEvent[];
-  private flushTimer: NodeJS.Timer| null;
+  private flushTimer: NodeJS.Timer | null;
 
   private loggedErrors: Set<string>;
   private deduper: Set<string>;
-  private deduperTimer: NodeJS.Timer| null;
+  private deduperTimer: NodeJS.Timer | null;
 
   public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.options = options;
@@ -69,20 +69,9 @@ export default class LogEventProcessor {
     }
   }
 
-  public flush(waitForResponse: boolean = true) {
-    if (!waitForResponse) {
-      if (this.flushTimer != null) {
-        clearTimeout(this.flushTimer);
-        this.flushTimer = null;
-      }
-      if (this.deduperTimer != null) {
-        clearTimeout(this.deduperTimer);
-        this.deduperTimer = null;
-      }
-    }
-
+  public async flush(fireAndForget: boolean = false): Promise<void> {
     if (this.queue.length === 0) {
-      return;
+      return Promise.resolve();
     }
     const oldQueue = this.queue;
     this.queue = [];
@@ -90,22 +79,31 @@ export default class LogEventProcessor {
       statsigMetadata: getStatsigMetadata(),
       events: oldQueue,
     };
-
-    if (!waitForResponse) {
-      // we are exiting, fire and forget
-      this.fetcher
-        .post(this.options.api + '/log_event', body, 0)
-        .catch((e) => {});
-      return;
-    }
-
-    this.fetcher
-      .post(this.options.api + '/log_event', body, 5, 10000)
+    return this.fetcher
+      .post(this.options.api + '/log_event', body, fireAndForget ? 0 : 5, 10000)
+      .then(() => {
+        return Promise.resolve();
+      })
       .catch((e) => {
-        this.logStatsigInternal(null, 'log_event_failed', {
-          error: e?.message || 'log_event_failed',
-        });
+        if (!fireAndForget) {
+          this.logStatsigInternal(null, 'log_event_failed', {
+            error: e?.message || 'log_event_failed',
+          });
+        }
+        return Promise.resolve();
       });
+  }
+
+  public async shutdown(): Promise<void> {
+    if (this.flushTimer != null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    if (this.deduperTimer != null) {
+      clearTimeout(this.deduperTimer);
+      this.deduperTimer = null;
+    }
+    return this.flush(true);
   }
 
   public logStatsigInternal(

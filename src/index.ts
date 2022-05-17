@@ -7,10 +7,7 @@ import { StatsigOptionsType } from './StatsigOptionsType';
 type StatsigSingleton = {
   _instance: null | StatsigServer;
 
-  initialize(
-    secretKey: string,
-    options?: StatsigOptionsType,
-  ): Promise<void>;
+  initialize(secretKey: string, options?: StatsigOptionsType): Promise<void>;
 
   checkGate(user: StatsigUser, gateName: string): Promise<boolean>;
 
@@ -52,8 +49,10 @@ type StatsigSingleton = {
     userID?: string,
   ): void;
 
+  flush(): Promise<void>;
+
   _ensureInitialized(): StatsigServer;
-}
+};
 
 const statsig: StatsigSingleton = {
   _instance: null,
@@ -136,6 +135,13 @@ const statsig: StatsigSingleton = {
   ): void {
     const server = statsig._ensureInitialized();
     server.overrideConfig(configName, value, userID);
+  },
+
+  flush(): Promise<void> {
+    if (statsig._instance == null) {
+      return Promise.resolve();
+    }
+    return statsig._instance.flush();
   },
 
   _ensureInitialized(): StatsigServer {

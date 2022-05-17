@@ -8,11 +8,15 @@ const exampleConfigSpecs = require('./jest.setup');
 
 jest.useFakeTimers();
 
+let flushedEventCount = 0;
+
+jest.useFakeTimers();
+
 jest.mock('node-fetch', () => jest.fn());
 // @ts-ignore
 const fetch = require('node-fetch');
 // @ts-ignore
-fetch.mockImplementation((url) => {
+fetch.mockImplementation((url, params) => {
   if (url.includes('check_gate')) {
     return Promise.resolve({
       ok: true,
@@ -36,6 +40,18 @@ fetch.mockImplementation((url) => {
           rule_id: 'rule_id_config_server',
         }),
     });
+  } else if (url.includes('log_event') || url.includes('rgstr')) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        flushedEventCount += JSON.parse(params.body).events.length;
+        resolve({
+          ok: true,
+          json: () => {
+            return Promise.resolve({});
+          },
+        });
+      }, 10);
+    });
   }
   return Promise.reject();
 });
@@ -50,6 +66,7 @@ describe('Verify behavior of top level index functions', () => {
     jest.resetModules();
 
     statsig._instance = null;
+    flushedEventCount = 0;
 
     // ensure Date.now() returns the same value in each test
     let now = Date.now();
@@ -584,7 +601,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._instance._logger, 'log');
-      statsig.logEvent({userID: "123"}, "test", 0);
+      statsig.logEvent({ userID: '123' }, 'test', 0);
 
       const logEvent = new LogEvent('test');
       logEvent.setMetadata(null);
@@ -600,7 +617,7 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(2);
     return statsig.initialize(secretKey).then(() => {
       const spy = jest.spyOn(statsig._instance._logger, 'log');
-      statsig.logEvent({userID: "123"}, "test", '');
+      statsig.logEvent({ userID: '123' }, 'test', '');
 
       const logEvent = new LogEvent('test');
       logEvent.setMetadata(null);
@@ -748,5 +765,22 @@ describe('Verify behavior of top level index functions', () => {
     expect(passGate).toBe(true);
     expect(failGate).toBe(false);
     // TODO verify network gates overwrite bootstrap values
+  });
+
+  test('flush() works', async () => {
+    expect.assertions(2);
+
+    await statsig.initialize(secretKey);
+    statsig.logEvent({ userID: '123' }, 'my_event1');
+    statsig.logEvent({ userID: '123' }, 'my_event2');
+    statsig.logEvent({ userID: '123' }, 'my_event3');
+    statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
+    statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
+
+    const flushPromise = statsig.flush();
+    expect(flushedEventCount).toEqual(0);
+    jest.advanceTimersByTime(20);
+    await flushPromise;
+    expect(flushedEventCount).toEqual(4);
   });
 });

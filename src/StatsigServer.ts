@@ -251,9 +251,17 @@ export default class StatsigServer {
       return;
     }
     this._ready = false;
-    this._logger.flush(false);
+    this._logger.shutdown();
     this._fetcher.shutdown();
     this._evaluator.shutdown();
+  }
+
+  public async flush(): Promise<void> {
+    if (this._logger == null) {
+      return Promise.resolve();
+    }
+
+    return this._logger.flush();
   }
 
   public getClientInitializeResponse(user: StatsigUser): Record<string, unknown> | null {
