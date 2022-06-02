@@ -9,13 +9,13 @@
     "rGc+6rvo48V4j1sXkvsGHeSfJfY7kMp1OHfQnw+3XbI=": {
       "name": "rGc+6rvo48V4j1sXkvsGHeSfJfY7kMp1OHfQnw+3XbI=",
       "value": true,
-      "rule_id": "6N6Z8ODekNYZ7F8gFdoLP5",
+      "rule_id": "2DWuOvXQZWKvoaNm27dqcs",
       "secondary_exposures": []
     },
     "srhBjpz3NFHATrntxEsdHManNXJQZawtJUkQ3s0XT3Q=": {
       "name": "srhBjpz3NFHATrntxEsdHManNXJQZawtJUkQ3s0XT3Q=",
       "value": true,
-      "rule_id": "7w9rbTSffLT89pxqpyhuqK",
+      "rule_id": "3jdTW54SQWbbxFFZJe7wYZ",
       "secondary_exposures": []
     }
   },
@@ -27,27 +27,22 @@
         "string": "statsig",
         "boolean": false
       },
-      "group": "1kNmlB23wylPFZi1M0Divl",
-      "rule_id": "1kNmlB23wylPFZi1M0Divl",
+      "rule_id": "4lInPNRUnjUzaWNkEWLFA9",
+      "group": "4lInPNRUnjUzaWNkEWLFA9",
       "is_device_based": false,
-      "is_experiment_active": false,
-      "is_user_in_experiment": false,
       "secondary_exposures": []
     },
     "86mj1zUC35KaWoOqpe8SKEHQjRlXOzdLfiTJU/iU+vc=": {
       "name": "86mj1zUC35KaWoOqpe8SKEHQjRlXOzdLfiTJU/iU+vc=",
       "value": {
-        "experiment_param": "test",
-        "layer_param": true,
-        "second_layer_param": true
+        "sample_parameter": false
       },
-      "group": "2RamGujUou6h2bVNQWhtNZ",
-      "rule_id": "2RamGujUou6h2bVNQWhtNZ",
+      "rule_id": "5yQbPMfmKQdiRV35hS3B2l",
+      "group": "5yQbPMfmKQdiRV35hS3B2l",
       "is_device_based": false,
-      "is_experiment_active": false,
-      "is_user_in_experiment": false,
       "secondary_exposures": [],
-      "explicit_parameters": ["experiment_param"]
+      "is_experiment_active": true,
+      "is_user_in_experiment": true
     },
     "mQ5nTisJBEdOZO0gMeZ7E+pa1409+e96sYkKE8XkVTA=": {
       "group": "",
@@ -58,63 +53,51 @@
       "rule_id": "",
       "secondary_exposures": [],
       "value": {}
+    },
+    "n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=": {
+      "name": "n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=",
+      "value": {},
+      "rule_id": "prestart",
+      "group": "prestart",
+      "secondary_exposures": [],
+      "is_device_based": false,
+      "is_experiment_active": false,
+      "is_user_in_experiment": false
     }
   },
   "layer_configs": {
-    "f/PP7qbCqgLC28wM1ttndrM3x7KFsdceSrT7H4e7Wck=": {
-      "name": "f/PP7qbCqgLC28wM1ttndrM3x7KFsdceSrT7H4e7Wck=",
+    "yD2Hj5ZefkntKmIwhN9K8Hvdh7helm9hqzp8B9Ng8xc=": {
+      "name": "yD2Hj5ZefkntKmIwhN9K8Hvdh7helm9hqzp8B9Ng8xc=",
       "value": {
-        "experiment_param": "test",
-        "layer_param": true,
-        "second_layer_param": true
+        "sample_parameter": false
       },
-      "group": "2RamGujUou6h2bVNQWhtNZ",
-      "rule_id": "2RamGujUou6h2bVNQWhtNZ",
-      "is_device_based": false,
+      "rule_id": "5yQbPMfmKQdiRV35hS3B2l",
+      "group": "5yQbPMfmKQdiRV35hS3B2l",
       "secondary_exposures": [],
-      "undelegated_secondary_exposures": [],
+      "is_device_based": false,
+      "explicit_parameters": [],
       "allocated_experiment_name": "86mj1zUC35KaWoOqpe8SKEHQjRlXOzdLfiTJU/iU+vc=",
       "is_experiment_active": true,
       "is_user_in_experiment": true,
-      "explicit_parameters": ["experiment_param"]
+      "undelegated_secondary_exposures": []
     },
-    "swfBsA2gj0FY/9mzJdHytSKjrIsN1B9nJMeTWdKN2yw=": {
-      "name": "swfBsA2gj0FY/9mzJdHytSKjrIsN1B9nJMeTWdKN2yw=",
-      "value": {
-        "b_param": "layer_default"
-      },
-      "group": "default",
+    "FTO1PR918Bsjs1iw6DncMVhpCn/IOS7ZqNYbj2i9Iqg=": {
+      "name": "FTO1PR918Bsjs1iw6DncMVhpCn/IOS7ZqNYbj2i9Iqg=",
+      "value": {},
+      "is_device_based": false,
+      "explicit_parameters": [],
       "rule_id": "default",
-      "is_device_based": false,
+      "group": "default",
       "secondary_exposures": [],
-      "undelegated_secondary_exposures": [],
-      "explicit_parameters": []
-    },
-    "gxLOmmNNwVd8rUKILhDYkZwuLBxBuwWV1xn8m0aTs/E=": {
-      "name": "gxLOmmNNwVd8rUKILhDYkZwuLBxBuwWV1xn8m0aTs/E=",
-      "value": {
-        "holdout_layer_param": "layer_default"
-      },
-      "group": "7d2E854TtGmfETdmJFip1L",
-      "rule_id": "7d2E854TtGmfETdmJFip1L",
-      "is_device_based": false,
-      "secondary_exposures": [
-        {
-          "gate": "always_on_gate",
-          "gateValue": "true",
-          "ruleID": "6N6Z8ODekNYZ7F8gFdoLP5"
-        }
-      ],
-      "undelegated_secondary_exposures": [],
-      "explicit_parameters": []
+      "undelegated_secondary_exposures": []
     },
     "VHos7km3/fakqhmzEGAt7ATTscBP6wEqSUicn9BX1IM=": {
       "allocated_experiment_name": "mQ5nTisJBEdOZO0gMeZ7E+pa1409+e96sYkKE8XkVTA=",
       "explicit_parameters": [],
       "group": "",
       "is_device_based": false,
-      "is_experiment_active": true,
-      "is_user_in_experiment": true,
+      "is_experiment_active": false,
+      "is_user_in_experiment": false,
       "name": "VHos7km3/fakqhmzEGAt7ATTscBP6wEqSUicn9BX1IM=",
       "rule_id": "",
       "secondary_exposures": [],
@@ -124,5 +107,6 @@
   },
   "sdkParams": {},
   "has_updates": true,
-  "time": 0
+  "time": 0,
+  "generator": "statsig-node-sdk"
 }

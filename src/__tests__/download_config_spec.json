@@ -37,7 +37,7 @@
     {
       "name": "test_config",
       "type": "dynamic_config",
-      "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
+      "salt": "8708768f-d58d-4055-93b4-0c9bf0d03cb7",
       "enabled": true,
       "defaultValue": {
         "number": 4,
@@ -46,8 +46,8 @@
       },
       "rules": [
         {
-          "name": "1kNmlB23wylPFZi1M0Divl",
-          "groupName": "statsig email",
+          "name": "4lInPNRUnjUzaWNkEWLFA9",
+          "groupName": "statsig emails",
           "passPercentage": 100,
           "conditions": [
             {
@@ -55,7 +55,9 @@
               "targetValue": ["@statsig.com"],
               "operator": "str_contains_any",
               "field": "email",
-              "additionalValues": {}
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
           "returnValue": {
@@ -63,23 +65,26 @@
             "string": "statsig",
             "boolean": false
           },
-          "id": "1kNmlB23wylPFZi1M0Divl",
-          "salt": "f2ac6975-174d-497e-be7f-599fea626132"
+          "id": "4lInPNRUnjUzaWNkEWLFA9",
+          "salt": "ffaa584f-c2f0-4ca3-b794-dcb30b27250d",
+          "isDeviceBased": false,
+          "idType": "userID"
         }
-      ]
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "dynamic_config"
     },
     {
       "name": "sample_experiment",
       "type": "dynamic_config",
-      "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912",
+      "salt": "4f0c0147-a2a9-4f21-b618-ec9d8787973c",
       "enabled": true,
-      "defaultValue": {
-        "experiment_param": "control"
-      },
+      "defaultValue": {},
       "rules": [
         {
-          "name": "",
-          "groupName": "experimentSize",
+          "name": "layerAssignment",
+          "groupName": "Layer Assignment",
           "passPercentage": 100,
           "conditions": [
             {
@@ -165,20 +170,21 @@
               "operator": "none",
               "field": null,
               "additionalValues": {
-                "salt": "00cddb4b-69f5-47c6-aeaa-5bac43cf45a4"
-              }
+                "salt": "ed4fd4c3-4bd2-4b3d-891a-4bde19e17170"
+              },
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
-          "returnValue": {
-            "experiment_param": "layer_default",
-            "layer_param": true,
-            "second_layer_param": false
-          },
-          "id": "",
-          "salt": ""
+          "returnValue": {},
+          "id": "layerAssignment",
+          "salt": "",
+          "isDeviceBased": false,
+          "idType": "userID",
+          "isExperimentGroup": true
         },
         {
-          "name": "2RamGsERWbWMIMnSfOlQuX",
+          "name": "5yQbPMfmKQdiRV35hS3B2l",
           "groupName": "Control",
           "passPercentage": 100,
           "conditions": [
@@ -188,20 +194,23 @@
               "operator": "lt",
               "field": null,
               "additionalValues": {
-                "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912"
-              }
+                "salt": "4f0c0147-a2a9-4f21-b618-ec9d8787973c"
+              },
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
           "returnValue": {
-            "experiment_param": "control",
-            "layer_param": true,
-            "second_layer_param": false
+            "sample_parameter": false
           },
-          "id": "2RamGsERWbWMIMnSfOlQuX",
-          "salt": "2RamGsERWbWMIMnSfOlQuX"
+          "id": "5yQbPMfmKQdiRV35hS3B2l",
+          "salt": "5yQbPMfmKQdiRV35hS3B2l",
+          "isDeviceBased": false,
+          "idType": "userID",
+          "isExperimentGroup": true
         },
         {
-          "name": "2RamGujUou6h2bVNQWhtNZ",
+          "name": "5yQbPNUpd8mNbkB0SZZeln",
           "groupName": "Test",
           "passPercentage": 100,
           "conditions": [
@@ -211,33 +220,37 @@
               "operator": "lt",
               "field": null,
               "additionalValues": {
-                "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912"
-              }
+                "salt": "4f0c0147-a2a9-4f21-b618-ec9d8787973c"
+              },
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
           "returnValue": {
-            "experiment_param": "test",
-            "layer_param": true,
-            "second_layer_param": true
+            "sample_parameter": true
           },
-          "id": "2RamGujUou6h2bVNQWhtNZ",
-          "salt": "2RamGujUou6h2bVNQWhtNZ"
+          "id": "5yQbPNUpd8mNbkB0SZZeln",
+          "salt": "5yQbPNUpd8mNbkB0SZZeln",
+          "isDeviceBased": false,
+          "idType": "userID",
+          "isExperimentGroup": true
         }
       ],
-      "explicitParameters": ["experiment_param"]
-    }
-  ],
-  "feature_gates": [
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "experiment",
+      "isActive": true
+    },
     {
-      "name": "always_on_gate",
-      "type": "feature_gate",
-      "salt": "47403b4e-7829-43d1-b1ac-3992a5c1b4ac",
+      "name": "test",
+      "type": "dynamic_config",
+      "salt": "00dc0a4b-4901-4214-b6c5-9e45acdb3402",
       "enabled": true,
-      "defaultValue": false,
+      "defaultValue": {},
       "rules": [
         {
-          "name": "6N6Z8ODekNYZ7F8gFdoLP5",
-          "groupName": "everyone",
+          "name": "prestart",
+          "groupName": "Unstarted",
           "passPercentage": 100,
           "conditions": [
             {
@@ -245,14 +258,57 @@
               "targetValue": null,
               "operator": null,
               "field": null,
-              "additionalValues": {}
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": {},
+          "id": "prestart",
+          "salt": "",
+          "isDeviceBased": false,
+          "idType": "userID"
+        }
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "experiment",
+      "isActive": false
+    }
+  ],
+  "feature_gates": [
+    {
+      "name": "always_on_gate",
+      "type": "feature_gate",
+      "salt": "6e32ca51-c22e-44fb-9654-f5494cdfb2c5",
+      "enabled": true,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "2DWuOvXQZWKvoaNm27dqcs",
+          "groupName": "all",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
           "returnValue": true,
-          "id": "6N6Z8ODekNYZ7F8gFdoLP5",
-          "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f"
+          "id": "2DWuOvXQZWKvoaNm27dqcs",
+          "salt": "bda12dcd-f047-4674-b229-04d0215198c1",
+          "isDeviceBased": false,
+          "idType": "userID"
         }
-      ]
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
     },
     {
       "name": "fetch_from_server_fallback",
@@ -275,21 +331,26 @@
             }
           ],
           "returnValue": true,
-          "id": "6N6Z8ODekNYZ7F8gFdoLP5",
-          "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f"
+          "id": "2DWuOvXQZWKvoaNm27dqcs",
+          "salt": "bda12dcd-f047-4674-b229-04d0215198c1",
+          "isDeviceBased": false,
+          "idType": "userID"
         }
-      ]
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
     },
     {
       "name": "on_for_statsig_email",
       "type": "feature_gate",
-      "salt": "4ab7fc7b-c8a0-4ef1-b869-889467678688",
+      "salt": "14de8b34-05eb-41b4-81eb-4156f96ba6b4",
       "enabled": true,
       "defaultValue": false,
       "rules": [
         {
-          "name": "7w9rbTSffLT89pxqpyhuqK",
-          "groupName": "on for statsig emails",
+          "name": "3jdTW54SQWbbxFFZJe7wYZ",
+          "groupName": "statsig emails",
           "passPercentage": 100,
           "conditions": [
             {
@@ -297,27 +358,36 @@
               "targetValue": ["@statsig.com"],
               "operator": "str_contains_any",
               "field": "email",
-              "additionalValues": {}
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
             }
           ],
           "returnValue": true,
-          "id": "7w9rbTSffLT89pxqpyhuqK",
-          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fc"
+          "id": "3jdTW54SQWbbxFFZJe7wYZ",
+          "salt": "d9857174-5f55-488d-bb40-649122b21f6b",
+          "isDeviceBased": false,
+          "idType": "userID"
         }
-      ]
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
     }
   ],
+  "id_lists": {},
+  "layers": {
+    "statsig::sample_experiment_layer": ["sample_experiment"],
+    "statsig::test_layer": ["test"],
+    "d_layer_delegate_to_fallback": ["test_config_fallback"]
+  },
   "layer_configs": [
     {
-      "name": "a_layer",
+      "name": "statsig::sample_experiment_layer",
       "type": "dynamic_config",
-      "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912",
+      "salt": "ed4fd4c3-4bd2-4b3d-891a-4bde19e17170",
       "enabled": true,
-      "defaultValue": {
-        "experiment_param": "layer_default",
-        "layer_param": true,
-        "second_layer_param": false
-      },
+      "defaultValue": {},
       "rules": [
         {
           "name": "experimentAssignment",
@@ -407,17 +477,13 @@
               "operator": "any",
               "field": null,
               "additionalValues": {
-                "salt": "58d96daa-4d16-467a-b616-7232c45153f4"
+                "salt": "ed4fd4c3-4bd2-4b3d-891a-4bde19e17170"
               },
               "isDeviceBased": false,
               "idType": "userID"
             }
           ],
-          "returnValue": {
-            "experiment_param": "layer_default",
-            "layer_param": true,
-            "second_layer_param": false
-          },
+          "returnValue": {},
           "id": "experimentAssignment",
           "salt": "",
           "isDeviceBased": false,
@@ -430,56 +496,50 @@
       "entity": "layer"
     },
     {
-      "name": "b_layer_no_alloc",
+      "name": "statsig::test_layer",
       "type": "dynamic_config",
-      "salt": "3e361046-bc69-4dfd-bbb1-538afe609157",
+      "salt": "a250c016-2627-4214-9d53-3761d073ef0f",
       "enabled": true,
-      "defaultValue": {
-        "b_param": "layer_default"
-      },
-      "rules": [],
-      "isDeviceBased": false,
-      "idType": "userID",
-      "entity": "layer"
-    },
-    {
-      "name": "c_layer_with_holdout",
-      "type": "dynamic_config",
-      "salt": "ab40c4af-947f-411e-9403-880393703507",
-      "enabled": true,
-      "defaultValue": {
-        "holdout_layer_param": "layer_default"
-      },
+      "defaultValue": {},
       "rules": [
         {
-          "name": "7d2E854TtGmfETdmJFip1L",
-          "groupName": "master_holdout",
+          "name": "experimentAssignment",
+          "groupName": "Experiment Assignment",
           "passPercentage": 100,
           "conditions": [
             {
-              "type": "pass_gate",
-              "targetValue": "always_on_gate",
+              "type": "user_bucket",
+              "targetValue": [
+                1, 3, 11, 13, 18, 26, 29, 35, 44, 50, 59, 62, 75, 102, 138, 146,
+                149, 166, 172, 177, 182, 198, 215, 220, 240, 267, 285, 290, 296,
+                299, 311, 317, 323, 326, 362, 363, 374, 386, 405, 411, 440, 442,
+                447, 449, 452, 459, 464, 474, 482, 493, 496, 501, 508, 514, 523,
+                529, 542, 566, 569, 588, 595, 600, 606, 608, 613, 631, 632, 637,
+                662, 670, 676, 692, 696, 700, 721, 722, 723, 730, 737, 750, 779,
+                781, 799, 808, 814, 816, 834, 843, 856, 862, 894, 908, 912, 914,
+                929, 930, 933, 936, 988, 991
+              ],
               "operator": "any",
               "field": null,
-              "additionalValues": null,
+              "additionalValues": {
+                "salt": "a250c016-2627-4214-9d53-3761d073ef0f"
+              },
               "isDeviceBased": false,
               "idType": "userID"
             }
           ],
-          "returnValue": {
-            "holdout_layer_param": "layer_default"
-          },
-          "id": "7d2E854TtGmfETdmJFip1L",
+          "returnValue": {},
+          "id": "experimentAssignment",
           "salt": "",
           "isDeviceBased": false,
-          "idType": "userID"
+          "idType": "userID",
+          "configDelegate": "test"
         }
       ],
       "isDeviceBased": false,
       "idType": "userID",
       "entity": "layer"
     },
-
     {
       "name": "d_layer_delegate_to_fallback",
       "type": "dynamic_config",
@@ -514,9 +574,5 @@
     }
   ],
   "has_updates": true,
-  "time": 1631638014811,
-  "id_lists": {
-    "list_1": true,
-    "list_2": true
-  }
+  "time": 1648589257397
 }

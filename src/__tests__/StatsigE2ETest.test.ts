@@ -124,7 +124,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(postedLogs.events[0].metadata['gate']).toEqual('always_on_gate');
     expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
     expect(postedLogs.events[0].metadata['ruleID']).toEqual(
-      '6N6Z8ODekNYZ7F8gFdoLP5',
+      '2DWuOvXQZWKvoaNm27dqcs',
     );
 
     expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
@@ -133,7 +133,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(postedLogs.events[1].metadata['gateValue']).toEqual('true');
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
-      '7w9rbTSffLT89pxqpyhuqK',
+      '3jdTW54SQWbbxFFZJe7wYZ',
     );
 
     expect(postedLogs.events[2].eventName).toEqual('statsig::gate_exposure');
@@ -168,7 +168,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual('test_config');
     expect(postedLogs.events[0].metadata['ruleID']).toEqual(
-      '1kNmlB23wylPFZi1M0Divl',
+      '4lInPNRUnjUzaWNkEWLFA9',
     );
 
     expect(postedLogs.events[1].eventName).toEqual('statsig::config_exposure');
@@ -182,9 +182,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       statsigUser,
       'sample_experiment',
     );
-    expect(experiment.get('experiment_param', '')).toEqual('test');
+    expect(experiment.get('sample_parameter', true)).toEqual(false);
     experiment = await statsig.getExperiment(randomUser, 'sample_experiment');
-    expect(experiment.get('experiment_param', '')).toEqual('control');
+    expect(experiment.get('sample_parameter', false)).toEqual(true);
 
     statsig.shutdown();
     expect(postedLogs.events.length).toEqual(2);
@@ -193,7 +193,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       'sample_experiment',
     );
     expect(postedLogs.events[0].metadata['ruleID']).toEqual(
-      '2RamGujUou6h2bVNQWhtNZ',
+      '5yQbPMfmKQdiRV35hS3B2l',
     );
 
     expect(postedLogs.events[1].eventName).toEqual('statsig::config_exposure');
@@ -201,7 +201,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       'sample_experiment',
     );
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
-      '2RamGsERWbWMIMnSfOlQuX',
+      '5yQbPNUpd8mNbkB0SZZeln',
     );
   });
 

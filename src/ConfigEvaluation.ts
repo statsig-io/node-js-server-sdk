@@ -7,6 +7,7 @@ export default class ConfigEvaluation {
   public config_delegate: string | null;
   public fetch_from_server: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
+  public is_experiment_group: boolean;
 
   constructor(
     value: boolean,
@@ -20,7 +21,8 @@ export default class ConfigEvaluation {
   ) {
     this.value = value;
     this.rule_id = rule_id;
-    if (typeof json_value === 'boolean') { // handle legacy gate case
+    if (typeof json_value === 'boolean') {
+      // handle legacy gate case
       this.json_value = {};
     } else {
       this.json_value = json_value;
@@ -30,6 +32,11 @@ export default class ConfigEvaluation {
     this.config_delegate = config_delegate;
     this.fetch_from_server = fetch_from_server;
     this.explicit_parameters = explicit_parameters;
+    this.is_experiment_group = false;
+  }
+
+  public setIsExperimentGroup(isExperimentGroup: boolean = false) {
+    this.is_experiment_group = isExperimentGroup;
   }
 
   public static fetchFromServer() {

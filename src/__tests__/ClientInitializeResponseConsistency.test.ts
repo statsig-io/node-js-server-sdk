@@ -2,11 +2,13 @@ const fs = require('fs');
 const path = require('path');
 // @ts-ignore
 const fetch = require('node-fetch');
+const shajs = require('sha.js');
 
 import * as statsigsdk from '../index';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
+let clientKey = 'client-wlH3WMkysINMhMU8VrNBkbjrEr2JQrqgxKwDPOUosJK';
 let secret = process.env.test_api_key;
 if (!secret) {
   try {
@@ -27,11 +29,10 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://api.statsig.com/v1', 'https://staging.api.statsig.com/v1'].map(
-      (url) =>
-        test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-          await _validateInitializeConsistency(url);
-        }),
+    ['https://api.statsig.com/v1'].map((url) =>
+      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
+        await _validateInitializeConsistency(url);
+      }),
     );
   });
 } else {
@@ -48,11 +49,14 @@ if (secret) {
 async function _validateInitializeConsistency(api) {
   expect.assertions(1);
   const user = {
-    userID: '12345',
+    userID: '123',
     email: 'test@statsig.com',
     country: 'US',
     custom: {
       test: '123',
+    },
+    customIDs: {
+      stableID: '12345',
     },
   };
   const response = await fetch(api + '/initialize', {
@@ -66,7 +70,7 @@ async function _validateInitializeConsistency(api) {
     }),
     headers: {
       'Content-type': 'application/json; charset=UTF-8',
-      'STATSIG-API-KEY': 'client-wlH3WMkysINMhMU8VrNBkbjrEr2JQrqgxKwDPOUosJK',
+      'STATSIG-API-KEY': clientKey,
       'STATSIG-CLIENT-TIME': Date.now(),
     },
   });
@@ -86,9 +90,6 @@ async function _validateInitializeConsistency(api) {
           delete item.gate;
         });
       }
-      // // TODO for full layers future proofing
-      // delete item['explicit_parameters'];
-      delete item['is_in_layer'];
     }
   }
 
@@ -99,14 +100,17 @@ async function _validateInitializeConsistency(api) {
   for (const topLevel in sdkInitializeResponse) {
     for (const property in sdkInitializeResponse[topLevel]) {
       const item = sdkInitializeResponse[topLevel][property];
-      if (item.secondary_exposures) {
-        // initialize has these hashed, we are putting them in plain text
-        // exposure logging still works
-        item.secondary_exposures.map((item) => {
-          delete item.gate;
-        });
-      }
+      // initialize has these hashed, we are putting them in plain text
+      // exposure logging still works
+      item.secondary_exposures?.map((item) => {
+        delete item.gate;
+      });
+      item.undelegated_secondary_exposures?.map((item) => {
+        delete item.gate;
+      });
     }
   }
+  delete testData.generator;
+  delete sdkInitializeResponse.generator;
   expect(sdkInitializeResponse).toEqual(testData);
 }

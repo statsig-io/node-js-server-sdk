@@ -22,11 +22,20 @@ type InitializeResponse = {
   rule_id: string;
   is_device_based: boolean;
   secondary_exposures: unknown;
+  is_experiment_active?: boolean;
+  is_user_in_experiment?: boolean;
+  is_in_layer?: boolean;
+  allocated_experiment_name?: string;
+  explicit_parameters?: string[];
+  undelegated_secondary_exposures?: Record<string, string>[];
 };
 
 export default class Evaluator {
   private gateOverrides: Record<string, Record<string, boolean>>;
-  private configOverrides: Record<string, Record<string, Record<string, unknown>>>;
+  private configOverrides: Record<
+    string,
+    Record<string, Record<string, unknown>>
+  >;
   private initialized: boolean = false;
 
   private store: SpecStore;
@@ -181,16 +190,29 @@ export default class Evaluator {
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         if (spec.entity !== 'dynamic_config') {
-          const userInExperiment = this._isUserAllocatedToExperiment(
+          format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,
             spec,
           );
-          const experimentActive = this._isExperimentActive(spec);
-          // These parameters only control sticky experiments on the client
-          // @ts-ignore
-          format.is_experiment_active = experimentActive;
-          // @ts-ignore
-          format.is_user_in_experiment = userInExperiment;
+          format.is_experiment_active = this._isExperimentActive(spec);
+          if (spec.hasSharedParams) {
+            format.is_in_layer = true;
+            format.explicit_parameters = spec.explicitParameters ?? [];
+
+            let layerValue = {};
+            const layerName = this.store.getExperimentLayer(spec.name);
+            if (layerName != null) {
+              const layer = this.store.getLayer(layerName);
+              if (layer != null) {
+                layerValue = layer.defaultValue as object;
+              }
+            }
+
+            format.value = {
+              ...layerValue,
+              ...(format.value as object),
+            };
+          }
         }
 
         return format;
@@ -200,21 +222,24 @@ export default class Evaluator {
     const layers = Object.entries(this.store.getAllLayers()).map(
       ([layer, spec]) => {
         const res = this._eval(user, spec);
-        const format = this._specToInitializeResponse(spec, res);
-        if (res.config_delegate != null) {
-          // @ts-ignore
+        let format = this._specToInitializeResponse(spec, res);
+        format.explicit_parameters = spec.explicitParameters ?? [];
+        if (res.config_delegate != null && res.config_delegate !== '') {
+          const delegateSpec = this.store.getConfig(res.config_delegate);
           format.allocated_experiment_name = getHashedName(res.config_delegate);
-          // @ts-ignore
-          format.is_experiment_active = true;
-          // @ts-ignore
-          format.is_user_in_experiment = true;
+
+          format.is_experiment_active = this._isExperimentActive(delegateSpec);
+          format.is_user_in_experiment = this._isUserAllocatedToExperiment(
+            user,
+            delegateSpec,
+          );
+          format.explicit_parameters = delegateSpec?.explicitParameters ?? [];
         }
-        // @ts-ignore
-        format.explicit_parameters = format.explicit_parameters ?? [];
-        // @ts-ignore
+
         format.undelegated_secondary_exposures = this._cleanExposures(
           res.undelegated_secondary_exposures ?? [],
         );
+
         return format;
       },
     );
@@ -233,6 +258,7 @@ export default class Evaluator {
       ),
       sdkParams: {},
       has_updates: true,
+      generator: 'statsig-node-sdk',
       time: 0, // set the time to 0 so this doesnt interfere with polling
     };
   }
@@ -241,7 +267,7 @@ export default class Evaluator {
     spec: ConfigSpec,
     res: ConfigEvaluation,
   ): InitializeResponse {
-    const output = {
+    const output: InitializeResponse = {
       name: getHashedName(spec.name),
       value: res.fetch_from_server ? {} : res.json_value,
       group: res.rule_id,
@@ -252,14 +278,15 @@ export default class Evaluator {
     };
 
     if (res.explicit_parameters) {
-      // @ts-ignore
-      output['explicit_parameters'] = res.explicit_parameters;
+      output.explicit_parameters = res.explicit_parameters;
     }
 
     return output;
   }
 
-  private _cleanExposures(exposures: Record<string, string>[]): Record<string, string>[] {
+  private _cleanExposures(
+    exposures: Record<string, string>[],
+  ): Record<string, string>[] {
     const seen: Record<string, boolean> = {};
     return exposures
       .map((exposure: Record<string, string>) => {
@@ -277,7 +304,10 @@ export default class Evaluator {
     this.store.shutdown();
   }
 
-  _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation | null {
+  _evalConfig(
+    user: StatsigUser,
+    config: ConfigSpec | null,
+  ): ConfigEvaluation | null {
     if (!config) {
       return null;
     }
@@ -287,7 +317,12 @@ export default class Evaluator {
 
   _eval(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
     if (!config.enabled) {
-      return new ConfigEvaluation(false, 'disabled', [], config.defaultValue as Record<string, unknown>);
+      return new ConfigEvaluation(
+        false,
+        'disabled',
+        [],
+        config.defaultValue as Record<string, unknown>,
+      );
     }
 
     let secondary_exposures: Record<string, string>[] = [];
@@ -313,14 +348,18 @@ export default class Evaluator {
         }
 
         const pass = this._evalPassPercent(user, rule, config);
-        return new ConfigEvaluation(
+        const evaluation = new ConfigEvaluation(
           pass,
           ruleResult.rule_id,
           secondary_exposures,
-          pass ? ruleResult.json_value : config.defaultValue as Record<string, unknown>,
+          pass
+            ? ruleResult.json_value
+            : (config.defaultValue as Record<string, unknown>),
           config.explicitParameters,
           ruleResult.config_delegate,
         );
+        evaluation.setIsExperimentGroup(ruleResult.is_experiment_group);
+        return evaluation;
       }
     }
 
@@ -333,7 +372,11 @@ export default class Evaluator {
     );
   }
 
-  _evalDelegate(user: StatsigUser, rule: ConfigRule, exposures: Record<string, string>[]) {
+  _evalDelegate(
+    user: StatsigUser,
+    rule: ConfigRule,
+    exposures: Record<string, string>[],
+  ) {
     if (rule.configDelegate == null) {
       return null;
     }
@@ -393,15 +436,20 @@ export default class Evaluator {
       }
     }
 
-    return new ConfigEvaluation(
+    const evaluation = new ConfigEvaluation(
       pass,
       rule.id,
       secondaryExposures,
       rule.returnValue as Record<string, unknown>,
     );
+    evaluation.setIsExperimentGroup(rule.isExperimentGroup ?? false);
+    return evaluation;
   }
 
-  _evalCondition(user: StatsigUser, condition: ConfigCondition): {passes: boolean, fetchFromServer?: boolean, exposures?: any[]} {
+  _evalCondition(
+    user: StatsigUser,
+    condition: ConfigCondition,
+  ): { passes: boolean; fetchFromServer?: boolean; exposures?: any[] } {
     let value = null;
     let field = condition.field;
     let target = condition.targetValue;
@@ -425,7 +473,8 @@ export default class Evaluator {
         });
 
         return {
-          passes: condition.type.toLowerCase() === 'fail_gate' ? !value : !!value,
+          passes:
+            condition.type.toLowerCase() === 'fail_gate' ? !value : !!value,
           exposures: allExposures,
         };
       case 'ip_based':
@@ -464,47 +513,65 @@ export default class Evaluator {
     switch (op) {
       // numerical
       case 'gt':
-        evalResult = numberCompare((a: number, b: number) => a > b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a > b)(
+          value,
+          target,
+        );
         break;
       case 'gte':
-        evalResult = numberCompare((a: number, b: number) => a >= b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a >= b)(
+          value,
+          target,
+        );
         break;
       case 'lt':
-        evalResult = numberCompare((a: number, b: number) => a < b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a < b)(
+          value,
+          target,
+        );
         break;
       case 'lte':
-        evalResult = numberCompare((a: number, b: number) => a <= b)(value, target);
+        evalResult = numberCompare((a: number, b: number) => a <= b)(
+          value,
+          target,
+        );
         break;
 
       // version
       case 'version_gt':
         evalResult = versionCompareHelper((result) => result > 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
       case 'version_gte':
         evalResult = versionCompareHelper((result) => result >= 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
       case 'version_lt':
         evalResult = versionCompareHelper((result) => result < 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
       case 'version_lte':
         evalResult = versionCompareHelper((result) => result <= 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
       case 'version_eq':
         evalResult = versionCompareHelper((result) => result === 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
       case 'version_neq':
         evalResult = versionCompareHelper((result) => result !== 0)(
-          value, target as string
+          value,
+          target as string,
         );
         break;
 
@@ -614,32 +681,22 @@ export default class Evaluator {
     return { passes: evalResult };
   }
 
-  _isExperimentActive(experimentConfig: ConfigSpec) {
-    for (const rule of experimentConfig.rules) {
-      const ruleID = rule['id'];
-      if (ruleID == null) {
-        continue;
-      }
-      if (ruleID.toLowerCase() === 'layerassignment') {
-        return true;
-      }
+  _isExperimentActive(experimentConfig: ConfigSpec | null) {
+    if (experimentConfig == null) {
+      return false;
     }
-    return false;
+    return experimentConfig.isActive === true;
   }
 
-  _isUserAllocatedToExperiment(user: StatsigUser, experimentConfig: ConfigSpec) {
-    for (const rule of experimentConfig.rules) {
-      const ruleID = rule['id'];
-      if (ruleID == null) {
-        continue;
-      }
-      if (ruleID.toLowerCase() === 'layerassignment') {
-        const evalResult = this._evalRule(user, rule);
-        // user is in an experiment when they FAIL the layerAssignment rule
-        return !evalResult.value;
-      }
+  _isUserAllocatedToExperiment(
+    user: StatsigUser,
+    experimentConfig: ConfigSpec | null,
+  ) {
+    if (experimentConfig == null) {
+      return false;
     }
-    return false;
+    const evalResult = this._eval(user, experimentConfig);
+    return evalResult.is_experiment_group;
   }
 
   private getFromIP(user: StatsigUser, field: string) {
@@ -698,8 +755,8 @@ function getFromUser(user: StatsigUser, field: string): any | null {
   if (typeof user !== 'object') {
     return null;
   }
-  const indexableUser = user as {[field: string]: unknown};
-  
+  const indexableUser = user as { [field: string]: unknown };
+
   return (
     indexableUser[field] ??
     indexableUser[field.toLowerCase()] ??
@@ -745,13 +802,17 @@ function getFromEnvironment(user: StatsigUser, field: string) {
   );
 }
 
-function numberCompare(fn: (a: number, b: number) => boolean): (a: unknown, b: unknown) => boolean {
+function numberCompare(
+  fn: (a: number, b: number) => boolean,
+): (a: unknown, b: unknown) => boolean {
   return (a: unknown, b: unknown) => {
     return typeof a === 'number' && typeof b === 'number' && fn(a, b);
   };
 }
 
-function versionCompareHelper(fn: (res: number) => boolean): (a: string, b: string) => boolean {
+function versionCompareHelper(
+  fn: (res: number) => boolean,
+): (a: string, b: string) => boolean {
   return (a: string, b: string) => {
     const comparison = versionCompare(a, b);
     if (comparison == null) {
@@ -810,7 +871,10 @@ function removeVersionExtension(version: string): string {
   return version;
 }
 
-function stringCompare(ignoreCase: boolean, fn: (a: string, b: string) => boolean): (a: string, b: string) => boolean {
+function stringCompare(
+  ignoreCase: boolean,
+  fn: (a: string, b: string) => boolean,
+): (a: string, b: string) => boolean {
   return (a: string, b: string): boolean => {
     if (a == null || b == null) {
       return false;
@@ -821,7 +885,9 @@ function stringCompare(ignoreCase: boolean, fn: (a: string, b: string) => boolea
   };
 }
 
-function dateCompare(fn: (a: Date, b: Date) => boolean): (a: string, b: string) => boolean {
+function dateCompare(
+  fn: (a: Date, b: Date) => boolean,
+): (a: string, b: string) => boolean {
   return (a: string, b: string): boolean => {
     if (a == null || b == null) {
       return false;
@@ -847,7 +913,11 @@ function dateCompare(fn: (a: Date, b: Date) => boolean): (a: string, b: string) 
   };
 }
 
-function arrayAny(value: any, array: unknown, fn: (value: any, otherValue: any) => boolean): boolean {
+function arrayAny(
+  value: any,
+  array: unknown,
+  fn: (value: any, otherValue: any) => boolean,
+): boolean {
   if (!Array.isArray(array)) {
     return false;
   }

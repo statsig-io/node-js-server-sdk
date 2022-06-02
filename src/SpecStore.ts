@@ -20,6 +20,7 @@ export type ConfigStore = {
   configs: Record<string, ConfigSpec>;
   idLists: Record<string, IDList>;
   layers: Record<string, ConfigSpec>;
+  experimentToLayer: Record<string, string>;
 };
 
 export default class SpecStore {
@@ -44,7 +45,13 @@ export default class SpecStore {
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
     this.time = 0;
-    this.store = { gates: {}, configs: {}, idLists: {}, layers: {} };
+    this.store = {
+      gates: {},
+      configs: {},
+      idLists: {},
+      layers: {},
+      experimentToLayer: {},
+    };
     this.syncInterval = syncInterval;
     this.idListSyncInterval = idListSyncInterval;
     this.initialized = false;
@@ -75,6 +82,10 @@ export default class SpecStore {
 
   public getLayer(layerName: string): ConfigSpec | null {
     return this.store.layers[layerName] ?? null;
+  }
+
+  public getExperimentLayer(experimentName: string): string | null {
+    return this.store.experimentToLayer[experimentName] ?? null;
   }
 
   public getIDList(listName: string): IDList | null {
@@ -136,9 +147,7 @@ export default class SpecStore {
         message = e.message;
       }
       console.error(
-        `statsigSDK::sync> Failed while attempting to sync values: ${
-          message
-        }`,
+        `statsigSDK::sync> Failed while attempting to sync values: ${message}`,
       );
     }
 
@@ -155,12 +164,14 @@ export default class SpecStore {
 
     let parseFailed = false;
 
-    const updatedGates : Record<string, ConfigSpec> = {};
-    const updatedConfigs : Record<string, ConfigSpec> = {};
-    const updatedLayers : Record<string, ConfigSpec> = {};
+    const updatedGates: Record<string, ConfigSpec> = {};
+    const updatedConfigs: Record<string, ConfigSpec> = {};
+    const updatedLayers: Record<string, ConfigSpec> = {};
+    const updatedExpToLayer: Record<string, string> = {};
     const gateArray = specsJSON?.feature_gates;
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
+    const layerToExperimentMap = specsJSON?.layers;
 
     if (
       !Array.isArray(gateArray) ||
@@ -200,10 +211,27 @@ export default class SpecStore {
       }
     }
 
+    if (
+      layerToExperimentMap != null &&
+      typeof layerToExperimentMap === 'object'
+    ) {
+      for (const [layerName, experiments] of Object.entries(
+        // @ts-ignore
+        layerToExperimentMap,
+      )) {
+        // @ts-ignore
+        for (const experimentName of experiments) {
+          // experiment -> layer is a 1:1 mapping
+          updatedExpToLayer[experimentName] = layerName;
+        }
+      }
+    }
+
     if (!parseFailed) {
       this.store.gates = updatedGates;
       this.store.configs = updatedConfigs;
       this.store.layers = updatedLayers;
+      this.store.experimentToLayer = updatedExpToLayer;
       this.time = (specsJSON.time as number) ?? this.time;
     }
     return !parseFailed;
@@ -211,12 +239,9 @@ export default class SpecStore {
 
   private async _syncIDLists(): Promise<void> {
     try {
-      const response = await this.fetcher.post(
-        this.api + '/get_id_lists',
-        {
-          statsigMetadata: getStatsigMetadata(),
-        },
-      );
+      const response = await this.fetcher.post(this.api + '/get_id_lists', {
+        statsigMetadata: getStatsigMetadata(),
+      });
       // @ts-ignore
       const parsed = await response.json();
       let promises = [];
