@@ -21,6 +21,7 @@ declare module 'statsig-node' {
       string | number | boolean | Array<string> | undefined
     >;
     customIDs?: Record<string, string>;
+    statsigEnvironment?: StatsigEnvironment;
   };
 
   /**
