@@ -270,7 +270,8 @@ export default class StatsigServer {
         'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
       );
     }
-    return this._evaluator.getClientInitializeResponse(user);
+    const normalizedUser = normalizeUser(user, this._options);
+    return this._evaluator.getClientInitializeResponse(normalizedUser);
   }
 
   public overrideGate(
