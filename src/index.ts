@@ -1,11 +1,12 @@
-import { StatsigUser } from './StatsigUser';
 import DynamicConfig from './DynamicConfig';
+import { StatsigUninitializedError } from './Errors';
 import Layer from './Layer';
-import StatsigServer from './StatsigServer';
 import { StatsigOptionsType } from './StatsigOptionsType';
+import StatsigServer from './StatsigServer';
+import { StatsigUser } from './StatsigUser';
 
 type StatsigSingleton = {
-  _instance: null | StatsigServer;
+  _instance: StatsigServer | null;
 
   initialize(secretKey: string, options?: StatsigOptionsType): Promise<void>;
 
@@ -61,10 +62,13 @@ const statsig: StatsigSingleton = {
     secretKey: string,
     options: StatsigOptionsType = {},
   ): Promise<void> {
+    const inst = statsig._instance ?? new StatsigServer(secretKey, options);
+
     if (statsig._instance == null) {
-      statsig._instance = new StatsigServer(secretKey, options);
+      statsig._instance = inst;
     }
-    return statsig._instance.initializeAsync();
+
+    return inst.initializeAsync();
   },
 
   checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
@@ -138,15 +142,16 @@ const statsig: StatsigSingleton = {
   },
 
   flush(): Promise<void> {
-    if (statsig._instance == null) {
+    const inst = statsig._instance;
+    if (inst == null) {
       return Promise.resolve();
     }
-    return statsig._instance.flush();
+    return inst.flush();
   },
 
   _ensureInitialized(): StatsigServer {
     if (statsig._instance == null) {
-      throw new Error('Must call initialize() first.');
+      throw new StatsigUninitializedError();
     }
     return statsig._instance;
   },

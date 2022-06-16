@@ -1,15 +1,19 @@
+import ConfigEvaluation from './ConfigEvaluation';
 import DynamicConfig from './DynamicConfig';
+import ErrorBoundary from './ErrorBoundary';
+import {
+  StatsigInvalidArgumentError,
+  StatsigUninitializedError,
+} from './Errors';
 import Evaluator from './Evaluator';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
-import { StatsigOptionsType } from './StatsigOptionsType';
-import { StatsigUser } from './StatsigUser';
 import LogEventProcessor from './LogEventProcessor';
 import StatsigOptions from './StatsigOptions';
+import { StatsigOptionsType } from './StatsigOptionsType';
+import { StatsigUser } from './StatsigUser';
+import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
-import ConfigEvaluation from './ConfigEvaluation';
-
-const { getStatsigMetadata, isUserIdentifiable } = require('./utils/core');
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 1024;
@@ -27,6 +31,7 @@ export default class StatsigServer {
   private _secretKey: string;
   private _evaluator: Evaluator;
   private _fetcher: StatsigFetcher;
+  private _errorBoundary: ErrorBoundary;
 
   public constructor(secretKey: string, options: StatsigOptionsType = {}) {
     this._secretKey = secretKey;
@@ -36,6 +41,7 @@ export default class StatsigServer {
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
     this._evaluator = new Evaluator(this._fetcher, this._options);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
+    this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
   /**
@@ -43,49 +49,58 @@ export default class StatsigServer {
    * @throws Error if a Server Secret Key is not provided
    */
   public initializeAsync(): Promise<void> {
-    if (this._pendingInitPromise != null) {
-      return this._pendingInitPromise;
-    }
+    return this._errorBoundary.capture(
+      () => {
+        if (this._pendingInitPromise != null) {
+          return this._pendingInitPromise;
+        }
 
-    if (this._ready === true) {
-      return Promise.resolve();
-    }
+        if (this._ready === true) {
+          return Promise.resolve();
+        }
 
-    if (
-      typeof this._secretKey !== 'string' ||
-      this._secretKey.length === 0 ||
-      !this._secretKey.startsWith('secret-')
-    ) {
-      return Promise.reject(
-        new Error(
-          'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
-        ),
-      );
-    }
+        if (
+          typeof this._secretKey !== 'string' ||
+          this._secretKey.length === 0 ||
+          !this._secretKey.startsWith('secret-')
+        ) {
+          return Promise.reject(
+            new StatsigInvalidArgumentError(
+              'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+            ),
+          );
+        }
 
-    const initPromise = this._evaluator.init().finally(() => {
-      this._ready = true;
-      this._pendingInitPromise = null;
-    });
-    if (
-      this._options.initTimeoutMs != null &&
-      this._options.initTimeoutMs > 0
-    ) {
-      this._pendingInitPromise = Promise.race([
-        initPromise,
-        new Promise((resolve) => {
-          setTimeout(() => {
-            this._ready = true;
-            this._pendingInitPromise = null;
-            resolve();
-          }, this._options.initTimeoutMs);
-        }) as Promise<void>,
-      ]);
-    } else {
-      this._pendingInitPromise = initPromise;
-    }
+        const initPromise = this._evaluator.init().finally(() => {
+          this._ready = true;
+          this._pendingInitPromise = null;
+        });
+        if (
+          this._options.initTimeoutMs != null &&
+          this._options.initTimeoutMs > 0
+        ) {
+          this._pendingInitPromise = Promise.race([
+            initPromise,
+            new Promise((resolve) => {
+              setTimeout(() => {
+                this._ready = true;
+                this._pendingInitPromise = null;
+                resolve();
+              }, this._options.initTimeoutMs);
+            }) as Promise<void>,
+          ]);
+        } else {
+          this._pendingInitPromise = initPromise;
+        }
 
-    return this._pendingInitPromise;
+        return this._pendingInitPromise;
+      },
+      () => {
+        this._ready = true;
+        this._pendingInitPromise = null;
+        return Promise.resolve();
+      },
+    );
   }
 
   /**
@@ -94,17 +109,22 @@ export default class StatsigServer {
    * @throws Error if the gateName is not provided or not a non-empty string
    */
   public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    const { rejection, normalizedUser } = this._validateInputs(
-      user,
-      gateName,
-      'gateName',
-    );
+    return this._errorBoundary.capture(
+      () => {
+        const { rejection, normalizedUser } = this._validateInputs(
+          user,
+          gateName,
+          'gateName',
+        );
 
-    return (
-      rejection ??
-      this._getGateValue(normalizedUser, gateName).then((gate) => {
-        return gate?.value === true ?? false;
-      })
+        return (
+          rejection ??
+          this._getGateValue(normalizedUser, gateName).then((gate) => {
+            return gate?.value === true ?? false;
+          })
+        );
+      },
+      () => Promise.resolve(false),
     );
   }
 
@@ -117,13 +137,18 @@ export default class StatsigServer {
     user: StatsigUser,
     configName: string,
   ): Promise<DynamicConfig> {
-    const { rejection, normalizedUser } = this._validateInputs(
-      user,
-      configName,
-      'configName',
-    );
+    return this._errorBoundary.capture(
+      () => {
+        const { rejection, normalizedUser } = this._validateInputs(
+          user,
+          configName,
+          'configName',
+        );
 
-    return rejection ?? this._getConfigValue(normalizedUser, configName);
+        return rejection ?? this._getConfigValue(normalizedUser, configName);
+      },
+      () => Promise.resolve(new DynamicConfig(configName)),
+    );
   }
 
   /**
@@ -135,13 +160,20 @@ export default class StatsigServer {
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    const { rejection, normalizedUser } = this._validateInputs(
-      user,
-      experimentName,
-      'experimentName',
-    );
+    return this._errorBoundary.capture(
+      () => {
+        const { rejection, normalizedUser } = this._validateInputs(
+          user,
+          experimentName,
+          'experimentName',
+        );
 
-    return rejection ?? this._getConfigValue(normalizedUser, experimentName);
+        return (
+          rejection ?? this._getConfigValue(normalizedUser, experimentName)
+        );
+      },
+      () => Promise.resolve(new DynamicConfig(experimentName)),
+    );
   }
 
   /**
@@ -150,13 +182,18 @@ export default class StatsigServer {
    * @throws Error if the layerName is not provided or not a non-empty string
    */
   public getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    const { rejection, normalizedUser } = this._validateInputs(
-      user,
-      layerName,
-      'layerName',
-    );
+    return this._errorBoundary.capture(
+      () => {
+        const { rejection, normalizedUser } = this._validateInputs(
+          user,
+          layerName,
+          'layerName',
+        );
 
-    return rejection ?? this._getLayerValue(normalizedUser, layerName);
+        return rejection ?? this._getLayerValue(normalizedUser, layerName);
+      },
+      () => Promise.resolve(new Layer(layerName)),
+    );
   }
 
   /**
@@ -169,11 +206,13 @@ export default class StatsigServer {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ) {
-    this.logEventObject({
-      eventName: eventName,
-      user: user,
-      value: value,
-      metadata: metadata,
+    return this._errorBoundary.swallow(() => {
+      this.logEventObject({
+        eventName: eventName,
+        user: user,
+        value: value,
+        metadata: metadata,
+      });
     });
   }
 
@@ -184,62 +223,64 @@ export default class StatsigServer {
     metadata?: Record<string, unknown> | null;
     time?: string | null;
   }) {
-    let eventName = eventObject.eventName;
-    let user = eventObject.user ?? null;
-    let value = eventObject.value ?? null;
-    let metadata = eventObject.metadata ?? null;
-    let time = eventObject.time ?? null;
+    return this._errorBoundary.swallow(() => {
+      let eventName = eventObject.eventName;
+      let user = eventObject.user ?? null;
+      let value = eventObject.value ?? null;
+      let metadata = eventObject.metadata ?? null;
+      let time = eventObject.time ?? null;
 
-    if (!(this._ready === true && this._logger != null)) {
-      throw new Error('Must call initialize() first.');
-    }
-    if (typeof eventName !== 'string' || eventName.length === 0) {
-      console.error(
-        'statsigSDK::logEvent> Must provide a valid string for the eventName.',
-      );
-      return;
-    }
-    if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
-      hasLoggedNoUserIdWarning = true;
-      console.warn(
-        'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
-      );
-    }
-    user = normalizeUser(user, this._options);
-    if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
-      console.warn(
-        'statsigSDK::logEvent> eventName is too long, trimming to ' +
-          MAX_VALUE_SIZE +
-          '.',
-      );
-      eventName = eventName.substring(0, MAX_VALUE_SIZE);
-    }
-    if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
-      console.warn(
-        'statsigSDK::logEvent> value is too long, trimming to ' +
-          MAX_VALUE_SIZE +
-          '.',
-      );
-      value = value.substring(0, MAX_VALUE_SIZE);
-    }
+      if (!(this._ready === true && this._logger != null)) {
+        throw new StatsigUninitializedError();
+      }
+      if (typeof eventName !== 'string' || eventName.length === 0) {
+        console.error(
+          'statsigSDK::logEvent> Must provide a valid string for the eventName.',
+        );
+        return;
+      }
+      if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
+        hasLoggedNoUserIdWarning = true;
+        console.warn(
+          'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
+        );
+      }
+      user = normalizeUser(user, this._options);
+      if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
+        console.warn(
+          'statsigSDK::logEvent> eventName is too long, trimming to ' +
+            MAX_VALUE_SIZE +
+            '.',
+        );
+        eventName = eventName.substring(0, MAX_VALUE_SIZE);
+      }
+      if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
+        console.warn(
+          'statsigSDK::logEvent> value is too long, trimming to ' +
+            MAX_VALUE_SIZE +
+            '.',
+        );
+        value = value.substring(0, MAX_VALUE_SIZE);
+      }
 
-    if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
-      console.warn(
-        'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
-      );
-      metadata = { error: 'not logged due to size too large' };
-    }
+      if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
+        console.warn(
+          'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
+        );
+        metadata = { error: 'not logged due to size too large' };
+      }
 
-    let event = new LogEvent(eventName);
-    event.setUser(user);
-    event.setValue(value);
-    event.setMetadata(metadata);
+      let event = new LogEvent(eventName);
+      event.setUser(user);
+      event.setValue(value);
+      event.setMetadata(metadata);
 
-    if (typeof time === 'number') {
-      event.setTime(time);
-    }
+      if (typeof time === 'number') {
+        event.setTime(time);
+      }
 
-    this._logger.log(event);
+      this._logger.log(event);
+    });
   }
 
   /**
@@ -250,27 +291,40 @@ export default class StatsigServer {
     if (this._logger == null) {
       return;
     }
-    this._ready = false;
-    this._logger.shutdown();
-    this._fetcher.shutdown();
-    this._evaluator.shutdown();
+
+    this._errorBoundary.swallow(() => {
+      this._ready = false;
+      this._logger.shutdown();
+      this._fetcher.shutdown();
+      this._evaluator.shutdown();
+    });
   }
 
   public async flush(): Promise<void> {
-    if (this._logger == null) {
-      return Promise.resolve();
-    }
+    return this._errorBoundary.capture(
+      () => {
+        if (this._logger == null) {
+          return Promise.resolve();
+        }
 
-    return this._logger.flush();
+        return this._logger.flush();
+      },
+      () => Promise.resolve(),
+    );
   }
 
-  public getClientInitializeResponse(user: StatsigUser): Record<string, unknown> | null {
-    if (this._ready !== true) {
-      throw new Error(
-        'statsigSDK::getClientInitializeResponse> Must call initialize() first.',
-      );
-    }
-    return this._evaluator.getClientInitializeResponse(user);
+  public getClientInitializeResponse(
+    user: StatsigUser,
+  ): Record<string, unknown> | null {
+    return this._errorBoundary.capture(
+      () => {
+        if (this._ready !== true) {
+          throw new StatsigUninitializedError();
+        }
+        return this._evaluator.getClientInitializeResponse(user);
+      },
+      () => null,
+    );
   }
 
   public overrideGate(
@@ -278,13 +332,15 @@ export default class StatsigServer {
     value: boolean,
     userID: string | null = '',
   ) {
-    if (typeof value !== 'boolean') {
-      console.warn(
-        'statsigSDK> Attempted to override a gate with a non boolean value',
-      );
-      return;
-    }
-    this._evaluator.overrideGate(gateName, value, userID);
+    this._errorBoundary.swallow(() => {
+      if (typeof value !== 'boolean') {
+        console.warn(
+          'statsigSDK> Attempted to override a gate with a non boolean value',
+        );
+        return;
+      }
+      this._evaluator.overrideGate(gateName, value, userID);
+    });
   }
 
   public overrideConfig(
@@ -292,28 +348,31 @@ export default class StatsigServer {
     value: Record<string, unknown>,
     userID: string | null = '',
   ) {
-    if (typeof value !== 'object') {
-      console.warn(
-        'statsigSDK> Attempted to override a config with a non object value',
-      );
-      return;
-    }
-    this._evaluator.overrideConfig(configName, value, userID);
+    this._errorBoundary.swallow(() => {
+      if (typeof value !== 'object') {
+        console.warn(
+          'statsigSDK> Attempted to override a config with a non object value',
+        );
+        return;
+      }
+      this._evaluator.overrideConfig(configName, value, userID);
+    });
   }
 
   private _validateInputs(user: StatsigUser, name: string, usage: string) {
-    const result : {rejection: null | Promise<never>, normalizedUser: StatsigUser} = { rejection: null, normalizedUser: {} };
+    const result: {
+      rejection: null | Promise<never>;
+      normalizedUser: StatsigUser;
+    } = { rejection: null, normalizedUser: {} };
     if (this._ready !== true) {
-      result.rejection = Promise.reject(
-        new Error('Must call initialize() first.'),
-      );
+      result.rejection = Promise.reject(new StatsigUninitializedError());
     } else if (typeof name !== 'string' || name.length === 0) {
       result.rejection = Promise.reject(
-        new Error(`Must pass a valid ${usage} to check`),
+        new StatsigInvalidArgumentError(`Must pass a valid ${usage} to check`),
       );
     } else if (!isUserIdentifiable(user)) {
       result.rejection = Promise.reject(
-        new Error(
+        new StatsigInvalidArgumentError(
           'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
         ),
       );
@@ -392,14 +451,16 @@ export default class StatsigServer {
   private _getLayerValue(user: StatsigUser, layerName: string): Promise<Layer> {
     let ret = this._evaluator.getLayer(user, layerName);
     if (ret != null && !ret.fetch_from_server) {
-      const logFunc = (
-        layer: Layer,
-        parameterName: string,
-      ) => {
+      const logFunc = (layer: Layer, parameterName: string) => {
         if (this._logger == null) {
           return;
         }
-        this._logger.logLayerExposure(user, layer, parameterName, ret as ConfigEvaluation);
+        this._logger.logLayerExposure(
+          user,
+          layer,
+          parameterName,
+          ret as ConfigEvaluation,
+        );
       };
       const layer = new Layer(
         layerName,

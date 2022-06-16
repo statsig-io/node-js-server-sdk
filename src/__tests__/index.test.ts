@@ -4,6 +4,7 @@ import * as statsigsdk from '../index';
 const statsig = statsigsdk.default;
 import LogEvent from '../LogEvent';
 import DynamicConfig from '../DynamicConfig';
+import { StatsigUninitializedError } from '../Errors';
 const exampleConfigSpecs = require('./jest.setup');
 
 jest.useFakeTimers();
@@ -105,7 +106,7 @@ describe('Verify behavior of top level index functions', () => {
     try {
       statsig.logEvent({ userID: '12345' }, 'my_event');
     } catch (e) {
-      expect(e).toEqual(new Error('Must call initialize() first.'));
+      expect(e).toEqual(new StatsigUninitializedError());
     }
   });
 
@@ -115,7 +116,7 @@ describe('Verify behavior of top level index functions', () => {
     try {
       await statsig.checkGate({ userID: '12345' }, 'my_gate');
     } catch (e) {
-      expect(e).toEqual(new Error('Must call initialize() first.'));
+      expect(e).toEqual(new StatsigUninitializedError());
     }
 
     expect(statsig._instance).toBeNull();
@@ -127,7 +128,7 @@ describe('Verify behavior of top level index functions', () => {
     try {
       await statsig.getConfig({ userID: '12345' }, 'my_config');
     } catch (e) {
-      expect(e).toEqual(new Error('Must call initialize() first.'));
+      expect(e).toEqual(new StatsigUninitializedError());
     }
 
     expect(statsig._instance).toBeNull();
@@ -139,7 +140,7 @@ describe('Verify behavior of top level index functions', () => {
     try {
       await statsig.getExperiment({ userID: '12345' }, 'my_exp');
     } catch (e) {
-      expect(e).toEqual(new Error('Must call initialize() first.'));
+      expect(e).toEqual(new StatsigUninitializedError());
     }
 
     expect(statsig._instance).toBeNull();

@@ -130,7 +130,6 @@ export default class SpecStore {
           sinceTime: this.time,
         },
       );
-      // @ts-ignore
       const specsString = await response.text();
       const processResult = this._process(JSON.parse(specsString));
       if (processResult) {

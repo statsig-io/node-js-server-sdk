@@ -1,5 +1,7 @@
-import StatsigOptions from "../StatsigOptions";
-import Dispatcher from "./Dispatcher";
+import { StatsigTooManyRequestsError } from '../Errors';
+import StatsigOptions from '../StatsigOptions';
+import { getSDKType, getSDKVersion } from './core';
+import Dispatcher from './Dispatcher';
 import safeFetch from './safeFetch';
 
 const { v4: uuidv4 } = require('uuid');
@@ -12,7 +14,7 @@ export default class StatsigFetcher {
   private dispatcher: Dispatcher;
   private localMode: boolean;
   private sdkKey: string;
-  
+
   public constructor(secretKey: string, options: StatsigOptions) {
     this.sessionID = uuidv4();
     this.leakyBucket = {};
@@ -22,18 +24,27 @@ export default class StatsigFetcher {
     this.sdkKey = secretKey;
   }
 
-  public dispatch(url: string, body: Record<string, unknown>, timeout: number): Promise<Response> {
+  public dispatch(
+    url: string,
+    body: Record<string, unknown>,
+    timeout: number,
+  ): Promise<Response> {
     return this.dispatcher.enqueue(this.post(url, body), timeout);
   }
 
-  public post(url: string, body: Record<string, unknown>, retries: number = 0, backoff: number = 1000): Promise<Response> {
+  public post(
+    url: string,
+    body: Record<string, unknown>,
+    retries: number = 0,
+    backoff: number = 1000,
+  ): Promise<Response> {
     if (this.localMode) {
       return Promise.resolve(new Response());
     }
     const counter = this.leakyBucket[url];
     if (counter != null && counter >= 1000) {
       return Promise.reject(
-        new Error(
+        new StatsigTooManyRequestsError(
           'Request failed because you are making the same request too frequently.',
         ),
       );
@@ -43,7 +54,7 @@ export default class StatsigFetcher {
     } else {
       this.leakyBucket[url] = counter + 1;
     }
-    
+
     const params = {
       method: 'POST',
       body: JSON.stringify(body),
@@ -52,6 +63,8 @@ export default class StatsigFetcher {
         'STATSIG-API-KEY': this.sdkKey,
         'STATSIG-CLIENT-TIME': Date.now(),
         'STATSIG-SERVER-SESSION-ID': this.sessionID,
+        'STATSIG-SDK-TYPE': getSDKType(),
+        'STATSIG-SDK-VERSION': getSDKVersion(),
       },
     };
     return safeFetch(url, params)
@@ -91,7 +104,12 @@ export default class StatsigFetcher {
     }
   }
 
-  private _retry(url: string, body: Record<string, unknown>, retries: number, backoff: number): Promise<Response> {
+  private _retry(
+    url: string,
+    body: Record<string, unknown>,
+    retries: number,
+    backoff: number,
+  ): Promise<Response> {
     return new Promise((resolve, reject) => {
       this.pendingTimers.push(
         setTimeout(() => {
