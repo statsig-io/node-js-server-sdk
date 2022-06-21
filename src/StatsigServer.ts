@@ -321,7 +321,11 @@ export default class StatsigServer {
         if (this._ready !== true) {
           throw new StatsigUninitializedError();
         }
-        return this._evaluator.getClientInitializeResponse(user);
+        let normalizedUser = user;
+        if (user.statsigEnvironment == null) {
+          normalizedUser = normalizeUser(user, this._options);
+        }
+        return this._evaluator.getClientInitializeResponse(normalizedUser);
       },
       () => null,
     );
@@ -534,6 +538,7 @@ function normalizeUser(
   options: StatsigOptions,
 ): StatsigUser {
   user = trimUserObjIfNeeded(user);
+  user = JSON.parse(JSON.stringify(user));
   if (options?.environment != null) {
     user['statsigEnvironment'] = options?.environment;
   }

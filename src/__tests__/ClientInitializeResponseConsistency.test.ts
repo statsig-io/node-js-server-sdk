@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 const shajs = require('sha.js');
 
 import * as statsigsdk from '../index';
+import { StatsigOptionsType } from '../StatsigOptionsType';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -29,9 +30,20 @@ if (secret) {
       jest.resetModules();
     });
 
-    ['https://api.statsig.com/v1'].map((url) =>
-      test(`server and SDK evaluates gates to the same results on ${url}`, async () => {
-        await _validateInitializeConsistency(url);
+    [
+      {
+        api: 'https://api.statsig.com/v1',
+        environment: null,
+      },
+      {
+        api: 'https://api.statsig.com/v1',
+        environment: {
+          tier: 'development',
+        },
+      },
+    ].map((config) =>
+      test(`server and SDK evaluates gates to the same results on ${config.api}`, async () => {
+        await _validateInitializeConsistency(config.api, config.environment);
       }),
     );
   });
@@ -46,7 +58,7 @@ if (secret) {
   });
 }
 
-async function _validateInitializeConsistency(api) {
+async function _validateInitializeConsistency(api, environment) {
   expect.assertions(1);
   const user = {
     userID: '123',
@@ -93,7 +105,14 @@ async function _validateInitializeConsistency(api) {
     }
   }
 
-  await statsig.initialize(secret, { api: api });
+  let options: StatsigOptionsType = {
+    api,
+  };
+  if (environment != null) {
+    options.environment = environment;
+  }
+
+  await statsig.initialize(secret, options);
 
   const sdkInitializeResponse = statsig.getClientInitializeResponse(user);
 
