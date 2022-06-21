@@ -4,6 +4,7 @@ import { StatsigUser } from './StatsigUser';
 import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
 import StatsigOptions from './StatsigOptions';
+import { StatsigLocalModeNetworkError } from './Errors';
 const Layer = require('./Layer');
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
@@ -85,7 +86,7 @@ export default class LogEventProcessor {
         return Promise.resolve();
       })
       .catch((e) => {
-        if (!fireAndForget) {
+        if (!fireAndForget && !(e instanceof StatsigLocalModeNetworkError)) {
           this.logStatsigInternal(null, 'log_event_failed', {
             error: e?.message || 'log_event_failed',
           });

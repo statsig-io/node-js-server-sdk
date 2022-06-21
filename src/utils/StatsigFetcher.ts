@@ -1,4 +1,7 @@
-import { StatsigTooManyRequestsError } from '../Errors';
+import {
+  StatsigLocalModeNetworkError,
+  StatsigTooManyRequestsError,
+} from '../Errors';
 import StatsigOptions from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
@@ -39,7 +42,7 @@ export default class StatsigFetcher {
     backoff: number = 1000,
   ): Promise<Response> {
     if (this.localMode) {
-      return Promise.resolve(new Response());
+      return Promise.reject(new StatsigLocalModeNetworkError());
     }
     const counter = this.leakyBucket[url];
     if (counter != null && counter >= 1000) {

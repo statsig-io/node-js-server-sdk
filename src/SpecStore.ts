@@ -3,6 +3,7 @@ import StatsigOptions from './StatsigOptions';
 import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
+import { StatsigLocalModeNetworkError } from './Errors';
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -141,13 +142,15 @@ export default class SpecStore {
         }
       }
     } catch (e) {
-      let message = '';
-      if (e instanceof Error) {
-        message = e.message;
+      if (!(e instanceof StatsigLocalModeNetworkError)) {
+        let message = '';
+        if (e instanceof Error) {
+          message = e.message;
+        }
+        console.error(
+          `statsigSDK::sync> Failed while attempting to sync values: ${message}`,
+        );
       }
-      console.error(
-        `statsigSDK::sync> Failed while attempting to sync values: ${message}`,
-      );
     }
 
     this.syncTimer = setTimeout(() => {
