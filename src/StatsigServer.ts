@@ -267,7 +267,7 @@ export default class StatsigServer {
         console.warn(
           'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
         );
-        metadata = { error: 'not logged due to size too large' };
+        metadata = { statsig_error: 'Metadata length too large' };
       }
 
       let event = new LogEvent(eventName);
@@ -554,7 +554,7 @@ function trimUserObjIfNeeded(user: StatsigUser | null): StatsigUser {
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
   }
   if (shouldTrimParam(user, MAX_USER_SIZE)) {
-    user.custom = {};
+    user.custom = { statsig_error: 'User object length too large' };
     if (shouldTrimParam(user, MAX_USER_SIZE)) {
       console.warn(
         'statsigSDK> User object is too large, only keeping the user ID.',
