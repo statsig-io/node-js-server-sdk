@@ -699,10 +699,12 @@ describe('Verify behavior of top level index functions', () => {
       trimmedEvent.setUser({
         userID: str_64,
         email: 'jest@statsig.com',
-        custom: {},
+        custom: {
+          statsig_error: "User object length too large",
+        },
       });
       trimmedEvent.setValue(str_64.substring(0, 64));
-      trimmedEvent.setMetadata({ error: 'not logged due to size too large' });
+      trimmedEvent.setMetadata({ statsig_error: 'Metadata length too large' });
       expect(spy).toBeCalledWith(trimmedEvent);
     });
   });
