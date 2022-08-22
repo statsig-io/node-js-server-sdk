@@ -3,7 +3,7 @@ name: KONG
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0/4 * * *"
+    - cron: '0 0/4 * * *'
   pull_request:
     branches: [main]
   push:
@@ -26,7 +26,7 @@ jobs:
         run: |
           cd kong/bridges/nodejs-server
           SKIP_PREINSTALL=1 npm install
-          npm install git+https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/private-node-js-server-sdk.git#$GITHUB_SHA --no-save
+          npm install git+https://${{ secrets.KONG_REPO_PAT }}@github.com/$GITHUB_REPOSITORY.git#$GITHUB_HEAD_REF --no-save
         env:
           kong_repo_pat: ${{ secrets.KONG_REPO_PAT }}
 
