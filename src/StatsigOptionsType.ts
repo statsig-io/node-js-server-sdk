@@ -1,3 +1,6 @@
+import { IConfigAdapter } from "./adapters/IConfigAdapter";
+import { ILoggingAdapter } from "./adapters/ILoggingAdapter";
+
 /**
  * An object of properties for initializing the sdk with advanced options
  */
@@ -8,6 +11,8 @@ export type StatsigOptionsType = {
   localMode?: boolean;
   rulesUpdatedCallback?: RulesUpdatedCallback;
   initTimeoutMs?: number;
+  configAdapter?: IConfigAdapter;
+  loggingAdapter?: ILoggingAdapter; 
 };
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;

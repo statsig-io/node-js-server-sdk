@@ -1,3 +1,4 @@
+import { IConfigAdapter } from "./adapters/IConfigAdapter";
 import { RulesUpdatedCallback, StatsigEnvironment } from "./StatsigOptionsType";
 
 const DEFAULT_API = 'https://statsigapi.net/v1';
@@ -10,6 +11,7 @@ export default class StatsigOptions {
   public rulesUpdatedCallback: RulesUpdatedCallback | null;
   public localMode: boolean;
   public initTimeoutMs: number;
+  public configAdapter: IConfigAdapter | null;
 
   public constructor(inputOptions: Record<string, unknown>) {
     this.api = this.getString(inputOptions, 'api', DEFAULT_API) ?? DEFAULT_API;
@@ -23,6 +25,10 @@ export default class StatsigOptions {
     this.rulesUpdatedCallback =  callback ? callback as RulesUpdatedCallback : null;
     this.localMode = this.getBoolean(inputOptions, 'localMode', false);
     this.initTimeoutMs = this.getNumber(inputOptions, 'initTimeoutMs', 0);
+    if (inputOptions.configAdapter != null) {
+      const configAdapter = this.getObject(inputOptions, 'configAdapter', {});
+      this.configAdapter = configAdapter as IConfigAdapter;
+    }
   }
 
 
