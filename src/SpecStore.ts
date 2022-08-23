@@ -162,16 +162,6 @@ export default class SpecStore {
   private async _syncValues(): Promise<void> {
     try {
       await this._fetchConfigSpecsFromServer();
-      if (this.configAdapter) {
-        // refresh adapter
-        this.configAdapter?.setConfigSpecs({
-          gates: this.store.gates,
-          configs: this.store.configs,
-          layers: this.store.layers,
-          experimentToLayer: this.store.experimentToLayer,
-          time: this.time,
-        });
-      }
     } catch (e) {
       if (!(e instanceof StatsigLocalModeNetworkError)) {
         let message = '';
@@ -268,6 +258,16 @@ export default class SpecStore {
       this.store.layers = updatedLayers;
       this.store.experimentToLayer = updatedExpToLayer;
       this.time = (specsJSON.time as number) ?? this.time;
+      if (this.configAdapter) {
+        // update adapter
+        this.configAdapter?.setConfigSpecs({
+          gates: this.store.gates,
+          configs: this.store.configs,
+          layers: this.store.layers,
+          experimentToLayer: this.store.experimentToLayer,
+          time: this.time,
+        });
+      }
     }
     return !parseFailed;
   }
@@ -371,6 +371,10 @@ export default class SpecStore {
       for (const name in deletedLists) {
         delete this.store.idLists[name];
       }
+      if (this.configAdapter) {
+        // update adapter
+        this.idListAdapter?.setIDLists(this.store.idLists);
+      }
       await Promise.allSettled(promises);
     }
   }
@@ -378,10 +382,6 @@ export default class SpecStore {
   private async _syncIDLists(): Promise<void> {
     try {
       await this._fetchIDListsFromServer();
-      if (this.configAdapter) {
-        // refresh adapter
-        this.idListAdapter?.setIDLists(this.store.idLists);
-      }
     } catch (e) {
       // fallback to adapter
       const adapterResponse = this.idListAdapter?.getIDLists();
