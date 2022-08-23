@@ -1,5 +1,7 @@
 import { IConfigAdapter } from "./adapters/IConfigAdapter";
-import { RulesUpdatedCallback, StatsigEnvironment } from "./StatsigOptionsType";
+import { IIDListAdapter } from "./adapters/IIDListAdapter";
+import { ILoggingAdapter } from "./adapters/ILoggingAdapter";
+import { RulesUpdatedCallback, StatsigEnvironment, StatsigOptionsType } from "./StatsigOptionsType";
 
 const DEFAULT_API = 'https://statsigapi.net/v1';
 
@@ -12,8 +14,10 @@ export default class StatsigOptions {
   public localMode: boolean;
   public initTimeoutMs: number;
   public configAdapter: IConfigAdapter | null;
+  public loggingAdapter: ILoggingAdapter | null;
+  public idListAdapter: IIDListAdapter | null;
 
-  public constructor(inputOptions: Record<string, unknown>) {
+  public constructor(inputOptions: StatsigOptionsType) {
     this.api = this.getString(inputOptions, 'api', DEFAULT_API) ?? DEFAULT_API;
     this.bootstrapValues = this.getString(inputOptions, 'bootstrapValues', null);
     this.environment = null;
@@ -25,10 +29,9 @@ export default class StatsigOptions {
     this.rulesUpdatedCallback =  callback ? callback as RulesUpdatedCallback : null;
     this.localMode = this.getBoolean(inputOptions, 'localMode', false);
     this.initTimeoutMs = this.getNumber(inputOptions, 'initTimeoutMs', 0);
-    if (inputOptions.configAdapter != null) {
-      const configAdapter = this.getObject(inputOptions, 'configAdapter', {});
-      this.configAdapter = configAdapter as IConfigAdapter;
-    }
+    this.configAdapter = inputOptions.configAdapter ?? null;
+    this.loggingAdapter = inputOptions.loggingAdapter ?? null;
+    this.idListAdapter = inputOptions.idListAdapter ?? null;
   }
 
 

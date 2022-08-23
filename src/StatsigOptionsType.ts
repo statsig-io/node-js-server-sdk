@@ -1,4 +1,5 @@
 import { IConfigAdapter } from "./adapters/IConfigAdapter";
+import { IIDListAdapter } from "./adapters/IIDListAdapter";
 import { ILoggingAdapter } from "./adapters/ILoggingAdapter";
 
 /**
@@ -12,7 +13,8 @@ export type StatsigOptionsType = {
   rulesUpdatedCallback?: RulesUpdatedCallback;
   initTimeoutMs?: number;
   configAdapter?: IConfigAdapter;
-  loggingAdapter?: ILoggingAdapter; 
+  loggingAdapter?: ILoggingAdapter;
+  idListAdapter?: IIDListAdapter;
 };
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;

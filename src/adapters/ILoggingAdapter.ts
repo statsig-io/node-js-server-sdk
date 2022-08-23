@@ -1,8 +1,7 @@
-import { ConfigSpec } from "../ConfigSpec";
-
-type mixed = object | string | number;
+import LogEvent from "../LogEvent";
 
 export interface ILoggingAdapter {
-  enqueueEvents(events: mixed[]): void;
-  getQueuedEvents(): mixed[];
+  getQueuedEvents(): LogEvent[];
+  enqueueEvents(events: LogEvent[]): void;
+  flushQueuedEvents(): void;
 }
