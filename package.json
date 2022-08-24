@@ -30,6 +30,7 @@
     "ip3country": "^5.0.0",
     "node-fetch": "^2.6.1",
     "object-hash": "^2.1.1",
+    "redis": "^4.3.0",
     "sha.js": "^2.4.11",
     "ua-parser-js": "^1.0.2",
     "uuid": "^8.3.2"
