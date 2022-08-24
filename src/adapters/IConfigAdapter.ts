@@ -1,6 +1,6 @@
 import { ConfigSpec } from "../ConfigSpec";
 
-type ConfigSpecs = {
+export type ConfigSpecs = {
   gates: Record<string, ConfigSpec>,
   configs: Record<string, ConfigSpec>,
   layers: Record<string, ConfigSpec>,
@@ -9,6 +9,7 @@ type ConfigSpecs = {
 };
 
 export interface IConfigAdapter {
-  getConfigSpecs(): ConfigSpecs | null;
-  setConfigSpecs(configSpecs: ConfigSpecs): void;
+  getConfigSpecs(): Promise<ConfigSpecs | null>;
+  setConfigSpecs(configSpecs: ConfigSpecs): Promise<void>;
+  shutdown?(): Promise<void>;
 }

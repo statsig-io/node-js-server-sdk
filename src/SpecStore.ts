@@ -34,6 +34,7 @@ export default class SpecStore {
   private syncInterval: number;
   private idListSyncInterval: number;
   private initialized: boolean;
+  private bootstrapped: boolean;
   private syncTimer: NodeJS.Timer | null;
   private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
@@ -60,6 +61,7 @@ export default class SpecStore {
     this.syncInterval = syncInterval;
     this.idListSyncInterval = idListSyncInterval;
     this.initialized = false;
+    this.bootstrapped = false;
     this.syncTimer = null;
     this.idListsSyncTimer = null;
     this.configAdapter = options.configAdapter;
@@ -70,7 +72,12 @@ export default class SpecStore {
       try {
         specsJSON = JSON.parse(options.bootstrapValues);
         this._process(specsJSON);
-        this.initialized = true;
+        // If there is a config adapter, we cannot finish initializing until
+        // the adapter is fully synced
+        if (this.configAdapter == null) {
+          this.initialized = true;
+        }
+        this.bootstrapped = true;
       } catch (e) {
         console.error(
           'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
@@ -117,6 +124,11 @@ export default class SpecStore {
     if (this.initialized) {
       this._syncValues();
     } else {
+      // Normally, we update adapter only if network can fetch new data.
+      // But if bootstrapped, then we should update adapter with bootstrapped values.
+      if (this.bootstrapped) {
+        await this._syncValuesWithAdapter();
+      }
       await this._syncValues();
     }
 
@@ -148,8 +160,8 @@ export default class SpecStore {
     }
   }
 
-  private _fetchConfigSpecsFromAdapter(): void {
-    const adapterResponse = this.configAdapter?.getConfigSpecs();
+  private async _fetchConfigSpecsFromAdapter(): Promise<void> {
+    const adapterResponse = await this.configAdapter?.getConfigSpecs();
     if (adapterResponse) {
       this.store.gates = adapterResponse.gates;
       this.store.configs = adapterResponse.configs;
@@ -159,9 +171,23 @@ export default class SpecStore {
     }
   }
 
+  private async _syncValuesWithAdapter(): Promise<void> {
+    if (this.configAdapter) {
+      // update adapter
+      await this.configAdapter?.setConfigSpecs({
+        gates: this.store.gates,
+        configs: this.store.configs,
+        layers: this.store.layers,
+        experimentToLayer: this.store.experimentToLayer,
+        time: this.time,
+      });
+    }
+  }
+
   private async _syncValues(): Promise<void> {
     try {
       await this._fetchConfigSpecsFromServer();
+      await this._syncValuesWithAdapter();
     } catch (e) {
       if (!(e instanceof StatsigLocalModeNetworkError)) {
         let message = '';
@@ -173,7 +199,7 @@ export default class SpecStore {
         );
       }
       // fallback to adapter
-      this._fetchConfigSpecsFromAdapter();
+      await this._fetchConfigSpecsFromAdapter();
     }
 
     this.syncTimer = setTimeout(() => {
@@ -258,16 +284,6 @@ export default class SpecStore {
       this.store.layers = updatedLayers;
       this.store.experimentToLayer = updatedExpToLayer;
       this.time = (specsJSON.time as number) ?? this.time;
-      if (this.configAdapter) {
-        // update adapter
-        this.configAdapter?.setConfigSpecs({
-          gates: this.store.gates,
-          configs: this.store.configs,
-          layers: this.store.layers,
-          experimentToLayer: this.store.experimentToLayer,
-          time: this.time,
-        });
-      }
     }
     return !parseFailed;
   }
@@ -404,5 +420,6 @@ export default class SpecStore {
       clearTimeout(this.idListsSyncTimer);
       this.idListsSyncTimer = null;
     }
+    // TODO: handle shutdown for config adapter
   }
 }
