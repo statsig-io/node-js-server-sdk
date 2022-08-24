@@ -172,7 +172,7 @@ export default class Evaluator {
     }
     const gates = Object.entries(this.store.getAllGates())
       .map(([gate, spec]) => {
-        if (spec?.entity === 'segment') {
+        if (spec?.entity === 'segment' || spec?.entity === 'holdout') {
           return null;
         }
         const res = this._eval(user, spec);
