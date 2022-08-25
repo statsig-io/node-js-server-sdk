@@ -5,7 +5,6 @@ import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
 import StatsigOptions from './StatsigOptions';
 import { StatsigLocalModeNetworkError } from './Errors';
-import { ILoggingAdapter } from './adapters/ILoggingAdapter';
 const Layer = require('./Layer');
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
@@ -20,7 +19,6 @@ const deduperInterval = 60 * 1000;
 export default class LogEventProcessor {
   private options: StatsigOptions;
   private fetcher: StatsigFetcher;
-  private loggingAdapter: ILoggingAdapter | null;
 
   private queue: LogEvent[];
   private flushTimer: NodeJS.Timer | null;
@@ -32,7 +30,6 @@ export default class LogEventProcessor {
   public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.options = options;
     this.fetcher = fetcher;
-    this.loggingAdapter = options.loggingAdapter;
 
     this.queue = [];
     this.deduper = new Set();
@@ -77,20 +74,15 @@ export default class LogEventProcessor {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
-    let eventsToSync: LogEvent[] = this.queue;
+    const oldQueue = this.queue;
     this.queue = [];
-    const queuedEventsInAdapter = this.loggingAdapter?.getQueuedEvents();
-    if (queuedEventsInAdapter && queuedEventsInAdapter.length > 0) {
-      eventsToSync = eventsToSync.concat(queuedEventsInAdapter);
-    }
     const body = {
       statsigMetadata: getStatsigMetadata(),
-      events: eventsToSync,
+      events: oldQueue,
     };
     return this.fetcher
       .post(this.options.api + '/log_event', body, fireAndForget ? 0 : 5, 10000)
       .then(() => {
-        this.loggingAdapter?.flushQueuedEvents();
         return Promise.resolve();
       })
       .catch((e) => {
@@ -98,9 +90,6 @@ export default class LogEventProcessor {
           this.logStatsigInternal(null, 'log_event_failed', {
             error: e?.message || 'log_event_failed',
           });
-        }
-        if (this.loggingAdapter) {
-          this.loggingAdapter.enqueueEvents(eventsToSync);
         }
         return Promise.resolve();
       });

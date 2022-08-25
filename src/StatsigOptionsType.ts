@@ -1,6 +1,4 @@
-import { IConfigAdapter } from "./adapters/IConfigAdapter";
-import { IIDListAdapter } from "./adapters/IIDListAdapter";
-import { ILoggingAdapter } from "./adapters/ILoggingAdapter";
+import { IDataAdapter } from "./interfaces/IDataAdapter";
 
 /**
  * An object of properties for initializing the sdk with advanced options
@@ -12,9 +10,7 @@ export type StatsigOptionsType = {
   localMode?: boolean;
   rulesUpdatedCallback?: RulesUpdatedCallback;
   initTimeoutMs?: number;
-  configAdapter?: IConfigAdapter;
-  loggingAdapter?: ILoggingAdapter;
-  idListAdapter?: IIDListAdapter;
+  dataAdapter?: IDataAdapter;
 };
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;

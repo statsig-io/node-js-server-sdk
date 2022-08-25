@@ -4,8 +4,7 @@ import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
-import { IConfigAdapter } from './adapters/IConfigAdapter';
-import { IIDListAdapter } from './adapters/IIDListAdapter';
+import { IDataAdapter } from './interfaces/IDataAdapter';
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -38,8 +37,7 @@ export default class SpecStore {
   private syncTimer: NodeJS.Timer | null;
   private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
-  private configAdapter: IConfigAdapter | null;
-  private idListAdapter: IIDListAdapter | null;
+  private dataAdapter: IDataAdapter | null;
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -64,8 +62,7 @@ export default class SpecStore {
     this.bootstrapped = false;
     this.syncTimer = null;
     this.idListsSyncTimer = null;
-    this.configAdapter = options.configAdapter;
-    this.idListAdapter = options.idListAdapter;
+    this.dataAdapter = options.dataAdapter;
 
     var specsJSON = null;
     if (options?.bootstrapValues != null) {
@@ -74,7 +71,7 @@ export default class SpecStore {
         this._process(specsJSON);
         // If there is a config adapter, we cannot finish initializing until
         // the adapter is fully synced
-        if (this.configAdapter == null) {
+        if (this.dataAdapter == null) {
           this.initialized = true;
         }
         this.bootstrapped = true;
@@ -157,37 +154,42 @@ export default class SpecStore {
       ) {
         this.rulesUpdatedCallback(specsString, this.time);
       }
+      await this._syncValuesWithAdapter();
     }
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
-    const adapterResponse = await this.configAdapter?.getConfigSpecs();
-    if (adapterResponse) {
-      this.store.gates = adapterResponse.gates;
-      this.store.configs = adapterResponse.configs;
-      this.store.layers = adapterResponse.layers;
-      this.store.experimentToLayer = adapterResponse.experimentToLayer;
-      this.time = adapterResponse.time;
+    if (this.dataAdapter) {
+      const { store, time, error} = await this.dataAdapter?.fetchStore();
+      if (store && !error) {
+        this.store.gates = store.gates ?? this.store.gates;
+        this.store.configs = store.configs ?? this.store.configs;
+        this.store.layers = store.layers ?? this.store.layers;
+        this.store.experimentToLayer =
+          store.experimentToLayer ?? this.store.experimentToLayer;
+        this.time = time ?? this.time;
+      }
     }
   }
 
   private async _syncValuesWithAdapter(): Promise<void> {
-    if (this.configAdapter) {
+    if (this.dataAdapter) {
       // update adapter
-      await this.configAdapter?.setConfigSpecs({
-        gates: this.store.gates,
-        configs: this.store.configs,
-        layers: this.store.layers,
-        experimentToLayer: this.store.experimentToLayer,
-        time: this.time,
-      });
+      await this.dataAdapter?.updateStore(
+        {
+          gates: this.store.gates,
+          configs: this.store.configs,
+          layers: this.store.layers,
+          experimentToLayer: this.store.experimentToLayer,
+        },
+        this.time,
+      );
     }
   }
 
   private async _syncValues(): Promise<void> {
     try {
       await this._fetchConfigSpecsFromServer();
-      await this._syncValuesWithAdapter();
     } catch (e) {
       if (!(e instanceof StatsigLocalModeNetworkError)) {
         let message = '';
@@ -387,9 +389,9 @@ export default class SpecStore {
       for (const name in deletedLists) {
         delete this.store.idLists[name];
       }
-      if (this.configAdapter) {
+      if (this.dataAdapter) {
         // update adapter
-        this.idListAdapter?.setIDLists(this.store.idLists);
+        this.dataAdapter?.updateStore({ idLists: this.store.idLists });
       }
       await Promise.allSettled(promises);
     }
@@ -400,9 +402,18 @@ export default class SpecStore {
       await this._fetchIDListsFromServer();
     } catch (e) {
       // fallback to adapter
-      const adapterResponse = this.idListAdapter?.getIDLists();
-      if (adapterResponse) {
-        this.store.idLists = adapterResponse;
+      if (this.dataAdapter) {
+        if (this.dataAdapter.fetchFromStore !== undefined) {
+          const {item, error} = await this.dataAdapter.fetchFromStore('idLists');
+          if (item && !error) {
+            this.store.idLists = item as Record<string, IDList>;
+          }
+        } else {
+          const {store, error} = await this.dataAdapter.fetchStore();
+          if (store && !error) {
+            this.store.idLists = store.idLists;
+          }
+        }
       }
     }
 

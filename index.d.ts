@@ -1,4 +1,5 @@
 declare module 'statsig-node' {
+  import { IDataAdapter } from 'statsig-node/interfaces';
   /**
    * An object of properties relating to the current user
    * Provide as many as possible to take advantage of advanced conditions in the statsig console
@@ -34,6 +35,7 @@ declare module 'statsig-node' {
     localMode?: boolean;
     rulesUpdatedCallback?: { (rulesJSON: string, time: number): void };
     initTimeoutMs?: number;
+    dataAdapter?: IDataAdapter;
   };
 
   export type StatsigEnvironment = {
@@ -202,4 +204,13 @@ declare module 'statsig-node' {
     time: number | null;
     metadata: Record<string, string> | null;
   };
+}
+
+/**
+ * This module contains types and interfaces 
+ * to allow for customizations of SDK features.
+ */
+declare module 'statsig-node/interfaces' {
+  import { AdapterResponse, ConfigItem, InputConfigStore, IDataAdapter } from './src/adapters/IDataAdapter';
+  export { AdapterResponse, ConfigItem, InputConfigStore, IDataAdapter };
 }
