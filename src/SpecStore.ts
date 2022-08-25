@@ -162,11 +162,18 @@ export default class SpecStore {
     if (this.dataAdapter) {
       const { store, time, error} = await this.dataAdapter?.fetchStore();
       if (store && !error) {
-        this.store.gates = store.gates ?? this.store.gates;
-        this.store.configs = store.configs ?? this.store.configs;
-        this.store.layers = store.layers ?? this.store.layers;
-        this.store.experimentToLayer =
-          store.experimentToLayer ?? this.store.experimentToLayer;
+        this.store.gates = (
+          store.gates ?? this.store.gates
+        ) as Record<string, ConfigSpec>;
+        this.store.configs = (
+          store.configs ?? this.store.configs
+        ) as Record<string, ConfigSpec>;
+        this.store.layers = (
+          store.layers ?? this.store.layers
+        ) as Record<string, ConfigSpec>;
+        this.store.experimentToLayer = (
+          store.experimentToLayer ?? this.store.experimentToLayer
+        ) as Record<string, string>;
         this.time = time ?? this.time;
       }
     }
@@ -411,7 +418,7 @@ export default class SpecStore {
         } else {
           const {store, error} = await this.dataAdapter.fetchStore();
           if (store && !error) {
-            this.store.idLists = store.idLists;
+            this.store.idLists = store.idLists as Record<string, IDList>;
           }
         }
       }

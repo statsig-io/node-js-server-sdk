@@ -1,21 +1,18 @@
-import { ConfigSpec } from "../ConfigSpec";
-import { ConfigStore, IDList } from "../SpecStore";
+export type ConfigItem = Record<string, unknown>
+
+export type ConfigStore = {
+  gates?: ConfigItem,
+  configs?: ConfigItem,
+  idLists?: ConfigItem,
+  layers?: ConfigItem,
+  experimentToLayer?: ConfigItem,
+}
 
 export type AdapterResponse = {
   store?: ConfigStore,
   item?: ConfigItem,
   time?: number,
   error?: Error,
-}
-
-export type ConfigItem = Record<string, unknown>
-
-export type InputConfigStore = {
-  gates?: Record<string, ConfigSpec>,
-  configs?: Record<string, ConfigSpec>,
-  idLists?: Record<string, IDList>,
-  layers?: Record<string, ConfigSpec>,
-  experimentToLayer?: Record<string, string>,
 }
 
 /**
@@ -40,7 +37,7 @@ export interface IDataAdapter {
    * @param store - updated data to store
    * @param time - updated time to timestamp freshness of data
    */
-  updateStore(store: InputConfigStore, time?: number): Promise<void>;
+  updateStore(store: ConfigStore, time?: number): Promise<void>;
 
   /**
    * Optional -- Cleanup tasks to run when statsig is shutdown
