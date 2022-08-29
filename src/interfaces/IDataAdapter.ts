@@ -1,5 +1,7 @@
+export type AdapterResult = Record<string, unknown>;
+
 export type AdapterResponse = {
-  result?: Record<string, unknown>,
+  result?: AdapterResult,
   time?: number,
   error?: Error,
 }
@@ -11,34 +13,30 @@ export type AdapterResponse = {
  */
 export interface IDataAdapter {
   /**
-   * Dynamic configs
+   * Returns the data stored for a specific key
+   * @param key - Key of stored item to fetch
    */
-  getConfigs(): Promise<AdapterResponse>;
-  setConfigs(configs: Record<string, unknown>, time?: number): Promise<void>;
+  get(key: string): Promise<AdapterResponse>;
 
   /**
-   * Feature gates
+   * Updates data stored for single key
+   * @param key - Key of stored item to update
+   * @param value - New value to store
+   * @param time - Time of update
    */
-  getGates(): Promise<AdapterResponse>;
-  setGates(gates: Record<string, unknown>, time?: number): Promise<void>;
-
+  set(key: string, value: AdapterResult, time?: number): Promise<void>;
+ 
   /**
-   * Id lists
+   * Updates data stored for each key
+   * @param records - List of key/value pairs to update
+   * @param key - Optional master key to store all records under
+   * @param time - Time of update
    */
-  getIDLists(): Promise<AdapterResponse>;
-  setIDLists(idLists: Record<string, unknown>, time?: number): Promise<void>;
-
-  /**
-   * Layer to experiment mapping
-   */
-  getLayers(): Promise<AdapterResponse>;
-  setLayers(layers: Record<string, unknown>, time?: number): Promise<void>;
-
-  /**
-   * Layer configs
-   */
-  getLayerConfigs(): Promise<AdapterResponse>;
-  setLayerConfigs(layerConfigs: Record<string, unknown>, time?: number): Promise<void>;
+  setMulti(
+    records: Record<string, AdapterResult>,
+    key?: string,
+    time?: number,
+  ): Promise<void>;
 
   /**
    * Startup tasks to run before any fetch/update calls can be made
@@ -46,7 +44,7 @@ export interface IDataAdapter {
   initialize(): Promise<void>;
 
   /**
-   * Optional -- Cleanup tasks to run when statsig is shutdown
+   * Cleanup tasks to run when statsig is shutdown
    */
-  shutdown?(): Promise<void>;
+  shutdown(): Promise<void>;
 }

@@ -5,6 +5,7 @@ const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
+import { AdapterKeys } from './utils/AdapterKeys';
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -163,25 +164,18 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (this.dataAdapter) {
-      const { result: gates, error: gatesError } =
-        await this.dataAdapter.getGates();
-      if (gates && !gatesError) {
-        this.store.gates = gates as Record<string, ConfigSpec>;
-      }
-      const { result: configs, error: configsError } =
-        await this.dataAdapter.getConfigs();
-      if (configs && !configsError) {
-        this.store.configs = configs as Record<string, ConfigSpec>;
-      }
-      const { result: layerConfigs, error: layerConfigsError } =
-        await this.dataAdapter.getLayerConfigs();
-      if (layerConfigs && !layerConfigsError) {
-        this.store.layers = layerConfigs as Record<string, ConfigSpec>;
-      }
-      const { result: layers, error: layersError } =
-        await this.dataAdapter.getLayerConfigs();
-      if (layers && !layersError) {
-        this.store.experimentToLayer = this._processLayers(layers);
+      const { result: configSpecs, error }
+        = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
+      if (configSpecs && !error) {
+        this.store.configs =
+          configSpecs[AdapterKeys.CONFIGS] as Record<string, ConfigSpec>;
+        this.store.gates =
+          configSpecs[AdapterKeys.GATES] as Record<string, ConfigSpec>;
+        this.store.layers =
+          configSpecs[AdapterKeys.LAYER_CONFIGS] as Record<string, ConfigSpec>;
+        this.store.experimentToLayer = this._processLayers(
+          configSpecs[AdapterKeys.LAYERS] as Record<string, ConfigSpec>,
+        );
       }
     }
   }
@@ -189,11 +183,14 @@ export default class SpecStore {
   private async _syncValuesWithAdapter(): Promise<void> {
     if (this.dataAdapter) {
       // update adapter
-      await this.dataAdapter.setConfigs(this.store.configs, this.time);
-      await this.dataAdapter.setGates(this.store.gates, this.time);
-      await this.dataAdapter.setLayerConfigs(this.store.layers, this.time);
-      await this.dataAdapter.setLayers(
-        this._processLayers(this.store.experimentToLayer),
+      await this.dataAdapter.setMulti(
+        {
+          [AdapterKeys.CONFIGS]: this.store.configs,
+          [AdapterKeys.GATES]: this.store.gates,
+          [AdapterKeys.LAYER_CONFIGS]: this.store.layers,
+          [AdapterKeys.LAYERS]: this._processLayers(this.store.experimentToLayer),
+        },
+        AdapterKeys.CONFIG_SPECS,
         this.time,
       );
     }
@@ -414,7 +411,7 @@ export default class SpecStore {
       }
       if (this.dataAdapter) {
         // update adapter
-        this.dataAdapter.setIDLists(this.store.idLists);
+        this.dataAdapter.set(AdapterKeys.ID_LISTS, this.store.idLists);
       }
       await Promise.allSettled(promises);
     }
@@ -426,7 +423,8 @@ export default class SpecStore {
     } catch (e) {
       // fallback to adapter
       if (this.dataAdapter) {
-        const {result: idLists, error} = await this.dataAdapter.getIDLists();
+        const { result: idLists, error } =
+          await this.dataAdapter.get(AdapterKeys.ID_LISTS);
         if (idLists && !error) {
           this.store.idLists = idLists as Record<string, IDList>;
         }
