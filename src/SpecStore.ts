@@ -116,6 +116,9 @@ export default class SpecStore {
   }
 
   public async init(): Promise<void> {
+    if (this.dataAdapter) {
+      await this.dataAdapter.initialize();
+    }
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
     // need to wait for _syncValues() to finish before returning.
     if (this.initialized) {
@@ -160,21 +163,25 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (this.dataAdapter) {
-      const { store, time, error} = await this.dataAdapter?.fetchStore();
-      if (store && !error) {
-        this.store.gates = (
-          store.gates ?? this.store.gates
-        ) as Record<string, ConfigSpec>;
-        this.store.configs = (
-          store.configs ?? this.store.configs
-        ) as Record<string, ConfigSpec>;
-        this.store.layers = (
-          store.layers ?? this.store.layers
-        ) as Record<string, ConfigSpec>;
-        this.store.experimentToLayer = (
-          store.experimentToLayer ?? this.store.experimentToLayer
-        ) as Record<string, string>;
-        this.time = time ?? this.time;
+      const { result: gates, error: gatesError } =
+        await this.dataAdapter.getGates();
+      if (gates && !gatesError) {
+        this.store.gates = gates as Record<string, ConfigSpec>;
+      }
+      const { result: configs, error: configsError } =
+        await this.dataAdapter.getConfigs();
+      if (configs && !configsError) {
+        this.store.configs = configs as Record<string, ConfigSpec>;
+      }
+      const { result: layerConfigs, error: layerConfigsError } =
+        await this.dataAdapter.getLayerConfigs();
+      if (layerConfigs && !layerConfigsError) {
+        this.store.layers = layerConfigs as Record<string, ConfigSpec>;
+      }
+      const { result: layers, error: layersError } =
+        await this.dataAdapter.getLayerConfigs();
+      if (layers && !layersError) {
+        this.store.experimentToLayer = this._processLayers(layers);
       }
     }
   }
@@ -182,13 +189,11 @@ export default class SpecStore {
   private async _syncValuesWithAdapter(): Promise<void> {
     if (this.dataAdapter) {
       // update adapter
-      await this.dataAdapter?.updateStore(
-        {
-          gates: this.store.gates,
-          configs: this.store.configs,
-          layers: this.store.layers,
-          experimentToLayer: this.store.experimentToLayer,
-        },
+      await this.dataAdapter.setConfigs(this.store.configs, this.time);
+      await this.dataAdapter.setGates(this.store.gates, this.time);
+      await this.dataAdapter.setLayerConfigs(this.store.layers, this.time);
+      await this.dataAdapter.setLayers(
+        this._processLayers(this.store.experimentToLayer),
         this.time,
       );
     }
@@ -227,7 +232,7 @@ export default class SpecStore {
     const updatedGates: Record<string, ConfigSpec> = {};
     const updatedConfigs: Record<string, ConfigSpec> = {};
     const updatedLayers: Record<string, ConfigSpec> = {};
-    const updatedExpToLayer: Record<string, string> = {};
+    let updatedExpToLayer: Record<string, string> = {};
     const gateArray = specsJSON?.feature_gates;
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
@@ -271,21 +276,7 @@ export default class SpecStore {
       }
     }
 
-    if (
-      layerToExperimentMap != null &&
-      typeof layerToExperimentMap === 'object'
-    ) {
-      for (const [layerName, experiments] of Object.entries(
-        // @ts-ignore
-        layerToExperimentMap,
-      )) {
-        // @ts-ignore
-        for (const experimentName of experiments) {
-          // experiment -> layer is a 1:1 mapping
-          updatedExpToLayer[experimentName] = layerName;
-        }
-      }
-    }
+    updatedExpToLayer = this._processLayers(layerToExperimentMap);
 
     if (!parseFailed) {
       this.store.gates = updatedGates;
@@ -295,6 +286,31 @@ export default class SpecStore {
       this.time = (specsJSON.time as number) ?? this.time;
     }
     return !parseFailed;
+  }
+
+  /**
+   * Returns a reverse mapping of layers to experiment (or vice versa)
+   */
+  private _processLayers(
+    layersMapping: unknown,
+  ): Record<string, string> {
+    const reverseMapping: Record<string, string> = {};
+    if (
+      layersMapping != null &&
+      typeof layersMapping === 'object'
+    ) {
+      for (const [layerName, experiments] of Object.entries(
+        // @ts-ignore
+        layersMapping,
+      )) {
+        // @ts-ignore
+        for (const experimentName of experiments) {
+          // experiment -> layer is a 1:1 mapping
+          reverseMapping[experimentName] = layerName;
+        }
+      }
+    }
+    return reverseMapping;
   }
 
   private async _fetchIDListsFromServer(): Promise<void> {
@@ -398,7 +414,7 @@ export default class SpecStore {
       }
       if (this.dataAdapter) {
         // update adapter
-        this.dataAdapter?.updateStore({ idLists: this.store.idLists });
+        this.dataAdapter.setIDLists(this.store.idLists);
       }
       await Promise.allSettled(promises);
     }
@@ -410,16 +426,9 @@ export default class SpecStore {
     } catch (e) {
       // fallback to adapter
       if (this.dataAdapter) {
-        if (this.dataAdapter.fetchFromStore !== undefined) {
-          const {item, error} = await this.dataAdapter.fetchFromStore('idLists');
-          if (item && !error) {
-            this.store.idLists = item as Record<string, IDList>;
-          }
-        } else {
-          const {store, error} = await this.dataAdapter.fetchStore();
-          if (store && !error) {
-            this.store.idLists = store.idLists as Record<string, IDList>;
-          }
+        const {result: idLists, error} = await this.dataAdapter.getIDLists();
+        if (idLists && !error) {
+          this.store.idLists = idLists as Record<string, IDList>;
         }
       }
     }

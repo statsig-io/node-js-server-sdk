@@ -1,16 +1,5 @@
-export type ConfigItem = Record<string, unknown>
-
-export type ConfigStore = {
-  gates?: ConfigItem,
-  configs?: ConfigItem,
-  idLists?: ConfigItem,
-  layers?: ConfigItem,
-  experimentToLayer?: ConfigItem,
-}
-
 export type AdapterResponse = {
-  store?: ConfigStore,
-  item?: ConfigItem,
+  result?: Record<string, unknown>,
   time?: number,
   error?: Error,
 }
@@ -22,22 +11,39 @@ export type AdapterResponse = {
  */
 export interface IDataAdapter {
   /**
-   * Returns all stored data
+   * Dynamic configs
    */
-  fetchStore(): Promise<AdapterResponse>;
+  getConfigs(): Promise<AdapterResponse>;
+  setConfigs(configs: Record<string, unknown>, time?: number): Promise<void>;
 
   /**
-   * Optional -- Implement for more efficient single item data fetching
-   * @param item - Key of item in storage
+   * Feature gates
    */
-  fetchFromStore?(item: string): Promise<AdapterResponse>;
+  getGates(): Promise<AdapterResponse>;
+  setGates(gates: Record<string, unknown>, time?: number): Promise<void>;
 
   /**
-   * Updates store with new data provided. 
-   * @param store - updated data to store
-   * @param time - updated time to timestamp freshness of data
+   * Id lists
    */
-  updateStore(store: ConfigStore, time?: number): Promise<void>;
+  getIDLists(): Promise<AdapterResponse>;
+  setIDLists(idLists: Record<string, unknown>, time?: number): Promise<void>;
+
+  /**
+   * Layer to experiment mapping
+   */
+  getLayers(): Promise<AdapterResponse>;
+  setLayers(layers: Record<string, unknown>, time?: number): Promise<void>;
+
+  /**
+   * Layer configs
+   */
+  getLayerConfigs(): Promise<AdapterResponse>;
+  setLayerConfigs(layerConfigs: Record<string, unknown>, time?: number): Promise<void>;
+
+  /**
+   * Startup tasks to run before any fetch/update calls can be made
+   */
+  initialize(): Promise<void>;
 
   /**
    * Optional -- Cleanup tasks to run when statsig is shutdown
