@@ -164,7 +164,7 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (this.dataAdapter) {
-      const { result: configSpecs, error }
+      const { result: configSpecs, error, time }
         = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
       if (configSpecs && !error) {
         this.store.configs =
@@ -176,6 +176,7 @@ export default class SpecStore {
         this.store.experimentToLayer = this._processLayers(
           configSpecs[AdapterKeys.LAYERS] as Record<string, string>,
         );
+        this.time = time ?? this.time;
       }
     }
   }
