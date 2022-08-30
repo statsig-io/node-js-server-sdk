@@ -174,7 +174,7 @@ export default class SpecStore {
         this.store.layers =
           configSpecs[AdapterKeys.LAYER_CONFIGS] as Record<string, ConfigSpec>;
         this.store.experimentToLayer = this._processLayers(
-          configSpecs[AdapterKeys.LAYERS] as Record<string, ConfigSpec>,
+          configSpecs[AdapterKeys.LAYERS] as Record<string, string>,
         );
       }
     }
