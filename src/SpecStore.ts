@@ -7,6 +7,7 @@ import { StatsigLocalModeNetworkError } from './Errors';
 
 const SYNC_INTERVAL = 10 * 1000;
 const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
+const SYNC_OUTDATED_MAX = 120 * 1000;
 
 type IDList = {
   creationTime: number;
@@ -35,6 +36,7 @@ export default class SpecStore {
   private syncTimer: NodeJS.Timer | null;
   private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
+  private syncFailureCount: number = 0;
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -111,7 +113,7 @@ export default class SpecStore {
     if (this.initialized) {
       this._syncValues();
     } else {
-      await this._syncValues();
+      await this._syncValues(true);
     }
 
     await this._syncIDLists();
@@ -122,7 +124,7 @@ export default class SpecStore {
     return this.time !== 0;
   }
 
-  private async _syncValues(): Promise<void> {
+  private async _syncValues(isColdStart: boolean = false): Promise<void> {
     try {
       const response = await this.fetcher.post(
         this.api + '/download_config_specs',
@@ -141,15 +143,25 @@ export default class SpecStore {
           this.rulesUpdatedCallback(specsString, this.time);
         }
       }
+      this.syncFailureCount = 0;
     } catch (e) {
+      this.syncFailureCount++;
       if (!(e instanceof StatsigLocalModeNetworkError)) {
-        let message = '';
-        if (e instanceof Error) {
-          message = e.message;
+        if (isColdStart) {
+          console.error(
+            'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
+          );
+        } else if (
+          this.syncFailureCount * this.syncInterval >
+          SYNC_OUTDATED_MAX
+        ) {
+          console.warn(
+            `statsigSDK::sync> Syncing the server SDK with statsig has failed for  ${
+              this.syncFailureCount * this.syncInterval
+            }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+          );
+          this.syncFailureCount = 0;
         }
-        console.error(
-          `statsigSDK::sync> Failed while attempting to sync values: ${message}`,
-        );
       }
     }
 
