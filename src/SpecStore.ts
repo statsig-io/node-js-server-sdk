@@ -167,7 +167,7 @@ export default class SpecStore {
 
     this.syncTimer = setTimeout(() => {
       this._syncValues();
-    }, this.syncInterval);
+    }, this.syncInterval).unref();
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
@@ -357,7 +357,7 @@ export default class SpecStore {
 
     this.idListsSyncTimer = setTimeout(() => {
       this._syncIDLists();
-    }, this.idListSyncInterval);
+    }, this.idListSyncInterval).unref();
   }
 
   public shutdown(): void {
