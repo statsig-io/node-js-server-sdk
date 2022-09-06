@@ -7,4 +7,5 @@ module.exports = {
     '<rootDir>/src/__tests__/jest.setup.js',
     '<rootDir>/dist/',
   ],
+  testEnvironment: 'node',
 };

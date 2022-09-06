@@ -120,7 +120,7 @@ export default class StatsigFetcher {
           this.post(url, body, retries - 1, backoff * 10)
             .then(resolve)
             .catch(reject);
-        }, backoff),
+        }, backoff).unref(),
       );
     });
   }

@@ -38,11 +38,11 @@ export default class LogEventProcessor {
     const processor = this;
     this.flushTimer = setInterval(function () {
       processor.flush();
-    }, flushInterval);
+    }, flushInterval).unref();
 
     this.deduperTimer = setInterval(function () {
       processor.deduper.clear();
-    }, deduperInterval);
+    }, deduperInterval).unref();
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
