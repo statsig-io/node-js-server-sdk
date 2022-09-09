@@ -5,8 +5,6 @@ const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 
-const SYNC_INTERVAL = 10 * 1000;
-const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
 type IDList = {
@@ -38,12 +36,7 @@ export default class SpecStore {
   private fetcher: StatsigFetcher;
   private syncFailureCount: number = 0;
 
-  public constructor(
-    fetcher: StatsigFetcher,
-    options: StatsigOptions,
-    syncInterval = SYNC_INTERVAL,
-    idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
-  ) {
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
@@ -55,8 +48,8 @@ export default class SpecStore {
       layers: {},
       experimentToLayer: {},
     };
-    this.syncInterval = syncInterval;
-    this.idListSyncInterval = idListSyncInterval;
+    this.syncInterval = options.rulesetsSyncIntervalMs;
+    this.idListSyncInterval = options.idListsSyncIntervalMs;
     this.initialized = false;
     this.syncTimer = null;
     this.idListsSyncTimer = null;

@@ -70,8 +70,17 @@ describe('Verify behavior of SpecStore', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    const net = new StatsigFetcher("secret-", new StatsigOptions({}));
-    store = new SpecStore(net, new StatsigOptions({}), 1000, 1000);
+    const net = new StatsigFetcher('secret-', new StatsigOptions({}));
+    const options = new StatsigOptions({
+      rulesetsSyncIntervalMs: 1000,
+      idListsSyncIntervalMs: 1000,
+    });
+
+    // Get around the limit;
+    options.rulesetsSyncIntervalMs = 1000;
+    options.idListsSyncIntervalMs = 1000;
+
+    store = new SpecStore(net, options);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });
