@@ -28,6 +28,7 @@ if (secret) {
     beforeEach(() => {
       jest.restoreAllMocks();
       jest.resetModules();
+      statsig._instance = null;
     });
 
     [
@@ -71,10 +72,16 @@ async function _validateInitializeConsistency(api, environment) {
       stableID: '12345',
     },
   };
+
+  let serverUser = JSON.parse(JSON.stringify(user));
+  if (environment != null) {
+    serverUser['statsigEnvironment'] = environment;
+  }
+
   const response = await fetch(api + '/initialize', {
     method: 'POST',
     body: JSON.stringify({
-      user: user,
+      user: serverUser,
       statsigMetadata: {
         sdkType: 'consistency-test',
         sessionID: 'x123',
