@@ -7,8 +7,7 @@ import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
 import { AdapterKeys } from './utils/AdapterKeys';
 
-const SYNC_INTERVAL = 10 * 1000;
-const ID_LISTS_SYNC_INTERVAL = 60 * 1000;
+const SYNC_OUTDATED_MAX = 120 * 1000;
 
 export type IDList = {
   creationTime: number;
@@ -39,13 +38,9 @@ export default class SpecStore {
   private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
   private dataAdapter: IDataAdapter | null;
+  private syncFailureCount: number = 0;
 
-  public constructor(
-    fetcher: StatsigFetcher,
-    options: StatsigOptions,
-    syncInterval = SYNC_INTERVAL,
-    idListSyncInterval = ID_LISTS_SYNC_INTERVAL,
-  ) {
+  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
@@ -57,8 +52,8 @@ export default class SpecStore {
       layers: {},
       experimentToLayer: {},
     };
-    this.syncInterval = syncInterval;
-    this.idListSyncInterval = idListSyncInterval;
+    this.syncInterval = options.rulesetsSyncIntervalMs;
+    this.idListSyncInterval = options.idListsSyncIntervalMs;
     this.initialized = false;
     this.bootstrapped = false;
     this.syncTimer = null;
@@ -130,7 +125,7 @@ export default class SpecStore {
       if (this.bootstrapped) {
         await this._syncValuesWithAdapter();
       }
-      await this._syncValues();
+      await this._syncValues(true);
     }
 
     await this._syncIDLists();
@@ -194,21 +189,29 @@ export default class SpecStore {
         AdapterKeys.CONFIG_SPECS,
         this.time,
       );
-    }
-  }
 
-  private async _syncValues(): Promise<void> {
+  private async _syncValues(isColdStart: boolean = false): Promise<void> {
     try {
       await this._fetchConfigSpecsFromServer();
+      this.syncFailureCount = 0;
     } catch (e) {
+      this.syncFailureCount++;
       if (!(e instanceof StatsigLocalModeNetworkError)) {
-        let message = '';
-        if (e instanceof Error) {
-          message = e.message;
+        if (isColdStart) {
+          console.error(
+            'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
+          );
+        } else if (
+          this.syncFailureCount * this.syncInterval >
+          SYNC_OUTDATED_MAX
+        ) {
+          console.warn(
+            `statsigSDK::sync> Syncing the server SDK with statsig has failed for  ${
+              this.syncFailureCount * this.syncInterval
+            }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+          );
+          this.syncFailureCount = 0;
         }
-        console.error(
-          `statsigSDK::sync> Failed while attempting to sync values: ${message}`,
-        );
       }
       // fallback to adapter
       await this._fetchConfigSpecsFromAdapter();
@@ -216,7 +219,7 @@ export default class SpecStore {
 
     this.syncTimer = setTimeout(() => {
       this._syncValues();
-    }, this.syncInterval);
+    }, this.syncInterval).unref();
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
@@ -417,7 +420,7 @@ export default class SpecStore {
 
     this.idListsSyncTimer = setTimeout(() => {
       this._syncIDLists();
-    }, this.idListSyncInterval);
+    }, this.idListSyncInterval).unref();
   }
 
   public shutdown(): void {

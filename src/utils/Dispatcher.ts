@@ -59,7 +59,7 @@ export default class Dispatcher {
   }
 
   private _scheduleDrain(): NodeJS.Timer {
-    return setTimeout(this._drainQueue.bind(this), this.drainInterval);
+    return setTimeout(this._drainQueue.bind(this), this.drainInterval).unref();
   }
 
   private _drainQueue() {

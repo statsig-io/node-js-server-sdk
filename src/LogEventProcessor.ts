@@ -12,8 +12,6 @@ const LAYER_EXPOSURE_EVENT = 'layer_exposure';
 const GATE_EXPOSURE_EVENT = 'gate_exposure';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 
-const flushInterval = 60 * 1000;
-const flushBatchSize = 1000;
 const deduperInterval = 60 * 1000;
 
 export default class LogEventProcessor {
@@ -38,11 +36,11 @@ export default class LogEventProcessor {
     const processor = this;
     this.flushTimer = setInterval(function () {
       processor.flush();
-    }, flushInterval);
+    }, options.loggingIntervalMs).unref();
 
     this.deduperTimer = setInterval(function () {
       processor.deduper.clear();
-    }, deduperInterval);
+    }, deduperInterval).unref();
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
@@ -65,7 +63,7 @@ export default class LogEventProcessor {
     }
 
     this.queue.push(event);
-    if (this.queue.length >= flushBatchSize) {
+    if (this.queue.length >= this.options.loggingMaxBufferSize) {
       this.flush();
     }
   }

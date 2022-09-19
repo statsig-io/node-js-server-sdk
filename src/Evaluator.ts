@@ -172,7 +172,7 @@ export default class Evaluator {
     }
     const gates = Object.entries(this.store.getAllGates())
       .map(([gate, spec]) => {
-        if (spec?.entity === 'segment') {
+        if (spec?.entity === 'segment' || spec?.entity === 'holdout') {
           return null;
         }
         const res = this._eval(user, spec);
@@ -189,7 +189,7 @@ export default class Evaluator {
       ([config, spec]) => {
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
-        if (spec.entity !== 'dynamic_config') {
+        if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,
             spec,

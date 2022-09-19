@@ -16,7 +16,7 @@ import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const MAX_VALUE_SIZE = 64;
-const MAX_OBJ_SIZE = 1024;
+const MAX_OBJ_SIZE = 2048;
 const MAX_USER_SIZE = 2048;
 let hasLoggedNoUserIdWarning = false;
 
