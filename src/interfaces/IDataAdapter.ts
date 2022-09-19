@@ -1,5 +1,5 @@
 export type AdapterResponse = {
-  value?: string,
+  result?: string | Record<string, string>,
   time?: number,
   error?: Error,
 }
@@ -17,6 +17,12 @@ export interface IDataAdapter {
   get(key: string): Promise<AdapterResponse>;
 
   /**
+   * Returns the data stored for each key
+   * @param keys - Keys of stored items to fetch
+   */
+  getMulti(keys: string[]): Promise<AdapterResponse>;
+
+  /**
    * Updates data stored for single key
    * @param key - Key of stored item to update
    * @param value - New value to store
@@ -27,12 +33,10 @@ export interface IDataAdapter {
   /**
    * Updates data stored for each key
    * @param records - List of key/value pairs to update
-   * @param key - Optional master key to store all records under
    * @param time - Time of update
    */
   setMulti(
     records: Record<string, string>,
-    key?: string,
     time?: number,
   ): Promise<void>;
 

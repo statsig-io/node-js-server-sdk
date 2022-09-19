@@ -160,18 +160,22 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (this.dataAdapter) {
-      const { value, error, time }
-        = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
-      if (value && !error) {
-        const configSpecs = JSON.parse(decompressData(value));
+      const { result, error, time } = await this.dataAdapter.getMulti([
+        AdapterKeys.CONFIGS,
+        AdapterKeys.GATES,
+        AdapterKeys.LAYER_CONFIGS,
+        AdapterKeys.LAYERS,
+      ]);
+      if (result && !error) {
+        const configSpecs = result as Record<string, string>;
         this.store.configs =
-          configSpecs[AdapterKeys.CONFIGS] as Record<string, ConfigSpec>;
+          JSON.parse(decompressData(configSpecs[AdapterKeys.CONFIGS])) as Record<string, ConfigSpec>;
         this.store.gates =
-          configSpecs[AdapterKeys.GATES] as Record<string, ConfigSpec>;
+          JSON.parse(decompressData(configSpecs[AdapterKeys.GATES])) as Record<string, ConfigSpec>;
         this.store.layers =
-          configSpecs[AdapterKeys.LAYER_CONFIGS] as Record<string, ConfigSpec>;
+        JSON.parse(decompressData(configSpecs[AdapterKeys.LAYER_CONFIGS])) as Record<string, ConfigSpec>;
         this.store.experimentToLayer = this._processLayers(
-          configSpecs[AdapterKeys.LAYERS] as Record<string, string>,
+          JSON.parse(decompressData(configSpecs[AdapterKeys.LAYERS])) as Record<string, string>,
         );
         this.time = time ?? this.time;
       }
@@ -188,7 +192,6 @@ export default class SpecStore {
           [AdapterKeys.LAYER_CONFIGS]: compressData(JSON.stringify(this.store.layers)),
           [AdapterKeys.LAYERS]: compressData(JSON.stringify(this._processLayers(this.store.experimentToLayer))),
         },
-        AdapterKeys.CONFIG_SPECS,
         this.time,
       );
     }
