@@ -189,6 +189,8 @@ export default class SpecStore {
         AdapterKeys.CONFIG_SPECS,
         this.time,
       );
+    }
+  }
 
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     try {
