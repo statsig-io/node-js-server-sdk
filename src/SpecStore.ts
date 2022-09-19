@@ -6,6 +6,7 @@ import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
 import { AdapterKeys } from './utils/AdapterKeys';
+import { compressData, decompressData } from './utils/core';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
@@ -159,9 +160,10 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (this.dataAdapter) {
-      const { result: configSpecs, error, time }
+      const { value, error, time }
         = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
-      if (configSpecs && !error) {
+      if (value && !error) {
+        const configSpecs = JSON.parse(decompressData(value));
         this.store.configs =
           configSpecs[AdapterKeys.CONFIGS] as Record<string, ConfigSpec>;
         this.store.gates =
@@ -181,10 +183,10 @@ export default class SpecStore {
       // update adapter
       await this.dataAdapter.setMulti(
         {
-          [AdapterKeys.CONFIGS]: this.store.configs,
-          [AdapterKeys.GATES]: this.store.gates,
-          [AdapterKeys.LAYER_CONFIGS]: this.store.layers,
-          [AdapterKeys.LAYERS]: this._processLayers(this.store.experimentToLayer),
+          [AdapterKeys.CONFIGS]: compressData(JSON.stringify(this.store.configs)),
+          [AdapterKeys.GATES]: compressData(JSON.stringify(this.store.gates)),
+          [AdapterKeys.LAYER_CONFIGS]: compressData(JSON.stringify(this.store.layers)),
+          [AdapterKeys.LAYERS]: compressData(JSON.stringify(this._processLayers(this.store.experimentToLayer))),
         },
         AdapterKeys.CONFIG_SPECS,
         this.time,

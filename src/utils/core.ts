@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { StatsigUser } from '../StatsigUser';
+import zlib from 'zlib';
 
 function getSDKVersion(): string {
   try {
@@ -82,8 +83,32 @@ function isUserIdentifiable(user: StatsigUser | null): boolean {
   );
 }
 
+function compressData(data: string): string {
+  zlib.deflate(data, (err, buffer) => {
+    if (err) {
+      console.error(`Error: ${err}. Failed to compress: ${data}.`);
+      process.exitCode = 1;
+    }
+    return buffer.toString('base64');
+  });
+  return data;
+}
+
+function decompressData(data: string): string {
+  zlib.unzip(data, (err, buffer) => {
+    if (err) {
+      console.error(`Error: ${err}. Failed to decompress: ${data}.`);
+      process.exitCode = 1;
+    }
+    return buffer.toString('base64');
+  });
+  return data;
+}
+
 export {
   clone,
+  compressData,
+  decompressData,
   generateID,
   getBoolValue,
   getNumericValue,

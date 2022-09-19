@@ -1,7 +1,5 @@
-export type AdapterResult = Record<string, unknown>;
-
 export type AdapterResponse = {
-  result?: AdapterResult,
+  value?: string,
   time?: number,
   error?: Error,
 }
@@ -24,7 +22,7 @@ export interface IDataAdapter {
    * @param value - New value to store
    * @param time - Time of update
    */
-  set(key: string, value: AdapterResult, time?: number): Promise<void>;
+  set(key: string, value: string, time?: number): Promise<void>;
  
   /**
    * Updates data stored for each key
@@ -33,7 +31,7 @@ export interface IDataAdapter {
    * @param time - Time of update
    */
   setMulti(
-    records: Record<string, AdapterResult>,
+    records: Record<string, string>,
     key?: string,
     time?: number,
   ): Promise<void>;
