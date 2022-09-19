@@ -311,126 +311,109 @@ export default class SpecStore {
     return reverseMapping;
   }
 
-  private async _fetchIDListsFromServer(): Promise<void> {
-    const response = await this.fetcher.post(this.api + '/get_id_lists', {
-      statsigMetadata: getStatsigMetadata(),
-    });
-    // @ts-ignore
-    const parsed = await response.json();
-    let promises = [];
-    if (typeof parsed === 'object') {
-      for (const name in parsed) {
-        const url = parsed[name].url;
-        const fileID = parsed[name].fileID;
-        const newCreationTime = parsed[name].creationTime;
-        const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
-        if (
-          typeof url !== 'string' ||
-          newCreationTime < oldCreationTime ||
-          typeof fileID !== 'string'
-        ) {
-          continue;
-        }
-        let newFile =
-          fileID !== this.store.idLists[name]?.fileID &&
-          newCreationTime >= oldCreationTime;
-
-        if (
-          (parsed.hasOwnProperty(name) &&
-            !this.store.idLists.hasOwnProperty(name)) ||
-          newFile // when fileID changes, we reset the whole list
-        ) {
-          this.store.idLists[name] = {
-            ids: {},
-            readBytes: 0,
-            url,
-            fileID,
-            creationTime: newCreationTime,
-          };
-        }
-        const fileSize = parsed[name].size ?? 0;
-        const readSize = this.store.idLists[name].readBytes ?? 0;
-        if (fileSize <= readSize) {
-          continue;
-        }
-        const p = safeFetch(url, {
-          method: 'GET',
-          headers: {
-            Range: `bytes=${readSize}-`,
-          },
-        })
-          // @ts-ignore
-          .then((res: Response) => {
-            const contentLength = res.headers.get('content-length');
-            if (contentLength == null) {
-              throw new Error('Content-Length for the id list is invalid.');
-            }
-            const length = parseInt(contentLength);
-            if (typeof length === 'number') {
-              this.store.idLists[name].readBytes += length;
-            } else {
-              delete this.store.idLists[name];
-              throw new Error('Content-Length for the id list is invalid.');
-            }
-            return res.text();
-          })
-          .then((data: string) => {
-            const lines = data.split(/\r?\n/);
-            if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
-              delete this.store.idLists[name];
-              throw new Error('Seek range invalid.');
-            }
-            for (const line of lines) {
-              if (line.length <= 1) {
-                continue;
-              }
-              const id = line.slice(1).trim();
-              if (line.charAt(0) === '+') {
-                this.store.idLists[name].ids[id] = true;
-              } else if (line.charAt(0) === '-') {
-                delete this.store.idLists[name].ids[id];
-              }
-            }
-          })
-          .catch(() => {});
-
-        promises.push(p);
-      }
-
-      // delete any id list that's no longer there
-      const deletedLists = [];
-      for (const name in this.store.idLists) {
-        if (
-          this.store.idLists.hasOwnProperty(name) &&
-          !parsed.hasOwnProperty(name)
-        ) {
-          deletedLists.push(name);
-        }
-      }
-      for (const name in deletedLists) {
-        delete this.store.idLists[name];
-      }
-      if (this.dataAdapter) {
-        // update adapter
-        this.dataAdapter.set(AdapterKeys.ID_LISTS, this.store.idLists);
-      }
-      await Promise.allSettled(promises);
-    }
-  }
-
   private async _syncIDLists(): Promise<void> {
     try {
-      await this._fetchIDListsFromServer();
-    } catch (e) {
-      // fallback to adapter
-      if (this.dataAdapter) {
-        const { result: idLists, error } =
-          await this.dataAdapter.get(AdapterKeys.ID_LISTS);
-        if (idLists && !error) {
-          this.store.idLists = idLists as Record<string, IDList>;
+      const response = await this.fetcher.post(this.api + '/get_id_lists', {
+        statsigMetadata: getStatsigMetadata(),
+      });
+      // @ts-ignore
+      const parsed = await response.json();
+      let promises = [];
+      if (typeof parsed === 'object') {
+        for (const name in parsed) {
+          const url = parsed[name].url;
+          const fileID = parsed[name].fileID;
+          const newCreationTime = parsed[name].creationTime;
+          const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
+          if (
+            typeof url !== 'string' ||
+            newCreationTime < oldCreationTime ||
+            typeof fileID !== 'string'
+          ) {
+            continue;
+          }
+          let newFile =
+            fileID !== this.store.idLists[name]?.fileID &&
+            newCreationTime >= oldCreationTime;
+  
+          if (
+            (parsed.hasOwnProperty(name) &&
+              !this.store.idLists.hasOwnProperty(name)) ||
+            newFile // when fileID changes, we reset the whole list
+          ) {
+            this.store.idLists[name] = {
+              ids: {},
+              readBytes: 0,
+              url,
+              fileID,
+              creationTime: newCreationTime,
+            };
+          }
+          const fileSize = parsed[name].size ?? 0;
+          const readSize = this.store.idLists[name].readBytes ?? 0;
+          if (fileSize <= readSize) {
+            continue;
+          }
+          const p = safeFetch(url, {
+            method: 'GET',
+            headers: {
+              Range: `bytes=${readSize}-`,
+            },
+          })
+            // @ts-ignore
+            .then((res: Response) => {
+              const contentLength = res.headers.get('content-length');
+              if (contentLength == null) {
+                throw new Error('Content-Length for the id list is invalid.');
+              }
+              const length = parseInt(contentLength);
+              if (typeof length === 'number') {
+                this.store.idLists[name].readBytes += length;
+              } else {
+                delete this.store.idLists[name];
+                throw new Error('Content-Length for the id list is invalid.');
+              }
+              return res.text();
+            })
+            .then((data: string) => {
+              const lines = data.split(/\r?\n/);
+              if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
+                delete this.store.idLists[name];
+                throw new Error('Seek range invalid.');
+              }
+              for (const line of lines) {
+                if (line.length <= 1) {
+                  continue;
+                }
+                const id = line.slice(1).trim();
+                if (line.charAt(0) === '+') {
+                  this.store.idLists[name].ids[id] = true;
+                } else if (line.charAt(0) === '-') {
+                  delete this.store.idLists[name].ids[id];
+                }
+              }
+            })
+            .catch(() => {});
+  
+          promises.push(p);
         }
+  
+        // delete any id list that's no longer there
+        const deletedLists = [];
+        for (const name in this.store.idLists) {
+          if (
+            this.store.idLists.hasOwnProperty(name) &&
+            !parsed.hasOwnProperty(name)
+          ) {
+            deletedLists.push(name);
+          }
+        }
+        for (const name in deletedLists) {
+          delete this.store.idLists[name];
+        }
+        await Promise.allSettled(promises);
       }
-    }
+    } catch (e) {}
 
     this.idListsSyncTimer = setTimeout(() => {
       this._syncIDLists();
