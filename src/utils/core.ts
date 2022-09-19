@@ -84,25 +84,11 @@ function isUserIdentifiable(user: StatsigUser | null): boolean {
 }
 
 function compressData(data: string): string {
-  zlib.deflate(data, (err, buffer) => {
-    if (err) {
-      console.error(`Error: ${err}. Failed to compress: ${data}.`);
-      process.exitCode = 1;
-    }
-    return buffer.toString('base64');
-  });
-  return data;
+  return zlib.deflateSync(data).toString('base64');
 }
 
 function decompressData(data: string): string {
-  zlib.unzip(data, (err, buffer) => {
-    if (err) {
-      console.error(`Error: ${err}. Failed to decompress: ${data}.`);
-      process.exitCode = 1;
-    }
-    return buffer.toString('base64');
-  });
-  return data;
+  return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
 }
 
 export {
