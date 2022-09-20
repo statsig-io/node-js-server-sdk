@@ -147,50 +147,57 @@ export default class SpecStore {
     );
     const specsString = await response.text();
     const processResult = this._process(JSON.parse(specsString));
-    if (processResult) {
-      if (
-        this.rulesUpdatedCallback != null &&
-        typeof this.rulesUpdatedCallback === 'function'
-      ) {
-        this.rulesUpdatedCallback(specsString, this.time);
-      }
-      await this._syncValuesWithAdapter();
+    if (!processResult) {
+      return;
     }
+    if (
+      this.rulesUpdatedCallback != null &&
+      typeof this.rulesUpdatedCallback === 'function'
+    ) {
+      this.rulesUpdatedCallback(specsString, this.time);
+    }
+    await this._syncValuesWithAdapter();
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
-    if (this.dataAdapter) {
-      const { result, error, time } = await this.dataAdapter.getMulti([
-        AdapterKeys.CONFIGS,
-        AdapterKeys.GATES,
-        AdapterKeys.LAYER_CONFIGS,
-        AdapterKeys.LAYERS,
-      ]);
-      if (result && !error) {
-        const configSpecs = result as Record<string, string>;
-        this.store.configs =
-          JSON.parse(decompressData(configSpecs[AdapterKeys.CONFIGS])) as Record<string, ConfigSpec>;
-        this.store.gates =
-          JSON.parse(decompressData(configSpecs[AdapterKeys.GATES])) as Record<string, ConfigSpec>;
-        this.store.layers =
-        JSON.parse(decompressData(configSpecs[AdapterKeys.LAYER_CONFIGS])) as Record<string, ConfigSpec>;
-        this.store.experimentToLayer = this._processLayers(
-          JSON.parse(decompressData(configSpecs[AdapterKeys.LAYERS])) as Record<string, string>,
-        );
-        this.time = time ?? this.time;
-      }
+    if (!this.dataAdapter) {
+      return;
+    }
+    const { result, error, time } = await this.dataAdapter.get([
+      AdapterKeys.CONFIGS,
+      AdapterKeys.GATES,
+      AdapterKeys.LAYER_CONFIGS,
+      AdapterKeys.LAYERS,
+    ]);
+    if (result && !error) {
+      const configSpecs = result as Record<string, string>;
+      this.store.configs =
+        JSON.parse(decompressData(configSpecs[AdapterKeys.CONFIGS])) as Record<string, ConfigSpec>;
+      this.store.gates =
+        JSON.parse(decompressData(configSpecs[AdapterKeys.GATES])) as Record<string, ConfigSpec>;
+      this.store.layers =
+      JSON.parse(decompressData(configSpecs[AdapterKeys.LAYER_CONFIGS])) as Record<string, ConfigSpec>;
+      this.store.experimentToLayer = this._reverseLayerExperimentMapping(
+        JSON.parse(decompressData(configSpecs[AdapterKeys.LAYERS])) as Record<string, string>,
+      );
+      this.time = time ?? this.time;
     }
   }
 
   private async _syncValuesWithAdapter(): Promise<void> {
     if (this.dataAdapter) {
       // update adapter
-      await this.dataAdapter.setMulti(
+      await this.dataAdapter.set(
         {
           [AdapterKeys.CONFIGS]: compressData(JSON.stringify(this.store.configs)),
           [AdapterKeys.GATES]: compressData(JSON.stringify(this.store.gates)),
           [AdapterKeys.LAYER_CONFIGS]: compressData(JSON.stringify(this.store.layers)),
-          [AdapterKeys.LAYERS]: compressData(JSON.stringify(this._processLayers(this.store.experimentToLayer))),
+          [AdapterKeys.LAYERS]: compressData(
+            JSON.stringify(
+              this._reverseLayerExperimentMapping(this.store.experimentToLayer
+              )
+            )
+          ),
         },
         this.time,
       );
@@ -240,7 +247,6 @@ export default class SpecStore {
     const updatedGates: Record<string, ConfigSpec> = {};
     const updatedConfigs: Record<string, ConfigSpec> = {};
     const updatedLayers: Record<string, ConfigSpec> = {};
-    let updatedExpToLayer: Record<string, string> = {};
     const gateArray = specsJSON?.feature_gates;
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
@@ -259,8 +265,7 @@ export default class SpecStore {
         const gate = new ConfigSpec(gateJSON);
         updatedGates[gate.name] = gate;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
@@ -269,8 +274,7 @@ export default class SpecStore {
         const config = new ConfigSpec(configJSON);
         updatedConfigs[config.name] = config;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
@@ -279,27 +283,24 @@ export default class SpecStore {
         const config = new ConfigSpec(layerJSON);
         updatedLayers[config.name] = config;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
-    updatedExpToLayer = this._processLayers(layerToExperimentMap);
+    const updatedExpToLayer: Record<string, string> = this._reverseLayerExperimentMapping(layerToExperimentMap);
 
-    if (!parseFailed) {
-      this.store.gates = updatedGates;
-      this.store.configs = updatedConfigs;
-      this.store.layers = updatedLayers;
-      this.store.experimentToLayer = updatedExpToLayer;
-      this.time = (specsJSON.time as number) ?? this.time;
-    }
-    return !parseFailed;
+    this.store.gates = updatedGates;
+    this.store.configs = updatedConfigs;
+    this.store.layers = updatedLayers;
+    this.store.experimentToLayer = updatedExpToLayer;
+    this.time = (specsJSON.time as number) ?? this.time;
+    return true;
   }
 
   /**
    * Returns a reverse mapping of layers to experiment (or vice versa)
    */
-  private _processLayers(
+  private _reverseLayerExperimentMapping(
     layersMapping: unknown,
   ): Record<string, string> {
     const reverseMapping: Record<string, string> = {};
