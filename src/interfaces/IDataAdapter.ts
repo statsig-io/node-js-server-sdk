@@ -1,5 +1,5 @@
 export type AdapterResponse = {
-  result?: Record<string, string>,
+  result?: string,
   time?: number,
   error?: Error,
 }
@@ -11,17 +11,18 @@ export type AdapterResponse = {
  */
 export interface IDataAdapter {
   /**
-   * Returns the data stored for each key
-   * @param keys - Keys of stored data to fetch
+   * Returns the data stored for a specific key
+   * @param key - Key of stored item to fetch
    */
-  get(keys: string[]): Promise<AdapterResponse>;
+  get(key: string): Promise<AdapterResponse>;
 
   /**
-   * Updates data stored for each key/value pair
-   * @param records - List of key/value pairs to update
+   * Updates data stored for each key
+   * @param key - Key of stored item to update
+   * @param value - New value to store
    * @param time - Time of update
    */
-  set(records: Record<string, string>, time?: number): Promise<void>;
+  set(key: string, value: string, time?: number): Promise<void>;
 
   /**
    * Startup tasks to run before any fetch/update calls can be made

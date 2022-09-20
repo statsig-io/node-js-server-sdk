@@ -83,18 +83,8 @@ function isUserIdentifiable(user: StatsigUser | null): boolean {
   );
 }
 
-function compressData(data: string): string {
-  return zlib.deflateSync(data).toString('base64');
-}
-
-function decompressData(data: string): string {
-  return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
-}
-
 export {
   clone,
-  compressData,
-  decompressData,
   generateID,
   getBoolValue,
   getNumericValue,
