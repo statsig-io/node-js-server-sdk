@@ -209,7 +209,9 @@ export default class SpecStore {
         }
       }
     }
-    await this._saveConfigSpecsToAdapter();
+    if (this.syncFailureCount <= 0) {
+      await this._saveConfigSpecsToAdapter();
+    }
 
     this.syncTimer = setTimeout(() => {
       this._syncValues();
