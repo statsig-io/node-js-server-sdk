@@ -9,7 +9,7 @@ import { AdapterKeys } from './utils/AdapterKeys';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
-export type IDList = {
+type IDList = {
   creationTime: number;
   fileID: string;
   ids: Record<string, boolean>;
@@ -211,7 +211,7 @@ export default class SpecStore {
         }
       }
     }
-    if (this.syncFailureCount <= 0) {
+    if (this.syncFailureCount == 0) {
       await this._saveConfigSpecsToAdapter();
     }
 
