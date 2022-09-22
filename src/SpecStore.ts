@@ -116,10 +116,10 @@ export default class SpecStore {
     } else {
       if (this.dataAdapter) {
         await this.dataAdapter.initialize();
-      }
-      await this._syncValues(true);
-      if (this.dataAdapter) {
         await this._fetchConfigSpecsFromAdapter()
+      }
+      if (this.time == 0) {
+        await this._syncValues(true);
       }
     }
 
