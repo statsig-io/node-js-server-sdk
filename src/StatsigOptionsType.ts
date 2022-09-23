@@ -1,3 +1,5 @@
+import { IDataAdapter } from "./interfaces/IDataAdapter";
+
 /**
  * An object of properties for initializing the sdk with advanced options
  */
@@ -8,6 +10,7 @@ export type StatsigOptionsType = {
   localMode?: boolean;
   rulesUpdatedCallback?: RulesUpdatedCallback;
   initTimeoutMs?: number;
+  dataAdapter?: IDataAdapter;
 };
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;

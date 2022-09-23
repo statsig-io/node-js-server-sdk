@@ -1,4 +1,5 @@
-import { RulesUpdatedCallback, StatsigEnvironment } from './StatsigOptionsType';
+import { IDataAdapter } from './interfaces/IDataAdapter';
+import { RulesUpdatedCallback, StatsigEnvironment, StatsigOptionsType } from './StatsigOptionsType';
 
 const DEFAULT_API = 'https://statsigapi.net/v1';
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
@@ -15,12 +16,13 @@ export default class StatsigOptions {
   public rulesUpdatedCallback: RulesUpdatedCallback | null;
   public localMode: boolean;
   public initTimeoutMs: number;
+  public dataAdapter: IDataAdapter | null;
   public rulesetsSyncIntervalMs: number;
   public idListsSyncIntervalMs: number;
   public loggingIntervalMs: number;
   public loggingMaxBufferSize: number;
 
-  public constructor(inputOptions: Record<string, unknown>) {
+  public constructor(inputOptions: StatsigOptionsType) {
     const opts = inputOptions;
 
     this.api = this.getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API;
@@ -42,6 +44,8 @@ export default class StatsigOptions {
 
     this.initTimeoutMs = this.getNumber(opts, 'initTimeoutMs', 0);
 
+    this.dataAdapter = opts.dataAdapter ?? null;
+    
     this.rulesetsSyncIntervalMs = this.getNumber(
       opts,
       'rulesetsSyncIntervalMs',

@@ -4,6 +4,8 @@ import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
+import { IDataAdapter } from './interfaces/IDataAdapter';
+import { AdapterKeys } from './utils/AdapterKeys';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
@@ -34,6 +36,7 @@ export default class SpecStore {
   private syncTimer: NodeJS.Timer | null;
   private idListsSyncTimer: NodeJS.Timer | null;
   private fetcher: StatsigFetcher;
+  private dataAdapter: IDataAdapter | null;
   private syncFailureCount: number = 0;
 
   public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
@@ -53,17 +56,22 @@ export default class SpecStore {
     this.initialized = false;
     this.syncTimer = null;
     this.idListsSyncTimer = null;
+    this.dataAdapter = options.dataAdapter;
 
     var specsJSON = null;
     if (options?.bootstrapValues != null) {
-      try {
-        specsJSON = JSON.parse(options.bootstrapValues);
-        this._process(specsJSON);
-        this.initialized = true;
-      } catch (e) {
-        console.error(
-          'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
-        );
+      if (this.dataAdapter != null) {
+        console.error('statsigSDK::initialize> Conflict between bootstrap and adapter. Defaulting to adapter.');
+      } else {
+        try {
+          specsJSON = JSON.parse(options.bootstrapValues);
+          this._process(specsJSON);
+          this.initialized = true;
+        } catch (e) {
+          console.error(
+            'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
+          );
+        }
       }
     }
   }
@@ -106,7 +114,13 @@ export default class SpecStore {
     if (this.initialized) {
       this._syncValues();
     } else {
-      await this._syncValues(true);
+      if (this.dataAdapter) {
+        await this.dataAdapter.initialize();
+        await this._fetchConfigSpecsFromAdapter()
+      }
+      if (this.time == 0) {
+        await this._syncValues(true);
+      }
     }
 
     await this._syncIDLists();
@@ -117,25 +131,65 @@ export default class SpecStore {
     return this.time !== 0;
   }
 
+  private async _fetchConfigSpecsFromServer(): Promise<void> {
+    const response = await this.fetcher.post(
+      this.api + '/download_config_specs',
+      {
+        statsigMetadata: getStatsigMetadata(),
+        sinceTime: this.time,
+      },
+    );
+    const specsString = await response.text();
+    const processResult = this._process(JSON.parse(specsString));
+    if (!processResult) {
+      return;
+    }
+    if (
+      this.rulesUpdatedCallback != null &&
+      typeof this.rulesUpdatedCallback === 'function'
+    ) {
+      this.rulesUpdatedCallback(specsString, this.time);
+    }
+  }
+
+  private async _fetchConfigSpecsFromAdapter(): Promise<void> {
+    if (!this.dataAdapter) {
+      return;
+    }
+    const { result, error, time } = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
+    if (result && !error) {
+      const configSpecs = JSON.parse(result);
+      this.store.configs = configSpecs[AdapterKeys.CONFIGS];
+      this.store.gates = configSpecs[AdapterKeys.GATES];
+      this.store.layers = configSpecs[AdapterKeys.LAYER_CONFIGS];
+      this.store.experimentToLayer = this._reverseLayerExperimentMapping(
+        configSpecs[AdapterKeys.LAYERS]
+      );
+      this.time = time ?? this.time;
+    }
+  }
+
+  private async _saveConfigSpecsToAdapter(): Promise<void> {
+    if (!this.dataAdapter) {
+      return;
+    }
+    await this.dataAdapter.set(
+      AdapterKeys.CONFIG_SPECS,
+      JSON.stringify(
+        {
+          [AdapterKeys.CONFIGS]: this.store.configs,
+          [AdapterKeys.GATES]: this.store.gates,
+          [AdapterKeys.LAYER_CONFIGS]: this.store.layers,
+          [AdapterKeys.LAYERS]: this._reverseLayerExperimentMapping(this.store.experimentToLayer),
+        }
+      ),
+      this.time,
+    );
+  }
+
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     try {
-      const response = await this.fetcher.post(
-        this.api + '/download_config_specs',
-        {
-          statsigMetadata: getStatsigMetadata(),
-          sinceTime: this.time,
-        },
-      );
-      const specsString = await response.text();
-      const processResult = this._process(JSON.parse(specsString));
-      if (processResult) {
-        if (
-          this.rulesUpdatedCallback != null &&
-          typeof this.rulesUpdatedCallback === 'function'
-        ) {
-          this.rulesUpdatedCallback(specsString, this.time);
-        }
-      }
+      await this._fetchConfigSpecsFromServer();
       this.syncFailureCount = 0;
     } catch (e) {
       this.syncFailureCount++;
@@ -157,6 +211,9 @@ export default class SpecStore {
         }
       }
     }
+    if (this.syncFailureCount == 0) {
+      await this._saveConfigSpecsToAdapter();
+    }
 
     this.syncTimer = setTimeout(() => {
       this._syncValues();
@@ -169,12 +226,9 @@ export default class SpecStore {
       return false;
     }
 
-    let parseFailed = false;
-
     const updatedGates: Record<string, ConfigSpec> = {};
     const updatedConfigs: Record<string, ConfigSpec> = {};
     const updatedLayers: Record<string, ConfigSpec> = {};
-    const updatedExpToLayer: Record<string, string> = {};
     const gateArray = specsJSON?.feature_gates;
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
@@ -193,8 +247,7 @@ export default class SpecStore {
         const gate = new ConfigSpec(gateJSON);
         updatedGates[gate.name] = gate;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
@@ -203,8 +256,7 @@ export default class SpecStore {
         const config = new ConfigSpec(configJSON);
         updatedConfigs[config.name] = config;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
@@ -213,35 +265,44 @@ export default class SpecStore {
         const config = new ConfigSpec(layerJSON);
         updatedLayers[config.name] = config;
       } catch (e) {
-        parseFailed = true;
-        break;
+        return false;
       }
     }
 
+    const updatedExpToLayer: Record<string, string> =
+      this._reverseLayerExperimentMapping(layerToExperimentMap);
+
+    this.store.gates = updatedGates;
+    this.store.configs = updatedConfigs;
+    this.store.layers = updatedLayers;
+    this.store.experimentToLayer = updatedExpToLayer;
+    this.time = (specsJSON.time as number) ?? this.time;
+    return true;
+  }
+
+  /**
+   * Returns a reverse mapping of layers to experiment (or vice versa)
+   */
+  private _reverseLayerExperimentMapping(
+    layersMapping: unknown,
+  ): Record<string, string> {
+    const reverseMapping: Record<string, string> = {};
     if (
-      layerToExperimentMap != null &&
-      typeof layerToExperimentMap === 'object'
+      layersMapping != null &&
+      typeof layersMapping === 'object'
     ) {
       for (const [layerName, experiments] of Object.entries(
         // @ts-ignore
-        layerToExperimentMap,
+        layersMapping,
       )) {
         // @ts-ignore
         for (const experimentName of experiments) {
           // experiment -> layer is a 1:1 mapping
-          updatedExpToLayer[experimentName] = layerName;
+          reverseMapping[experimentName] = layerName;
         }
       }
     }
-
-    if (!parseFailed) {
-      this.store.gates = updatedGates;
-      this.store.configs = updatedConfigs;
-      this.store.layers = updatedLayers;
-      this.store.experimentToLayer = updatedExpToLayer;
-      this.time = (specsJSON.time as number) ?? this.time;
-    }
-    return !parseFailed;
+    return reverseMapping;
   }
 
   private async _syncIDLists(): Promise<void> {
@@ -268,7 +329,7 @@ export default class SpecStore {
           let newFile =
             fileID !== this.store.idLists[name]?.fileID &&
             newCreationTime >= oldCreationTime;
-
+  
           if (
             (parsed.hasOwnProperty(name) &&
               !this.store.idLists.hasOwnProperty(name)) ||
@@ -327,10 +388,10 @@ export default class SpecStore {
               }
             })
             .catch(() => {});
-
+  
           promises.push(p);
         }
-
+  
         // delete any id list that's no longer there
         const deletedLists = [];
         for (const name in this.store.idLists) {
@@ -362,5 +423,6 @@ export default class SpecStore {
       clearTimeout(this.idListsSyncTimer);
       this.idListsSyncTimer = null;
     }
+    // TODO: handle shutdown for config adapter
   }
 }
