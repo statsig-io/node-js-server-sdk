@@ -108,5 +108,8 @@
   "sdkParams": {},
   "has_updates": true,
   "time": 0,
-  "generator": "statsig-node-sdk"
+  "generator": "statsig-node-sdk",
+  "evaluated_keys": {
+    "userID": "123"
+  }
 }

@@ -243,6 +243,15 @@ export default class Evaluator {
         return format;
       },
     );
+
+    const evaluatedKeys: Record<string, unknown> = {};
+    if (user.userID) {
+      evaluatedKeys['userID'] = user.userID;
+    }
+    if (user.customIDs && Object.keys(user.customIDs).length > 0) {
+      evaluatedKeys['customIDs'] = user.customIDs;
+    }
+
     return {
       feature_gates: Object.assign(
         {},
@@ -259,7 +268,8 @@ export default class Evaluator {
       sdkParams: {},
       has_updates: true,
       generator: 'statsig-node-sdk',
-      time: 0, // set the time to 0 so this doesnt interfere with polling
+      time: 0, // set the time to 0 so this doesnt interfere with polling,
+      evaluated_keys: evaluatedKeys,
     };
   }
 
