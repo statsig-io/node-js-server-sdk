@@ -5,9 +5,9 @@ const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
-import { AdapterKeys } from './utils/AdapterKeys';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
+const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 type IDList = {
   creationTime: number;
@@ -150,39 +150,29 @@ export default class SpecStore {
     ) {
       this.rulesUpdatedCallback(specsString, this.time);
     }
+    this._saveConfigSpecsToAdapter(specsString);
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
     if (!this.dataAdapter) {
       return;
     }
-    const { result, error, time } = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
+    const { result, error, time } = await this.dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result && !error) {
       const configSpecs = JSON.parse(result);
-      this.store.configs = configSpecs[AdapterKeys.CONFIGS];
-      this.store.gates = configSpecs[AdapterKeys.GATES];
-      this.store.layers = configSpecs[AdapterKeys.LAYER_CONFIGS];
-      this.store.experimentToLayer = this._reverseLayerExperimentMapping(
-        configSpecs[AdapterKeys.LAYERS]
-      );
-      this.time = time ?? this.time;
+      this._process(configSpecs);
     }
   }
 
-  private async _saveConfigSpecsToAdapter(): Promise<void> {
+  private async _saveConfigSpecsToAdapter(
+    specString: string
+  ): Promise<void> {
     if (!this.dataAdapter) {
       return;
     }
     await this.dataAdapter.set(
-      AdapterKeys.CONFIG_SPECS,
-      JSON.stringify(
-        {
-          [AdapterKeys.CONFIGS]: this.store.configs,
-          [AdapterKeys.GATES]: this.store.gates,
-          [AdapterKeys.LAYER_CONFIGS]: this.store.layers,
-          [AdapterKeys.LAYERS]: this._reverseLayerExperimentMapping(this.store.experimentToLayer),
-        }
-      ),
+      STORAGE_ADAPTER_KEY,
+      specString,
       this.time,
     );
   }
@@ -210,9 +200,6 @@ export default class SpecStore {
           this.syncFailureCount = 0;
         }
       }
-    }
-    if (this.syncFailureCount == 0) {
-      await this._saveConfigSpecsToAdapter();
     }
 
     this.syncTimer = setTimeout(() => {

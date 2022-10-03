@@ -1,9 +1,9 @@
 import exampleConfigSpecs from './jest.setup';
 import * as statsigsdk from '../index';
 import { AdapterResponse, IDataAdapter } from '../interfaces/IDataAdapter';
-import { ConfigSpec } from '../ConfigSpec';
 // @ts-ignore
 const statsig = statsigsdk.default;
+const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 class TestDataAdapter implements IDataAdapter {
   private store: Record<string, string> = {};
@@ -42,22 +42,21 @@ describe('Validate functionality', () => {
 
   async function loadStore() {
     // Manually load data into adapter store
-    const gates: Record<string, ConfigSpec> = {};
-    const configs: Record<string, ConfigSpec> = {};
-    gates[exampleConfigSpecs.gate.name]
-      = new ConfigSpec(exampleConfigSpecs.gate);
-    configs[exampleConfigSpecs.config.name]
-      = new ConfigSpec(exampleConfigSpecs.config);
+    const gates: unknown[] = [];
+    const configs: unknown[] = [];
+    gates.push(exampleConfigSpecs.gate);
+    configs.push(exampleConfigSpecs.config);
     const time = Date.now();
     await dataAdapter.initialize();
     await dataAdapter.set(
-      'config-specs',
+      STORAGE_ADAPTER_KEY,
       JSON.stringify(
         {
-          'configs': configs,
-          'gates': gates,
-          'layer-configs': {},
-          'layers': {},
+          'dynamic_configs': configs,
+          'feature_gates': gates,
+          'layer_configs': [],
+          'layers': [],
+          'has_updates': true,
         },
       ),
       time,
@@ -76,7 +75,7 @@ describe('Validate functionality', () => {
   test('Verify that config specs can be fetched from adapter when network is down', async () => {
     await loadStore();
 
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
@@ -103,27 +102,31 @@ describe('Validate functionality', () => {
     // Initialize with network
     await statsig.initialize(serverKey, statsigOptions);
 
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
     const configSpecs = JSON.parse(result);
 
     // Check gates
-    const gates = configSpecs['gates'];
+    const gates = configSpecs['feature_gates'];
     if (gates == null) {
       return;
     }
     // @ts-ignore
-    expect(gates['test_email_regex'].defaultValue).toEqual(false);
+    const gateToCheck = gates.find(gate => gate.name === 'test_email_regex');
+    expect(gateToCheck.defaultValue).toEqual(false);
 
     // Check configs
-    const configs = configSpecs['configs'];
+    const configs = configSpecs['dynamic_configs'];
     if (configs == null) {
       return;
     }
     // @ts-ignore
-    expect(configs['test_custom_config'].defaultValue)
+    const configToCheck = configs.find(
+      config => config.name === 'test_custom_config',
+    );
+    expect(configToCheck.defaultValue)
       .toEqual({ "header_text": "new user test", "foo": "bar" });
   });
 
@@ -147,30 +150,28 @@ describe('Validate functionality', () => {
       ...statsigOptions,
     });
     
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
     const configSpecs = JSON.parse(result);
 
     // Check gates
-    const gates = configSpecs['gates'];
+    const gates = configSpecs['feature_gates'];
     if (gates == null) {
       return;
     }
-    const expectedGates: Record<string, ConfigSpec> = {};
-    expectedGates[exampleConfigSpecs.gate.name]
-      = new ConfigSpec(exampleConfigSpecs.gate);
+    const expectedGates: unknown[] = [];
+    expectedGates.push(exampleConfigSpecs.gate);
     expect(gates).toEqual(expectedGates);
 
     // Check configs
-    const configs = configSpecs['configs'];
+    const configs = configSpecs['dynamic_configs'];
     if (configs == null) {
       return;
     }
-    const expectedConfigs: Record<string, ConfigSpec> = {};
-    expectedConfigs[exampleConfigSpecs.config.name]
-      = new ConfigSpec(exampleConfigSpecs.config);
+    const expectedConfigs: unknown[] = [];
+    expectedConfigs.push(exampleConfigSpecs.config);
     expect(configs).toEqual(expectedConfigs);
   });
 
@@ -178,10 +179,10 @@ describe('Validate functionality', () => {
     // Initialize with network
     await statsig.initialize(serverKey, statsigOptions);
 
-    dataAdapter.set('gates', 'test123');
+    dataAdapter.set('feature_gates', 'test123');
 
     // Check id lists
-    const { result: gates } = await dataAdapter.get('gates');
+    const { result: gates } = await dataAdapter.get('feature_gates');
     if (gates == null) {
       return;
     }
