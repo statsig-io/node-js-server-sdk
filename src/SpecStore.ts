@@ -5,9 +5,9 @@ const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
-import { AdapterKeys } from './utils/AdapterKeys';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
+const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 type IDList = {
   creationTime: number;
@@ -157,13 +157,10 @@ export default class SpecStore {
     if (!this.dataAdapter) {
       return;
     }
-    const { result, error, time } = await this.dataAdapter.get(AdapterKeys.CONFIG_SPECS);
+    const { result, error, time } = await this.dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result && !error) {
       const configSpecs = JSON.parse(result);
-      const processResult = this._process(configSpecs);
-      if (processResult) {
-        this.time = time ?? this.time;
-      }
+      this._process(configSpecs);
     }
   }
 
@@ -174,7 +171,7 @@ export default class SpecStore {
       return;
     }
     await this.dataAdapter.set(
-      AdapterKeys.CONFIG_SPECS,
+      STORAGE_ADAPTER_KEY,
       specString,
       this.time,
     );

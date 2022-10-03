@@ -1,9 +1,9 @@
 import exampleConfigSpecs from './jest.setup';
 import * as statsigsdk from '../index';
 import { AdapterResponse, IDataAdapter } from '../interfaces/IDataAdapter';
-import { ConfigSpec } from '../ConfigSpec';
 // @ts-ignore
 const statsig = statsigsdk.default;
+const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 class TestDataAdapter implements IDataAdapter {
   private store: Record<string, string> = {};
@@ -49,7 +49,7 @@ describe('Validate functionality', () => {
     const time = Date.now();
     await dataAdapter.initialize();
     await dataAdapter.set(
-      'config-specs',
+      STORAGE_ADAPTER_KEY,
       JSON.stringify(
         {
           'dynamic_configs': configs,
@@ -75,7 +75,7 @@ describe('Validate functionality', () => {
   test('Verify that config specs can be fetched from adapter when network is down', async () => {
     await loadStore();
 
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
@@ -102,7 +102,7 @@ describe('Validate functionality', () => {
     // Initialize with network
     await statsig.initialize(serverKey, statsigOptions);
 
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
@@ -150,7 +150,7 @@ describe('Validate functionality', () => {
       ...statsigOptions,
     });
     
-    const { result } = await dataAdapter.get('config-specs');
+    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
     }
