@@ -1,33 +1,17 @@
 import exampleConfigSpecs from './jest.setup';
 import * as statsigsdk from '../index';
 import { AdapterResponse, IDataAdapter } from '../interfaces/IDataAdapter';
+import TestDataAdapter from './TestDataAdapter';
 // @ts-ignore
 const statsig = statsigsdk.default;
 const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
-class TestDataAdapter implements IDataAdapter {
-  private store: Record<string, string> = {};
-
-  get(key: string): Promise<AdapterResponse> {
-    return Promise.resolve({ result: this.store[key], time: Date.now() });
-  }
-  set(key: string, value: string, time?: number | undefined): Promise<void> {
-    this.store[key] = value;
-    return Promise.resolve();
-  }
-  initialize(): Promise<void> {
-    return Promise.resolve();
-  }
-  shutdown(): Promise<void> {
-    this.store = {};
-    return Promise.resolve();
-  }
-
-}
-
 describe('Validate functionality', () => {
-  const serverKey = 'secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW'; 
-    // --> Project: "Statsig - evaluation test", "Kong" server key
+  const serverKey = process.env.test_api_key;
+  if (serverKey == null) {
+    throw new Error('Invalid server key set');
+  }
+  // --> Project: "Statsig - evaluation test", "Kong" server key
   const dbNumber = 1;
   const dataAdapter = new TestDataAdapter();
   const statsigOptions = {
@@ -50,22 +34,20 @@ describe('Validate functionality', () => {
     await dataAdapter.initialize();
     await dataAdapter.set(
       STORAGE_ADAPTER_KEY,
-      JSON.stringify(
-        {
-          'dynamic_configs': configs,
-          'feature_gates': gates,
-          'layer_configs': [],
-          'layers': [],
-          'has_updates': true,
-        },
-      ),
+      JSON.stringify({
+        dynamic_configs: configs,
+        feature_gates: gates,
+        layer_configs: [],
+        layers: [],
+        has_updates: true,
+      }),
       time,
     );
   }
 
   beforeEach(() => {
     statsig._instance = null;
-  })
+  });
 
   afterEach(async () => {
     await dataAdapter.shutdown();
@@ -92,12 +74,14 @@ describe('Validate functionality', () => {
       user,
       exampleConfigSpecs.config.name,
     );
-    expect(config.getValue('seahawks', null))
-      .toEqual({ name: 'Seattle Seahawks', yearFounded: 1974 });
+    expect(config.getValue('seahawks', null)).toEqual({
+      name: 'Seattle Seahawks',
+      yearFounded: 1974,
+    });
   });
-  
+
   test('Verify that adapter is updated when network response can be received', async () => {
-    expect.assertions(2)
+    expect.assertions(2);
 
     // Initialize with network
     await statsig.initialize(serverKey, statsigOptions);
@@ -114,7 +98,7 @@ describe('Validate functionality', () => {
       return;
     }
     // @ts-ignore
-    const gateToCheck = gates.find(gate => gate.name === 'test_email_regex');
+    const gateToCheck = gates.find((gate) => gate.name === 'test_email_regex');
     expect(gateToCheck.defaultValue).toEqual(false);
 
     // Check configs
@@ -124,10 +108,12 @@ describe('Validate functionality', () => {
     }
     // @ts-ignore
     const configToCheck = configs.find(
-      config => config.name === 'test_custom_config',
+      (config) => config.name === 'test_custom_config',
     );
-    expect(configToCheck.defaultValue)
-      .toEqual({ "header_text": "new user test", "foo": "bar" });
+    expect(configToCheck.defaultValue).toEqual({
+      header_text: 'new user test',
+      foo: 'bar',
+    });
   });
 
   test('Verify that using both bootstrap and adapter is properly handled', async () => {
@@ -149,7 +135,7 @@ describe('Validate functionality', () => {
       bootstrapValues: JSON.stringify(jsonResponse),
       ...statsigOptions,
     });
-    
+
     const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
     if (result == null) {
       return;
@@ -188,4 +174,4 @@ describe('Validate functionality', () => {
     }
     expect(gates).toEqual('test123');
   });
-})
+});

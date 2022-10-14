@@ -152,9 +152,12 @@ describe('Evaluation Details', () => {
     const dataStoreServer = new StatsigServer('secret-key', {
       dataAdapter: {
         get: (_) => Promise.resolve({ result: CONFIG_SPEC_RESPONSE }),
-        set: (_, _1) => Promise.reject('Bad'),
+        set: (_, _1) =>
+          Promise.reject(
+            'Should not be called.  If this changes, update the test',
+          ),
         initialize: () => Promise.resolve(),
-        shutdown: () => Promise.reject('Bad'),
+        shutdown: () => Promise.resolve(),
       },
     });
     await dataStoreServer.initializeAsync();

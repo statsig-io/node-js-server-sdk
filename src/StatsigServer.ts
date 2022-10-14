@@ -384,6 +384,11 @@ export default class StatsigServer {
       result.normalizedUser = normalizeUser(user, this._options);
     }
 
+    const resetError = this._evaluator.resetSyncTimerIfExited();
+    if (resetError != null) {
+      this._errorBoundary.logError(resetError, 'reset_sync_time');
+    }
+
     return result;
   }
 

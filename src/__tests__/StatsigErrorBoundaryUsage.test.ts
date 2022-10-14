@@ -37,7 +37,11 @@ describe('Statsig ErrorBoundary Usage', () => {
 
     // 1 Causes not a function errors
     // @ts-ignore
-    statsig._evaluator = 1;
+    statsig._evaluator = {
+      resetSyncTimerIfExited: () => {
+        return null;
+      },
+    };
     // @ts-ignore
     statsig._logger = 1;
   });

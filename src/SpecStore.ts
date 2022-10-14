@@ -37,11 +37,12 @@ export default class SpecStore {
   private syncInterval: number;
   private idListSyncInterval: number;
   private initialized: boolean;
-  private syncTimer: NodeJS.Timer | null;
-  private idListsSyncTimer: NodeJS.Timer | null;
+  private syncTimer: NodeJS.Timeout | null;
+  private idListsSyncTimer: NodeJS.Timeout | null;
   private fetcher: StatsigFetcher;
   private dataAdapter: IDataAdapter | null;
   private syncFailureCount: number = 0;
+  private lastDownloadConfigSpecsSyncTime: number = Date.now();
 
   public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
     this.fetcher = fetcher;
@@ -149,7 +150,25 @@ export default class SpecStore {
     }
 
     await this._syncIDLists();
+
+    this.pollForUpdates();
     this.initialized = true;
+  }
+
+  public resetSyncTimerIfExited(): Error | null {
+    if (
+      this.lastDownloadConfigSpecsSyncTime >=
+      Date.now() - SYNC_OUTDATED_MAX
+    ) {
+      return null;
+    }
+    this.clearTimers();
+    this.pollForUpdates();
+    const message = `Force reset sync timer. Last update time: ${
+      this.lastDownloadConfigSpecsSyncTime
+    }, now: ${Date.now()}`;
+    this._fetchConfigSpecsFromServer();
+    return new Error(message);
   }
 
   public isServingChecks() {
@@ -157,6 +176,7 @@ export default class SpecStore {
   }
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
+    this.lastDownloadConfigSpecsSyncTime = Date.now();
     const response = await this.fetcher.post(
       this.api + '/download_config_specs',
       {
@@ -205,6 +225,20 @@ export default class SpecStore {
     );
   }
 
+  private pollForUpdates() {
+    if (this.syncTimer == null) {
+      this.syncTimer = setInterval(async () => {
+        await this._syncValues();
+      }, this.syncInterval).unref();
+    }
+
+    if (this.idListsSyncTimer == null) {
+      this.idListsSyncTimer = setInterval(async () => {
+        await this._syncIDLists();
+      }, this.idListSyncInterval).unref();
+    }
+  }
+
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     try {
       await this._fetchConfigSpecsFromServer();
@@ -229,10 +263,6 @@ export default class SpecStore {
         }
       }
     }
-
-    this.syncTimer = setTimeout(() => {
-      this._syncValues();
-    }, this.syncInterval).unref();
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
@@ -420,22 +450,22 @@ export default class SpecStore {
         await Promise.allSettled(promises);
       }
     } catch (e) {}
-
-    this.idListsSyncTimer = setTimeout(() => {
-      this._syncIDLists();
-    }, this.idListSyncInterval).unref();
   }
 
   public shutdown(): void {
+    this.clearTimers();
+    this.dataAdapter?.shutdown();
+  }
+
+  private clearTimers(): void {
     if (this.syncTimer != null) {
-      clearTimeout(this.syncTimer);
+      clearInterval(this.syncTimer);
       this.syncTimer = null;
     }
     if (this.idListsSyncTimer != null) {
-      clearTimeout(this.idListsSyncTimer);
+      clearInterval(this.idListsSyncTimer);
       this.idListsSyncTimer = null;
     }
-    // TODO: handle shutdown for config adapter
   }
 
   private setInitialUpdateTime() {

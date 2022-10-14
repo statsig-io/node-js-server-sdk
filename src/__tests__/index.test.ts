@@ -11,8 +11,6 @@ jest.useFakeTimers();
 
 let flushedEventCount = 0;
 
-jest.useFakeTimers();
-
 jest.mock('node-fetch', () => jest.fn());
 // @ts-ignore
 const fetch = require('node-fetch');

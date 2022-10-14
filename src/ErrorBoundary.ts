@@ -1,3 +1,4 @@
+import { MessageChannel } from 'worker_threads';
 import {
   StatsigInvalidArgumentError,
   StatsigTooManyRequestsError,
@@ -57,7 +58,7 @@ export default class ErrorBoundary {
     return recover();
   }
 
-  private logError(error: unknown) {
+  public logError(error: unknown, key?: string) {
     try {
       if (!this.sdkKey) {
         return;
@@ -66,8 +67,9 @@ export default class ErrorBoundary {
       const unwrapped = (error ?? Error('[Statsig] Error was empty')) as any;
       const isError = unwrapped instanceof Error;
       const name = isError && unwrapped.name ? unwrapped.name : 'No Name';
-
-      if (this.seen.has(name)) return;
+      if (this.seen.has(name) || (key != null && this.seen.has(key))) {
+        return;
+      }
       this.seen.add(name);
 
       const info = isError ? unwrapped.stack : this.getDescription(unwrapped);
@@ -86,7 +88,7 @@ export default class ErrorBoundary {
           'Content-Length': `${body.length}`,
         },
         body,
-      });
+      }).catch(() => {});
     } catch (_error) {
       /* noop */
     }

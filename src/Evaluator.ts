@@ -279,6 +279,10 @@ export default class Evaluator {
     };
   }
 
+  public resetSyncTimerIfExited(): Error | null {
+    return this.store.resetSyncTimerIfExited();
+  }
+
   private _specToInitializeResponse(
     spec: ConfigSpec,
     res: ConfigEvaluation,
