@@ -549,7 +549,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation(() => {
-        return null;
+        return new ConfigEvaluation(false);
       });
 
     const configName = 'non_existent_config';
@@ -700,7 +700,7 @@ describe('Verify behavior of top level index functions', () => {
         userID: str_64,
         email: 'jest@statsig.com',
         custom: {
-          statsig_error: "User object length too large",
+          statsig_error: 'User object length too large',
         },
       });
       trimmedEvent.setValue(str_64.substring(0, 64));

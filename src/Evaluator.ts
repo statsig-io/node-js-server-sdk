@@ -8,6 +8,7 @@ import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
 import StatsigOptions from './StatsigOptions';
+import { EvaluationDetails, EvaluationReason } from './EvaluationDetails';
 
 const shajs = require('sha.js');
 const ip3country = require('ip3country');
@@ -125,40 +126,45 @@ export default class Evaluator {
     return null;
   }
 
-  public checkGate(
-    user: StatsigUser,
-    gateName: string,
-  ): ConfigEvaluation | null {
-    if (!this.initialized) {
-      return null;
+  public checkGate(user: StatsigUser, gateName: string): ConfigEvaluation {
+    const override = this.lookupGateOverride(user, gateName);
+    if (override) {
+      return override.withEvaluationDetails(
+        EvaluationDetails.make(this.store, 'LocalOverride'),
+      );
     }
 
-    return (
-      this.lookupGateOverride(user, gateName) ??
-      this._evalConfig(user, this.store.getGate(gateName))
-    );
-  }
-
-  public getConfig(
-    user: StatsigUser,
-    configName: string,
-  ): ConfigEvaluation | null {
-    if (!this.initialized) {
-      return null;
+    if (this.store.getInitReason() === 'Uninitialized') {
+      return new ConfigEvaluation(false).withEvaluationDetails(
+        EvaluationDetails.uninitialized(),
+      );
     }
 
-    return (
-      this.lookupConfigOverride(user, configName) ??
-      this._evalConfig(user, this.store.getConfig(configName))
-    );
+    return this._evalConfig(user, this.store.getGate(gateName));
   }
 
-  public getLayer(
-    user: StatsigUser,
-    layerName: string,
-  ): ConfigEvaluation | null {
-    if (!this.initialized) {
-      return null;
+  public getConfig(user: StatsigUser, configName: string): ConfigEvaluation {
+    const override = this.lookupConfigOverride(user, configName);
+    if (override) {
+      return override.withEvaluationDetails(
+        EvaluationDetails.make(this.store, 'LocalOverride'),
+      );
+    }
+
+    if (this.store.getInitReason() === 'Uninitialized') {
+      return new ConfigEvaluation(false).withEvaluationDetails(
+        EvaluationDetails.uninitialized(),
+      );
+    }
+
+    return this._evalConfig(user, this.store.getConfig(configName));
+  }
+
+  public getLayer(user: StatsigUser, layerName: string): ConfigEvaluation {
+    if (this.store.getInitReason() === 'Uninitialized') {
+      return new ConfigEvaluation(false).withEvaluationDetails(
+        EvaluationDetails.uninitialized(),
+      );
     }
 
     return this._evalConfig(user, this.store.getLayer(layerName));
@@ -314,15 +320,15 @@ export default class Evaluator {
     this.store.shutdown();
   }
 
-  _evalConfig(
-    user: StatsigUser,
-    config: ConfigSpec | null,
-  ): ConfigEvaluation | null {
+  _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
-      return null;
+      return new ConfigEvaluation(false).withEvaluationDetails(
+        EvaluationDetails.make(this.store, 'Unrecognized'),
+      );
     }
 
-    return this._eval(user, config);
+    const evaulation = this._eval(user, config);
+    return evaulation.withEvaluationDetails(EvaluationDetails.make(this.store));
   }
 
   _eval(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {

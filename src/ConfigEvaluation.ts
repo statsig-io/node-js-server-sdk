@@ -1,3 +1,5 @@
+import { EvaluationDetails } from './EvaluationDetails';
+
 export default class ConfigEvaluation {
   public value: boolean;
   public rule_id: string;
@@ -8,6 +10,7 @@ export default class ConfigEvaluation {
   public fetch_from_server: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
   public is_experiment_group: boolean;
+  public evaluation_details: EvaluationDetails | undefined;
 
   constructor(
     value: boolean,
@@ -33,6 +36,13 @@ export default class ConfigEvaluation {
     this.fetch_from_server = fetch_from_server;
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
+  }
+
+  public withEvaluationDetails(
+    evaulationDetails: EvaluationDetails,
+  ): ConfigEvaluation {
+    this.evaluation_details = evaulationDetails;
+    return this;
   }
 
   public setIsExperimentGroup(isExperimentGroup: boolean = false) {

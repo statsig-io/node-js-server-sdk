@@ -5,6 +5,7 @@ const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { IDataAdapter } from './interfaces/IDataAdapter';
+import { EvaluationReason } from './EvaluationDetails';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 const STORAGE_ADAPTER_KEY = 'statsig.cache';
@@ -26,9 +27,12 @@ export type ConfigStore = {
 };
 
 export default class SpecStore {
+  private initReason: EvaluationReason;
+
   private api: string;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
-  private time: number;
+  private initialUpdateTime: number;
+  private lastUpdateTime: number;
   private store: ConfigStore;
   private syncInterval: number;
   private idListSyncInterval: number;
@@ -43,7 +47,8 @@ export default class SpecStore {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
-    this.time = 0;
+    this.lastUpdateTime = 0;
+    this.initialUpdateTime = 0;
     this.store = {
       gates: {},
       configs: {},
@@ -57,15 +62,21 @@ export default class SpecStore {
     this.syncTimer = null;
     this.idListsSyncTimer = null;
     this.dataAdapter = options.dataAdapter;
+    this.initReason = 'Uninitialized';
 
     var specsJSON = null;
     if (options?.bootstrapValues != null) {
       if (this.dataAdapter != null) {
-        console.error('statsigSDK::initialize> Conflict between bootstrap and adapter. Defaulting to adapter.');
+        console.error(
+          'statsigSDK::initialize> Conflict between bootstrap and adapter. Defaulting to adapter.',
+        );
       } else {
         try {
           specsJSON = JSON.parse(options.bootstrapValues);
-          this._process(specsJSON);
+          if (this._process(specsJSON)) {
+            this.initReason = 'Bootstrap';
+          }
+          this.setInitialUpdateTime();
           this.initialized = true;
         } catch (e) {
           console.error(
@@ -74,6 +85,18 @@ export default class SpecStore {
         }
       }
     }
+  }
+
+  public getInitReason() {
+    return this.initReason;
+  }
+
+  public getInitialUpdateTime() {
+    return this.initialUpdateTime;
+  }
+
+  public getLastUpdateTime() {
+    return this.lastUpdateTime;
   }
 
   public getGate(gateName: string): ConfigSpec | null {
@@ -116,11 +139,13 @@ export default class SpecStore {
     } else {
       if (this.dataAdapter) {
         await this.dataAdapter.initialize();
-        await this._fetchConfigSpecsFromAdapter()
+        await this._fetchConfigSpecsFromAdapter();
       }
-      if (this.time == 0) {
+      if (this.lastUpdateTime === 0) {
         await this._syncValues(true);
       }
+
+      this.setInitialUpdateTime();
     }
 
     await this._syncIDLists();
@@ -128,7 +153,7 @@ export default class SpecStore {
   }
 
   public isServingChecks() {
-    return this.time !== 0;
+    return this.lastUpdateTime !== 0;
   }
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
@@ -136,7 +161,7 @@ export default class SpecStore {
       this.api + '/download_config_specs',
       {
         statsigMetadata: getStatsigMetadata(),
-        sinceTime: this.time,
+        sinceTime: this.lastUpdateTime,
       },
     );
     const specsString = await response.text();
@@ -144,11 +169,12 @@ export default class SpecStore {
     if (!processResult) {
       return;
     }
+    this.initReason = 'Network';
     if (
       this.rulesUpdatedCallback != null &&
       typeof this.rulesUpdatedCallback === 'function'
     ) {
-      this.rulesUpdatedCallback(specsString, this.time);
+      this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
   }
@@ -157,23 +183,25 @@ export default class SpecStore {
     if (!this.dataAdapter) {
       return;
     }
-    const { result, error, time } = await this.dataAdapter.get(STORAGE_ADAPTER_KEY);
+    const { result, error, time } = await this.dataAdapter.get(
+      STORAGE_ADAPTER_KEY,
+    );
     if (result && !error) {
       const configSpecs = JSON.parse(result);
-      this._process(configSpecs);
+      if (this._process(configSpecs)) {
+        this.initReason = 'DataAdapter';
+      }
     }
   }
 
-  private async _saveConfigSpecsToAdapter(
-    specString: string
-  ): Promise<void> {
+  private async _saveConfigSpecsToAdapter(specString: string): Promise<void> {
     if (!this.dataAdapter) {
       return;
     }
     await this.dataAdapter.set(
       STORAGE_ADAPTER_KEY,
       specString,
-      this.time,
+      this.lastUpdateTime,
     );
   }
 
@@ -263,7 +291,7 @@ export default class SpecStore {
     this.store.configs = updatedConfigs;
     this.store.layers = updatedLayers;
     this.store.experimentToLayer = updatedExpToLayer;
-    this.time = (specsJSON.time as number) ?? this.time;
+    this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
     return true;
   }
 
@@ -274,10 +302,7 @@ export default class SpecStore {
     layersMapping: unknown,
   ): Record<string, string> {
     const reverseMapping: Record<string, string> = {};
-    if (
-      layersMapping != null &&
-      typeof layersMapping === 'object'
-    ) {
+    if (layersMapping != null && typeof layersMapping === 'object') {
       for (const [layerName, experiments] of Object.entries(
         // @ts-ignore
         layersMapping,
@@ -316,7 +341,7 @@ export default class SpecStore {
           let newFile =
             fileID !== this.store.idLists[name]?.fileID &&
             newCreationTime >= oldCreationTime;
-  
+
           if (
             (parsed.hasOwnProperty(name) &&
               !this.store.idLists.hasOwnProperty(name)) ||
@@ -375,10 +400,10 @@ export default class SpecStore {
               }
             })
             .catch(() => {});
-  
+
           promises.push(p);
         }
-  
+
         // delete any id list that's no longer there
         const deletedLists = [];
         for (const name in this.store.idLists) {
@@ -411,5 +436,10 @@ export default class SpecStore {
       this.idListsSyncTimer = null;
     }
     // TODO: handle shutdown for config adapter
+  }
+
+  private setInitialUpdateTime() {
+    this.initialUpdateTime =
+      this.lastUpdateTime === 0 ? -1 : this.lastUpdateTime;
   }
 }

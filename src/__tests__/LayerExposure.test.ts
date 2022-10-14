@@ -63,13 +63,13 @@ describe('Layer Exposure Logging', () => {
 
       expect(logs['events'][0]).toEqual(
         expect.objectContaining({
-          metadata: {
+          metadata: expect.objectContaining({
             config: 'unallocated_layer',
             ruleID: 'default',
             allocatedExperiment: '',
             parameterName: 'an_int',
             isExplicitParameter: 'false',
-          },
+          }),
         }),
       );
     });
@@ -89,25 +89,25 @@ describe('Layer Exposure Logging', () => {
 
       expect(logs['events'][0]).toEqual(
         expect.objectContaining({
-          metadata: {
+          metadata: expect.objectContaining({
             config: 'explicit_vs_implicit_parameter_layer',
             ruleID: 'alwaysPass',
             allocatedExperiment: 'experiment',
             parameterName: 'an_int',
             isExplicitParameter: 'true',
-          },
+          }),
         }),
       );
 
       expect(logs['events'][1]).toEqual(
         expect.objectContaining({
-          metadata: {
+          metadata: expect.objectContaining({
             config: 'explicit_vs_implicit_parameter_layer',
             ruleID: 'alwaysPass',
             allocatedExperiment: '',
             parameterName: 'a_string',
             isExplicitParameter: 'false',
-          },
+          }),
         }),
       );
     });

@@ -5,7 +5,8 @@ import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
 import StatsigOptions from './StatsigOptions';
 import { StatsigLocalModeNetworkError } from './Errors';
-const Layer = require('./Layer');
+import { EvaluationDetails } from './EvaluationDetails';
+import Layer from './Layer';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
 const LAYER_EXPOSURE_EVENT = 'layer_exposure';
@@ -13,6 +14,13 @@ const GATE_EXPOSURE_EVENT = 'gate_exposure';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 
 const deduperInterval = 60 * 1000;
+
+const ignoredMetadataKeys = new Set([
+  'serverTime',
+  'configSyncTime',
+  'initTime',
+  'reason',
+]);
 
 export default class LogEventProcessor {
   private options: StatsigOptions;
@@ -141,15 +149,20 @@ export default class LogEventProcessor {
     gateValue: boolean,
     ruleID: string = '',
     secondaryExposures: Record<string, unknown>[] = [],
+    evaluationDetails?: EvaluationDetails,
   ) {
+    const metadata = {
+      gate: gateName,
+      gateValue: String(gateValue),
+      ruleID: ruleID,
+    };
+
+    this.safeAddEvaulationDetailsToEvent(metadata, evaluationDetails);
+
     this.logStatsigInternal(
       user,
       GATE_EXPOSURE_EVENT,
-      {
-        gate: gateName,
-        gateValue: String(gateValue),
-        ruleID: ruleID,
-      },
+      metadata,
       secondaryExposures,
     );
   }
@@ -159,21 +172,26 @@ export default class LogEventProcessor {
     configName: string,
     ruleID: string = '',
     secondaryExposures: Record<string, unknown>[] = [],
+    evaluationDetails?: EvaluationDetails,
   ): void {
+    const metadata = {
+      config: configName,
+      ruleID: ruleID,
+    };
+
+    this.safeAddEvaulationDetailsToEvent(metadata, evaluationDetails);
+
     this.logStatsigInternal(
       user,
       CONFIG_EXPOSURE_EVENT,
-      {
-        config: configName,
-        ruleID: ruleID,
-      },
+      metadata,
       secondaryExposures,
     );
   }
 
   public logLayerExposure(
     user: StatsigUser,
-    layer: typeof Layer,
+    layer: Layer,
     parameterName: string,
     configEvaluation: ConfigEvaluation,
   ): void {
@@ -186,18 +204,34 @@ export default class LogEventProcessor {
       exposures = configEvaluation.secondary_exposures;
     }
 
-    this.logStatsigInternal(
-      user,
-      LAYER_EXPOSURE_EVENT,
-      {
-        config: layer.name,
-        ruleID: layer.getRuleID(),
-        allocatedExperiment: allocatedExperiment,
-        parameterName,
-        isExplicitParameter: String(isExplicit),
-      },
-      exposures,
+    const metadata = {
+      config: layer.name,
+      ruleID: layer.getRuleID(),
+      allocatedExperiment: allocatedExperiment,
+      parameterName,
+      isExplicitParameter: String(isExplicit),
+    };
+
+    this.safeAddEvaulationDetailsToEvent(
+      metadata,
+      configEvaluation.evaluation_details,
     );
+
+    this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+  }
+
+  private safeAddEvaulationDetailsToEvent(
+    metadata: Record<string, unknown>,
+    evaluationDetails?: EvaluationDetails,
+  ) {
+    if (!evaluationDetails) {
+      return;
+    }
+
+    metadata['reason'] = evaluationDetails.reason;
+    metadata['configSyncTime'] = evaluationDetails.configSyncTime;
+    metadata['initTime'] = evaluationDetails.initTime;
+    metadata['serverTime'] = evaluationDetails.serverTime;
   }
 
   private isUniqueExposure(
@@ -215,7 +249,10 @@ export default class LogEventProcessor {
 
     let metadataKey = '';
     if (metadata && typeof metadata === 'object') {
-      metadataKey = Object.values(metadata).join();
+      metadataKey = Object.entries(metadata)
+        .filter(([key, _value]) => !ignoredMetadataKeys.has(key))
+        .map(([_key, value]) => value)
+        .join();
     }
 
     const keyList = [user.userID, customIdKey, eventName, metadataKey];

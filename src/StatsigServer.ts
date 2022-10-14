@@ -391,39 +391,34 @@ export default class StatsigServer {
     user: StatsigUser,
     gateName: string,
   ): Promise<{ value: boolean }> {
-    let ret = this._evaluator.checkGate(user, gateName) ?? {
-      value: false,
-      rule_id: '',
-      secondary_exposures: [],
-      config_delegate: undefined,
-      fetch_from_server: false,
-    };
+    let ret = this._evaluator.checkGate(user, gateName);
 
-    if (!ret.fetch_from_server) {
-      this._logger.logGateExposure(
-        user,
-        gateName,
-        ret.value,
-        ret.rule_id,
-        ret.secondary_exposures,
-      );
-      return Promise.resolve({ value: ret.value });
+    if (ret.fetch_from_server) {
+      return this._fetcher
+        .dispatch(
+          this._options.api + '/check_gate',
+          Object.assign({
+            user: user,
+            gateName: gateName,
+            statsigMetadata: getStatsigMetadata(),
+          }),
+          5000,
+        )
+        .then((res) => {
+          // @ts-ignore
+          return res.json();
+        });
     }
 
-    return this._fetcher
-      .dispatch(
-        this._options.api + '/check_gate',
-        Object.assign({
-          user: user,
-          gateName: gateName,
-          statsigMetadata: getStatsigMetadata(),
-        }),
-        5000,
-      )
-      .then((res) => {
-        // @ts-ignore
-        return res.json();
-      });
+    this._logger.logGateExposure(
+      user,
+      gateName,
+      ret.value,
+      ret.rule_id,
+      ret.secondary_exposures,
+      ret.evaluation_details,
+    );
+    return Promise.resolve({ value: ret.value });
   }
 
   private _getConfigValue(
@@ -431,30 +426,32 @@ export default class StatsigServer {
     configName: string,
   ): Promise<DynamicConfig> {
     const ret = this._evaluator.getConfig(user, configName);
-    if (!ret?.fetch_from_server) {
-      const config = new DynamicConfig(
-        configName,
-        ret?.json_value as Record<string, unknown>,
-        ret?.rule_id,
-        ret?.secondary_exposures,
-      );
-
-      this._logger.logConfigExposure(
-        user,
-        configName,
-        config.getRuleID(),
-        config._getSecondaryExposures(),
-      );
-
-      return Promise.resolve(config);
+    if (ret.fetch_from_server) {
+      return this._fetchConfig(user, configName);
     }
 
-    return this._fetchConfig(user, configName);
+    const config = new DynamicConfig(
+      configName,
+      ret.json_value as Record<string, unknown>,
+      ret.rule_id,
+      ret.secondary_exposures,
+    );
+
+    this._logger.logConfigExposure(
+      user,
+      configName,
+      config.getRuleID(),
+      config._getSecondaryExposures(),
+      ret.evaluation_details,
+    );
+
+    return Promise.resolve(config);
   }
 
   private _getLayerValue(user: StatsigUser, layerName: string): Promise<Layer> {
-    let ret = this._evaluator.getLayer(user, layerName);
-    if (ret != null && !ret.fetch_from_server) {
+    const ret = this._evaluator.getLayer(user, layerName);
+
+    if (!ret.fetch_from_server) {
       const logFunc = (layer: Layer, parameterName: string) => {
         if (this._logger == null) {
           return;
@@ -476,7 +473,7 @@ export default class StatsigServer {
       return Promise.resolve(layer);
     }
 
-    if (ret?.config_delegate) {
+    if (ret.config_delegate) {
       return this._fetchConfig(user, ret.config_delegate)
         .then((config) => {
           return Promise.resolve(

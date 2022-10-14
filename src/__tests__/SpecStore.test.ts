@@ -114,8 +114,8 @@ describe('Verify behavior of SpecStore', () => {
       }),
     );
     const latest = Date.now();
-    expect(store.time).toBeLessThanOrEqual(latest);
-    expect(store.time).toBeGreaterThanOrEqual(latest - 1);
+    expect(store.lastUpdateTime).toBeLessThanOrEqual(latest);
+    expect(store.lastUpdateTime).toBeGreaterThanOrEqual(latest - 1);
     expect(store.initialized).toEqual(true);
     expect(store.syncTimer).toBeTruthy();
 
@@ -218,7 +218,7 @@ describe('Verify behavior of SpecStore', () => {
         },
       }),
     );
-    expect(store.time).toEqual(timeAfterFirstSync);
+    expect(store.lastUpdateTime).toEqual(timeAfterFirstSync);
     expect(store.initialized).toEqual(true);
     expect(store.syncTimer).toBeTruthy();
 
@@ -272,7 +272,7 @@ describe('Verify behavior of SpecStore', () => {
     });
     await new Promise((_) => setTimeout(_, 1001));
     expect(storeAfterFirstSync).toEqual(store.store);
-    expect(store.time).toEqual(timeAfterFirstSync);
+    expect(store.lastUpdateTime).toEqual(timeAfterFirstSync);
     expect(store.store.idLists).toEqual(
       expect.objectContaining({
         list_1: {

@@ -494,7 +494,7 @@ fetch.mockImplementation((url) => {
 });
 
 describe('testing checkGate and getConfig', () => {
-  let evaluator;
+  let evaluator: Evaluator;
 
   beforeEach(() => {
     jest.resetModules();
@@ -510,82 +510,71 @@ describe('testing checkGate and getConfig', () => {
   });
 
   test('checkGate() behavior', async () => {
-    // calling before initialize should return null
     expect(
       evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.gate.name,
       ),
-    ).toEqual(null);
+    ).toMatchObject({ value: false });
 
     await evaluator.init();
-    // check a gate that should evaluate to true
-    expect(
-      evaluator.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
-        exampleConfigSpecs.gate.name,
-      ),
-    ).toEqual(
-      new ConfigEvaluation(true, exampleConfigSpecs.gate.rules[0].id, [], {}),
+    let result = evaluator.checkGate(
+      { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
+      exampleConfigSpecs.gate.name,
     );
+    expect(result.value).toEqual(true);
+    expect(result.rule_id).toEqual(exampleConfigSpecs.gate.rules[0].id);
 
-    // should evaluate to false
-    expect(
-      evaluator.checkGate(
-        { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
-        exampleConfigSpecs.gate.name,
-      ),
-    ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
+    result = evaluator.checkGate(
+      { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
+      exampleConfigSpecs.gate.name,
+    );
+    expect(result.value).toEqual(false);
+    expect(result.rule_id).toEqual('default');
 
-    // non-existent gate should return null
     expect(
       evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name + 'non-existent-gate',
       ),
-    ).toEqual(null);
+    ).toMatchObject({ value: false });
   });
 
   test('getConfig() behavior', async () => {
-    // calling before initialize should return null
     expect(
       evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.config.name,
       ),
-    ).toEqual(null);
+    ).toMatchObject({ json_value: {} });
 
     await evaluator.init();
 
     // check a config that should evaluate to real return value
-    expect(
-      evaluator.getConfig(
-        { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
-        exampleConfigSpecs.config.name,
-      ),
-    ).toEqual(
-      new ConfigEvaluation(
-        true,
-        exampleConfigSpecs.config.rules[0].id,
-        [],
-        exampleConfigSpecs.config.rules[0].returnValue,
-      ),
+    let result = evaluator.getConfig(
+      { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
+      exampleConfigSpecs.config.name,
+    );
+    expect(result.value).toEqual(true);
+    expect(result.rule_id).toEqual(exampleConfigSpecs.config.rules[0].id);
+    expect(result.json_value).toEqual(
+      exampleConfigSpecs.config.rules[0].returnValue,
     );
 
-    // non-existent config should return null
+    // non-existent config should return {}
     expect(
       evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.config.name + 'non-existent-config',
       ),
-    ).toEqual(null);
+    ).toMatchObject({ json_value: {} });
   });
 
   describe('getLayer()', () => {
-    it('returns null when not initialized', () => {
+    it('returns {} when not initialized', () => {
       expect(
         evaluator.getLayer({ userID: 'dloomb' }, 'unallocated_layer'),
-      ).toBeNull();
+      ).toMatchObject({ json_value: {} });
     });
 
     describe('when initialized', () => {
@@ -593,10 +582,10 @@ describe('testing checkGate and getConfig', () => {
         await evaluator.init();
       });
 
-      it('returns null when a non existant layer name is given', async () => {
+      it('returns {} when a non existant layer name is given', async () => {
         expect(
           evaluator.getLayer({ userID: 'dloomb' }, 'not_a_layer'),
-        ).toBeNull();
+        ).toMatchObject({ json_value: {} });
       });
 
       it('returns layer defaults', () => {
