@@ -20,7 +20,6 @@ export default class ConfigEvaluation {
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,
     fetch_from_server = false,
-    undelegated_secondary_exposures = [],
   ) {
     this.value = value;
     this.rule_id = rule_id;
@@ -31,7 +30,7 @@ export default class ConfigEvaluation {
       this.json_value = json_value;
     }
     this.secondary_exposures = secondary_exposures;
-    this.undelegated_secondary_exposures = undelegated_secondary_exposures;
+    this.undelegated_secondary_exposures = secondary_exposures;
     this.config_delegate = config_delegate;
     this.fetch_from_server = fetch_from_server;
     this.explicit_parameters = explicit_parameters;
