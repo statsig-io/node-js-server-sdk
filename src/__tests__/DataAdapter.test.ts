@@ -1,18 +1,18 @@
-import exampleConfigSpecs from './jest.setup';
 import * as statsigsdk from '../index';
-import { AdapterResponse, IDataAdapter } from '../interfaces/IDataAdapter';
+import exampleConfigSpecs from './jest.setup';
 import TestDataAdapter from './TestDataAdapter';
+
+jest.mock('node-fetch', () => jest.fn());
+import fetch from 'node-fetch';
+
 // @ts-ignore
 const statsig = statsigsdk.default;
 const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
-describe('Validate functionality', () => {
-  const serverKey = process.env.test_api_key;
-  if (serverKey == null) {
-    throw new Error('Invalid server key set');
-  }
+let isNetworkEnabled = false;
+
+describe('DataAdapter', () => {
   // --> Project: "Statsig - evaluation test", "Kong" server key
-  const dbNumber = 1;
   const dataAdapter = new TestDataAdapter();
   const statsigOptions = {
     dataAdapter: dataAdapter,
@@ -46,132 +46,137 @@ describe('Validate functionality', () => {
   }
 
   beforeEach(() => {
-    statsig._instance = null;
+    isNetworkEnabled = false;
+
+    //@ts-ignore
+    fetch.mockImplementation((url: string) => {
+      if (url.includes('/download_config_specs') && isNetworkEnabled) {
+        return Promise.resolve({
+          ok: true,
+          text: () =>
+            Promise.resolve(
+              JSON.stringify(require('./data/rulesets_e2e_full_dcs.json')),
+            ),
+        });
+      }
+      return Promise.reject();
+    });
   });
 
   afterEach(async () => {
     await dataAdapter.shutdown();
-    await statsig.shutdown();
   });
 
-  test('Verify that config specs can be fetched from adapter when network is down', async () => {
-    await loadStore();
+  describe('when statsig is initialized', () => {
+    beforeEach(() => {
+      statsig._instance = null;
+    });
 
-    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
-    if (result == null) {
-      return;
-    }
+    afterEach(async () => {
+      await statsig.shutdown();
+    });
 
-    // Initialize without network
-    await statsig.initialize(serverKey, { localMode: true, ...statsigOptions });
+    it('fetches config specs from adapter when network is down', async () => {
+      await loadStore();
 
-    // Check gates
-    const passesGate = await statsig.checkGate(user, 'nfl_gate');
-    expect(passesGate).toEqual(true);
+      // Initialize without network
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        ...statsigOptions,
+      });
 
-    // Check configs
-    const config = await statsig.getConfig(
-      user,
-      exampleConfigSpecs.config.name,
-    );
-    expect(config.getValue('seahawks', null)).toEqual({
-      name: 'Seattle Seahawks',
-      yearFounded: 1974,
+      // Check gates
+      const passesGate = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate).toEqual(true);
+
+      // Check configs
+      const config = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config.getValue('seahawks', null)).toEqual({
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      });
+    });
+
+    it('is updated when network response can be received', async () => {
+      expect.assertions(2);
+
+      isNetworkEnabled = true;
+      // Initialize with network
+      await statsig.initialize('secret-key', statsigOptions);
+
+      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const configSpecs = JSON.parse(result!);
+
+      // Check gates
+      const gates = configSpecs['feature_gates'];
+
+      const gateToCheck = gates.find(
+        (gate) => gate.name === 'test_email_regex',
+      );
+      expect(gateToCheck.defaultValue).toEqual(false);
+
+      // Check configs
+      const configs = configSpecs['dynamic_configs'];
+
+      const configToCheck = configs.find(
+        (config) => config.name === 'test_custom_config',
+      );
+      expect(configToCheck.defaultValue).toEqual({
+        header_text: 'new user test',
+        foo: 'bar',
+      });
+    });
+
+    it('correctly handles bootstrap and adapter at the same time', async () => {
+      expect.assertions(2);
+
+      await loadStore();
+
+      const jsonResponse = {
+        time: Date.now(),
+        feature_gates: [],
+        dynamic_configs: [],
+        layer_configs: [],
+        has_updates: true,
+      };
+
+      // Bootstrap with adapter
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        bootstrapValues: JSON.stringify(jsonResponse),
+        ...statsigOptions,
+      });
+
+      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const configSpecs = JSON.parse(result!);
+
+      // Check gates
+      const gates = configSpecs['feature_gates'];
+
+      const expectedGates: unknown[] = [];
+      expectedGates.push(exampleConfigSpecs.gate);
+      expect(gates).toEqual(expectedGates);
+
+      // Check configs
+      const configs = configSpecs['dynamic_configs'];
+
+      const expectedConfigs: unknown[] = [];
+      expectedConfigs.push(exampleConfigSpecs.config);
+      expect(configs).toEqual(expectedConfigs);
     });
   });
 
-  test('Verify that adapter is updated when network response can be received', async () => {
-    expect.assertions(2);
-
-    // Initialize with network
-    await statsig.initialize(serverKey, statsigOptions);
-
-    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
-    if (result == null) {
-      return;
-    }
-    const configSpecs = JSON.parse(result);
-
-    // Check gates
-    const gates = configSpecs['feature_gates'];
-    if (gates == null) {
-      return;
-    }
-    // @ts-ignore
-    const gateToCheck = gates.find((gate) => gate.name === 'test_email_regex');
-    expect(gateToCheck.defaultValue).toEqual(false);
-
-    // Check configs
-    const configs = configSpecs['dynamic_configs'];
-    if (configs == null) {
-      return;
-    }
-    // @ts-ignore
-    const configToCheck = configs.find(
-      (config) => config.name === 'test_custom_config',
-    );
-    expect(configToCheck.defaultValue).toEqual({
-      header_text: 'new user test',
-      foo: 'bar',
-    });
-  });
-
-  test('Verify that using both bootstrap and adapter is properly handled', async () => {
-    expect.assertions(2);
-
-    await loadStore();
-
-    const jsonResponse = {
-      time: Date.now(),
-      feature_gates: [],
-      dynamic_configs: [],
-      layer_configs: [],
-      has_updates: true,
-    };
-
-    // Bootstrap with adapter
-    await statsig.initialize(serverKey, {
-      localMode: true,
-      bootstrapValues: JSON.stringify(jsonResponse),
-      ...statsigOptions,
-    });
-
-    const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
-    if (result == null) {
-      return;
-    }
-    const configSpecs = JSON.parse(result);
-
-    // Check gates
-    const gates = configSpecs['feature_gates'];
-    if (gates == null) {
-      return;
-    }
-    const expectedGates: unknown[] = [];
-    expectedGates.push(exampleConfigSpecs.gate);
-    expect(gates).toEqual(expectedGates);
-
-    // Check configs
-    const configs = configSpecs['dynamic_configs'];
-    if (configs == null) {
-      return;
-    }
-    const expectedConfigs: unknown[] = [];
-    expectedConfigs.push(exampleConfigSpecs.config);
-    expect(configs).toEqual(expectedConfigs);
-  });
-
-  test('Verify that single item fetching works', async () => {
-    // Initialize with network
-    await statsig.initialize(serverKey, statsigOptions);
+  it('fetches single items', async () => {
+    await statsig.initialize('secret-key', statsigOptions);
 
     dataAdapter.set('feature_gates', 'test123');
 
     // Check id lists
     const { result: gates } = await dataAdapter.get('feature_gates');
-    if (gates == null) {
-      return;
-    }
+
     expect(gates).toEqual('test123');
   });
 });

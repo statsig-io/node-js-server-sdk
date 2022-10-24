@@ -28,7 +28,7 @@ fetch.mockImplementation((url, params) => {
 });
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./layer_exposure_download_config_specs.json'),
+  require('./data/layer_exposure_download_config_specs.json'),
 );
 
 describe('Layer Exposure Logging', () => {

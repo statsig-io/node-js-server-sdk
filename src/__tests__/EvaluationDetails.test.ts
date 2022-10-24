@@ -4,7 +4,7 @@ import { StatsigUser } from '../StatsigUser';
 jest.mock('node-fetch', () => jest.fn());
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./eval_details_download_config_specs.json'),
+  require('./data/eval_details_download_config_specs.json'),
 );
 
 describe('Evaluation Details', () => {

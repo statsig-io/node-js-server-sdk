@@ -3,10 +3,10 @@ import * as statsigsdk from '../index';
 const statsig = statsigsdk.default;
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./download_config_spec.json'),
+  require('./data/download_config_spec.json'),
 );
 
-const INIT_RESPONSE = require('./initialize_response.json');
+const INIT_RESPONSE = require('./data/initialize_response.json');
 let postedLogs = {
   events: [],
 };
