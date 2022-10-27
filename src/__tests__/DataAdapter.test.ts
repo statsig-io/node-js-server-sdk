@@ -4,6 +4,7 @@ import TestDataAdapter from './TestDataAdapter';
 
 jest.mock('node-fetch', () => jest.fn());
 import fetch from 'node-fetch';
+import { DataAdapterKey } from '../interfaces/IDataAdapter';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
@@ -50,7 +51,11 @@ describe('DataAdapter', () => {
 
     //@ts-ignore
     fetch.mockImplementation((url: string) => {
-      if (url.includes('/download_config_specs') && isNetworkEnabled) {
+      if (!isNetworkEnabled) {
+        return Promise.reject();
+      }
+
+      if (url.includes('/download_config_specs')) {
         return Promise.resolve({
           ok: true,
           text: () =>
@@ -59,6 +64,37 @@ describe('DataAdapter', () => {
             ),
         });
       }
+
+      if (url.includes('/get_id_lists')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              user_id_list: {
+                name: 'user_id_list',
+                size: 20,
+                url: 'https://fake.com/an_id_list_url',
+                creationTime: 1666625173000,
+                fileID: '1wkGp3X5k3mIQQR85D887n',
+              },
+            }),
+        });
+      }
+
+      if (url.includes('https://fake.com/an_id_list_url')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(['+Z/hEKLio', '+M5m6a10x'].join('\n')),
+          headers: {
+            get: jest.fn((v) => {
+              if (v.toLowerCase() === 'content-length') {
+                return 20;
+              }
+            }),
+          },
+        });
+      }
+
       return Promise.reject();
     });
   });
@@ -100,7 +136,7 @@ describe('DataAdapter', () => {
       });
     });
 
-    it('is updated when network response can be received', async () => {
+    it('updates config sepcs when with newer network values', async () => {
       expect.assertions(2);
 
       isNetworkEnabled = true;
@@ -128,6 +164,19 @@ describe('DataAdapter', () => {
         header_text: 'new user test',
         foo: 'bar',
       });
+    });
+
+    it('updates id lists when with newer network values', async () => {
+      isNetworkEnabled = true;
+      await statsig.initialize('secret-key', statsigOptions);
+
+      const lookup = await dataAdapter.get(DataAdapterKey.IDLists);
+      expect(lookup.result).toEqual('["user_id_list"]');
+
+      const ids = await dataAdapter.get(
+        DataAdapterKey.IDLists + '::user_id_list',
+      );
+      expect(ids.result).toEqual('+Z/hEKLio\n+M5m6a10x\n');
     });
 
     it('correctly handles bootstrap and adapter at the same time', async () => {
