@@ -7,6 +7,7 @@ import { StatsigLocalModeNetworkError } from './Errors';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import { EvaluationReason } from './EvaluationDetails';
 import IDListUtil, { IDList } from './utils/IDListUtil';
+import { poll } from './utils/core';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
@@ -226,15 +227,15 @@ export default class SpecStore {
 
   private pollForUpdates() {
     if (this.syncTimer == null) {
-      this.syncTimer = setInterval(async () => {
+      this.syncTimer = poll(async () => {
         await this._syncValues();
-      }, this.syncInterval).unref();
+      }, this.syncInterval);
     }
 
     if (this.idListsSyncTimer == null) {
-      this.idListsSyncTimer = setInterval(async () => {
+      this.idListsSyncTimer = poll(async () => {
         await this.syncIdListsFromNetwork();
-      }, this.idListSyncInterval).unref();
+      }, this.idListSyncInterval);
     }
   }
 
