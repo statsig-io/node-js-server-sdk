@@ -25,7 +25,9 @@ function generateID(): string {
   return uuidv4();
 }
 
-function clone(obj: Record<string, unknown> | null): Record<string, unknown> | null {
+function clone(
+  obj: Record<string, unknown> | null,
+): Record<string, unknown> | null {
   if (obj == null) {
     return null;
   }
@@ -57,9 +59,9 @@ function getBoolValue(val: unknown): boolean | null {
 }
 
 export type StatsigMetadata = {
-  sdkType: string,
-  sdkVersion: string,
-}
+  sdkType: string;
+  sdkVersion: string;
+};
 
 function getStatsigMetadata(): StatsigMetadata {
   return {
@@ -82,6 +84,14 @@ function isUserIdentifiable(user: StatsigUser | null): boolean {
   );
 }
 
+function poll(fn: () => {}, interval: number): NodeJS.Timer {
+  const timer = setInterval(fn, interval);
+  if (timer.unref) {
+    timer.unref();
+  }
+  return timer;
+}
+
 export {
   clone,
   generateID,
@@ -92,4 +102,5 @@ export {
   getStatsigMetadata,
   isUserIdentifiable,
   notEmpty,
+  poll,
 };

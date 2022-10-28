@@ -4,19 +4,12 @@ import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
 import safeFetch from './utils/safeFetch';
 import { StatsigLocalModeNetworkError } from './Errors';
-import { IDataAdapter } from './interfaces/IDataAdapter';
+import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import { EvaluationReason } from './EvaluationDetails';
+import IDListUtil, { IDList } from './utils/IDListUtil';
+import { poll } from './utils/core';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
-const STORAGE_ADAPTER_KEY = 'statsig.cache';
-
-type IDList = {
-  creationTime: number;
-  fileID: string;
-  ids: Record<string, boolean>;
-  readBytes: number;
-  url: string;
-};
 
 export type ConfigStore = {
   gates: Record<string, ConfigSpec>;
@@ -133,13 +126,15 @@ export default class SpecStore {
   }
 
   public async init(): Promise<void> {
+    const adapter = this.dataAdapter;
+
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
     // need to wait for _syncValues() to finish before returning.
     if (this.initialized) {
       this._syncValues();
     } else {
-      if (this.dataAdapter) {
-        await this.dataAdapter.initialize();
+      if (adapter) {
+        await adapter.initialize();
         await this._fetchConfigSpecsFromAdapter();
       }
       if (this.lastUpdateTime === 0) {
@@ -149,7 +144,12 @@ export default class SpecStore {
       this.setInitialUpdateTime();
     }
 
-    await this._syncIDLists();
+    const bootstrapIdLists = await adapter?.get(DataAdapterKey.IDLists);
+    if (adapter && typeof bootstrapIdLists?.result === 'string') {
+      this.syncIdListsFromDataAdapter(adapter, bootstrapIdLists.result);
+    } else {
+      await this.syncIdListsFromNetwork();
+    }
 
     this.pollForUpdates();
     this.initialized = true;
@@ -204,7 +204,7 @@ export default class SpecStore {
       return;
     }
     const { result, error, time } = await this.dataAdapter.get(
-      STORAGE_ADAPTER_KEY,
+      DataAdapterKey.Rulesets,
     );
     if (result && !error) {
       const configSpecs = JSON.parse(result);
@@ -219,7 +219,7 @@ export default class SpecStore {
       return;
     }
     await this.dataAdapter.set(
-      STORAGE_ADAPTER_KEY,
+      DataAdapterKey.Rulesets,
       specString,
       this.lastUpdateTime,
     );
@@ -227,15 +227,15 @@ export default class SpecStore {
 
   private pollForUpdates() {
     if (this.syncTimer == null) {
-      this.syncTimer = setInterval(async () => {
+      this.syncTimer = poll(async () => {
         await this._syncValues();
-      }, this.syncInterval).unref();
+      }, this.syncInterval);
     }
 
     if (this.idListsSyncTimer == null) {
-      this.idListsSyncTimer = setInterval(async () => {
-        await this._syncIDLists();
-      }, this.idListSyncInterval).unref();
+      this.idListsSyncTimer = poll(async () => {
+        await this.syncIdListsFromNetwork();
+      }, this.idListSyncInterval);
     }
   }
 
@@ -347,107 +347,130 @@ export default class SpecStore {
     return reverseMapping;
   }
 
-  private async _syncIDLists(): Promise<void> {
+  private async syncIdListsFromDataAdapter(
+    dataAdapter: IDataAdapter,
+    listsLookupString: string,
+  ): Promise<void> {
+    const lookup = IDListUtil.parseBootstrapLookup(listsLookupString);
+    if (!lookup) {
+      return;
+    }
+
+    const tasks: Promise<void>[] = [];
+    for (const name of lookup) {
+      tasks.push(
+        new Promise(async (resolve) => {
+          const data = await dataAdapter.get(
+            IDListUtil.getIdListDataStoreKey(name),
+          );
+          if (!data.result) {
+            return;
+          }
+
+          this.store.idLists[name] = {
+            ids: {},
+            readBytes: 0,
+            url: 'bootstrap',
+            fileID: 'bootstrap',
+            creationTime: 0,
+          };
+
+          IDListUtil.updateIdList(this.store.idLists, name, data.result);
+          resolve();
+        }),
+      );
+    }
+
+    await Promise.all(tasks);
+  }
+
+  private async syncIdListsFromNetwork(): Promise<void> {
     try {
       const response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
-      // @ts-ignore
-      const parsed = await response.json();
+      const json = await response.json();
+      const lookup = IDListUtil.parseLookupResponse(json);
+      if (!lookup) {
+        return;
+      }
+
       let promises = [];
-      if (typeof parsed === 'object') {
-        for (const name in parsed) {
-          const url = parsed[name].url;
-          const fileID = parsed[name].fileID;
-          const newCreationTime = parsed[name].creationTime;
-          const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
-          if (
-            typeof url !== 'string' ||
-            newCreationTime < oldCreationTime ||
-            typeof fileID !== 'string'
-          ) {
-            continue;
-          }
-          let newFile =
-            fileID !== this.store.idLists[name]?.fileID &&
-            newCreationTime >= oldCreationTime;
 
-          if (
-            (parsed.hasOwnProperty(name) &&
-              !this.store.idLists.hasOwnProperty(name)) ||
-            newFile // when fileID changes, we reset the whole list
-          ) {
-            this.store.idLists[name] = {
-              ids: {},
-              readBytes: 0,
-              url,
-              fileID,
-              creationTime: newCreationTime,
-            };
-          }
-          const fileSize = parsed[name].size ?? 0;
-          const readSize = this.store.idLists[name].readBytes ?? 0;
-          if (fileSize <= readSize) {
-            continue;
-          }
-          const p = safeFetch(url, {
-            method: 'GET',
-            headers: {
-              Range: `bytes=${readSize}-`,
-            },
+      for (const [name, item] of Object.entries(lookup)) {
+        const url = item.url;
+        const fileID = item.fileID;
+        const newCreationTime = item.creationTime;
+        const oldCreationTime = this.store.idLists[name]?.creationTime ?? 0;
+        if (
+          typeof url !== 'string' ||
+          newCreationTime < oldCreationTime ||
+          typeof fileID !== 'string'
+        ) {
+          continue;
+        }
+        let newFile =
+          fileID !== this.store.idLists[name]?.fileID &&
+          newCreationTime >= oldCreationTime;
+
+        if (
+          (lookup.hasOwnProperty(name) &&
+            !this.store.idLists.hasOwnProperty(name)) ||
+          newFile // when fileID changes, we reset the whole list
+        ) {
+          this.store.idLists[name] = {
+            ids: {},
+            readBytes: 0,
+            url,
+            fileID,
+            creationTime: newCreationTime,
+          };
+        }
+        const fileSize = item.size ?? 0;
+        const readSize = this.store.idLists[name].readBytes ?? 0;
+        if (fileSize <= readSize) {
+          continue;
+        }
+        const p = safeFetch(url, {
+          method: 'GET',
+          headers: {
+            Range: `bytes=${readSize}-`,
+          },
+        })
+          // @ts-ignore
+          .then((res: Response) => {
+            const contentLength = res.headers.get('content-length');
+            if (contentLength == null) {
+              throw new Error('Content-Length for the id list is invalid.');
+            }
+            const length = parseInt(contentLength);
+            if (typeof length === 'number') {
+              this.store.idLists[name].readBytes += length;
+            } else {
+              delete this.store.idLists[name];
+              throw new Error('Content-Length for the id list is invalid.');
+            }
+            return res.text();
           })
-            // @ts-ignore
-            .then((res: Response) => {
-              const contentLength = res.headers.get('content-length');
-              if (contentLength == null) {
-                throw new Error('Content-Length for the id list is invalid.');
-              }
-              const length = parseInt(contentLength);
-              if (typeof length === 'number') {
-                this.store.idLists[name].readBytes += length;
-              } else {
-                delete this.store.idLists[name];
-                throw new Error('Content-Length for the id list is invalid.');
-              }
-              return res.text();
-            })
-            .then((data: string) => {
-              const lines = data.split(/\r?\n/);
-              if (data.charAt(0) !== '+' && data.charAt(0) !== '-') {
-                delete this.store.idLists[name];
-                throw new Error('Seek range invalid.');
-              }
-              for (const line of lines) {
-                if (line.length <= 1) {
-                  continue;
-                }
-                const id = line.slice(1).trim();
-                if (line.charAt(0) === '+') {
-                  this.store.idLists[name].ids[id] = true;
-                } else if (line.charAt(0) === '-') {
-                  delete this.store.idLists[name].ids[id];
-                }
-              }
-            })
-            .catch(() => {});
+          .then((data: string) => {
+            IDListUtil.updateIdList(this.store.idLists, name, data);
+          })
+          .catch((e) => {
+            console.error(e);
+          });
 
-          promises.push(p);
-        }
+        promises.push(p);
+      }
 
-        // delete any id list that's no longer there
-        const deletedLists = [];
-        for (const name in this.store.idLists) {
-          if (
-            this.store.idLists.hasOwnProperty(name) &&
-            !parsed.hasOwnProperty(name)
-          ) {
-            deletedLists.push(name);
-          }
-        }
-        for (const name in deletedLists) {
-          delete this.store.idLists[name];
-        }
-        await Promise.allSettled(promises);
+      IDListUtil.removeOldIdLists(this.store.idLists, lookup);
+
+      await Promise.allSettled(promises);
+
+      if (this.dataAdapter) {
+        await IDListUtil.saveToDataAdapter(
+          this.dataAdapter,
+          this.store.idLists,
+        );
       }
     } catch (e) {}
   }

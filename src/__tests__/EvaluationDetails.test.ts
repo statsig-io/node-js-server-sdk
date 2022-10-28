@@ -4,7 +4,7 @@ import { StatsigUser } from '../StatsigUser';
 jest.mock('node-fetch', () => jest.fn());
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./eval_details_download_config_specs.json'),
+  require('./data/eval_details_download_config_specs.json'),
 );
 
 describe('Evaluation Details', () => {
@@ -13,6 +13,7 @@ describe('Evaluation Details', () => {
   };
   let server: StatsigServer;
   let events: string[];
+  let returnConfigSpecsResponse = true;
 
   const expectedResult = (
     type: 'gate' | 'config' | 'layer',
@@ -33,9 +34,10 @@ describe('Evaluation Details', () => {
   beforeEach(async () => {
     Date.now = () => 12345;
 
+    returnConfigSpecsResponse = true;
     const fetch = require('node-fetch');
     fetch.mockImplementation((url: string, params) => {
-      if (url.includes('download_config_specs')) {
+      if (url.includes('download_config_specs') && returnConfigSpecsResponse) {
         return Promise.resolve({
           ok: true,
           text: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
@@ -57,9 +59,11 @@ describe('Evaluation Details', () => {
   });
 
   it('returns uninitialized as an eval reason', async () => {
+    returnConfigSpecsResponse = false;
     const uninitializedServer = new StatsigServer('secret-key', {
       bootstrapValues: '{ "Invalid Boostrap": "JSON" }',
     });
+
     await uninitializedServer.initializeAsync();
 
     const [_g, _c, _e, layer] = await Promise.all([
@@ -127,6 +131,7 @@ describe('Evaluation Details', () => {
   });
 
   it('returns bootstrap as an eval reason', async () => {
+    returnConfigSpecsResponse = false;
     const bootstrapServer = new StatsigServer('secret-key', {
       bootstrapValues: CONFIG_SPEC_RESPONSE,
     });

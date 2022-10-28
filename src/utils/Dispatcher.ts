@@ -1,4 +1,3 @@
-
 type Entry = {
   expiry: number;
   promise: Promise<unknown>;
@@ -18,13 +17,16 @@ export default class Dispatcher {
     this.drainTimer = this._scheduleDrain();
   }
 
-  public enqueue(promise: Promise<Response>, timeoutms: number): Promise<Response> {
+  public enqueue(
+    promise: Promise<Response>,
+    timeoutms: number,
+  ): Promise<Response> {
     let entry: Entry = {
       expiry: Date.now() + timeoutms,
       promise: promise,
       taskCompleted: false,
       resolver: null,
-      rejector: null
+      rejector: null,
     };
 
     const dispatcherPromise = new Promise<Response>((res, rej) => {
@@ -59,7 +61,11 @@ export default class Dispatcher {
   }
 
   private _scheduleDrain(): NodeJS.Timer {
-    return setTimeout(this._drainQueue.bind(this), this.drainInterval).unref();
+    const drain = setTimeout(this._drainQueue.bind(this), this.drainInterval);
+    if (drain.unref) {
+      drain.unref();
+    }
+    return drain;
   }
 
   private _drainQueue() {

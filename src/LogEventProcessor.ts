@@ -1,4 +1,4 @@
-const { getStatsigMetadata } = require('./utils/core');
+const { getStatsigMetadata, poll } = require('./utils/core');
 import LogEvent from './LogEvent';
 import { StatsigUser } from './StatsigUser';
 import ConfigEvaluation from './ConfigEvaluation';
@@ -42,13 +42,8 @@ export default class LogEventProcessor {
     this.loggedErrors = new Set();
 
     const processor = this;
-    this.flushTimer = setInterval(function () {
-      processor.flush();
-    }, options.loggingIntervalMs).unref();
-
-    this.deduperTimer = setInterval(function () {
-      processor.deduper.clear();
-    }, deduperInterval).unref();
+    this.flushTimer = poll(processor.flush, options.loggingIntervalMs);
+    this.deduperTimer = poll(processor.deduper.clear, deduperInterval);
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {

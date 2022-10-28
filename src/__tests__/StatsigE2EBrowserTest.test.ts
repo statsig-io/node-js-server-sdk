@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import * as statsigsdk from '../index';
 // @ts-ignore
 const statsig = statsigsdk.default;

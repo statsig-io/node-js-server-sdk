@@ -826,7 +826,15 @@ function numberCompare(
   fn: (a: number, b: number) => boolean,
 ): (a: unknown, b: unknown) => boolean {
   return (a: unknown, b: unknown) => {
-    return typeof a === 'number' && typeof b === 'number' && fn(a, b);
+    if (a == null || b == null) {
+        return false;
+    }
+    const numA = Number(a);
+    const numB = Number(b);
+    if (isNaN(numA) || isNaN(numB)) {
+        return false;
+    }
+    return fn(numA, numB);
   };
 }
 

@@ -1,12 +1,17 @@
 export type AdapterResponse = {
-  result?: string,
-  time?: number,
-  error?: Error,
+  result?: string;
+  time?: number;
+  error?: Error;
+};
+
+export enum DataAdapterKey {
+  Rulesets = 'statsig.cache',
+  IDLists = 'statsig.id_lists',
 }
 
 /**
  * An adapter for implementing custom storage of config specs.
- * Useful for backing up data in memory. 
+ * Useful for backing up data in memory.
  * Can also be used to bootstrap Statsig server.
  */
 export interface IDataAdapter {
