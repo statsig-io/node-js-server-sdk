@@ -42,8 +42,12 @@ export default class LogEventProcessor {
     this.loggedErrors = new Set();
 
     const processor = this;
-    this.flushTimer = poll(processor.flush, options.loggingIntervalMs);
-    this.deduperTimer = poll(processor.deduper.clear, deduperInterval);
+    this.flushTimer = poll(() => {
+      processor.flush();
+    }, options.loggingIntervalMs);
+    this.deduperTimer = poll(() => {
+      processor.deduper.clear();
+    }, deduperInterval);
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
