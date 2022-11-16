@@ -1,6 +1,9 @@
 import * as statsigsdk from '../index';
 import exampleConfigSpecs from './jest.setup';
 import TestDataAdapter, { TestSyncingDataAdapter } from './TestDataAdapter';
+import {
+  GatesForIdListTest,
+} from './BootstrapWithDataAdapter.data';
 
 jest.mock('node-fetch', () => jest.fn());
 import fetch from 'node-fetch';
@@ -8,7 +11,6 @@ import { DataAdapterKey } from '../interfaces/IDataAdapter';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
-const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 let isNetworkEnabled = false;
 
@@ -34,7 +36,7 @@ describe('DataAdapter', () => {
     const time = Date.now();
     await dataAdapter.initialize();
     await dataAdapter.set(
-      STORAGE_ADAPTER_KEY,
+      DataAdapterKey.Rulesets,
       JSON.stringify({
         dynamic_configs: configs,
         feature_gates: gates,
@@ -143,7 +145,7 @@ describe('DataAdapter', () => {
       // Initialize with network
       await statsig.initialize('secret-key', statsigOptions);
 
-      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
       const configSpecs = JSON.parse(result!);
 
       // Check gates
@@ -199,7 +201,7 @@ describe('DataAdapter', () => {
         ...statsigOptions,
       });
 
-      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
       const configSpecs = JSON.parse(result!);
 
       // Check gates
@@ -229,8 +231,8 @@ describe('DataAdapter', () => {
     expect(gates).toEqual('test123');
   });
   
-  describe('when data adapter is used for syncing', () => {
-    const syncingDataAdapter = new TestSyncingDataAdapter();
+  describe('when data adapter is used for syncing for rulesets', () => {
+    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets]);
     beforeEach(() => {
       statsig._instance = null;
     });
@@ -276,6 +278,37 @@ describe('DataAdapter', () => {
         name: 'Seattle Seahawks',
         yearFounded: 1974,
       });
+    });
+
+    it('still initializes id lists from the network', async () => {
+      isNetworkEnabled = true;
+      const time = Date.now();
+      await syncingDataAdapter.initialize();
+      await syncingDataAdapter.set(
+        DataAdapterKey.Rulesets,
+        JSON.stringify({
+          dynamic_configs: [],
+          feature_gates: GatesForIdListTest,
+          layer_configs: [],
+          layers: [],
+          has_updates: true,
+        }),
+        time,
+      );
+
+      await statsig.initialize('secret-key', {
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+      });
+
+      let value = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      expect(value).toBe(true);
+  
+      value = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
+      expect(value).toBe(true);
+  
+      value = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
+      expect(value).toBe(false);
     });
   });
 });
