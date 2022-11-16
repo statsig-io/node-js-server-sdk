@@ -234,14 +234,14 @@ export default class SpecStore {
 
     if (this.idListsSyncTimer == null) {
       this.idListsSyncTimer = poll(async () => {
-        await this.syncIdListsFromNetwork();
+        await this._syncIdLists();
       }, this.idListSyncInterval);
     }
   }
 
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     const adapter = this.dataAdapter;
-    const shouldSyncFromAdapter = !!(adapter && adapter.shouldPollForUpdates?.(DataAdapterKey.Rulesets));
+    const shouldSyncFromAdapter = !!(adapter && adapter.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets));
 
     try {
       if (shouldSyncFromAdapter) {
@@ -269,6 +269,17 @@ export default class SpecStore {
           this.syncFailureCount = 0;
         }
       }
+    }
+  }
+
+  private async _syncIdLists(): Promise<void> {
+    const adapter = this.dataAdapter;
+    const shouldSyncFromAdapter = !!(adapter && adapter.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists));
+    const adapterIdLists = await adapter?.get(DataAdapterKey.IDLists);
+    if (shouldSyncFromAdapter && typeof adapterIdLists?.result === 'string') {
+      await this.syncIdListsFromDataAdapter(adapter, adapterIdLists.result);
+    } else {
+      await this.syncIdListsFromNetwork();
     }
   }
 

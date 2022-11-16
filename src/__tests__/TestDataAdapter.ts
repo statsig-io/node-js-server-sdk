@@ -27,7 +27,7 @@ export class TestSyncingDataAdapter extends TestDataAdapter {
     this.keysToSync = keysToSync;
   }
 
-  shouldPollForUpdates(key): boolean {
+  supportsPollingUpdatesFor(key): boolean {
     if (!this.keysToSync) {
       return true;
     }

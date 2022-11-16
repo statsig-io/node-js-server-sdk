@@ -40,9 +40,9 @@ export interface IDataAdapter {
   shutdown(): Promise<void>;
 
   /**
-   * Determines whether the SDK should poll for config spec
-   * updates from the data adapter
+   * Determines whether the SDK should poll for updates from
+   * the data adapter for the given key
    * @param key - Key of stored item to poll from data adapter
    */
-  shouldPollForUpdates?(key: DataAdapterKey): boolean;
+   supportsPollingUpdatesFor?(key: DataAdapterKey): boolean;
 }
