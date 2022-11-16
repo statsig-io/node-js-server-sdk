@@ -9,8 +9,11 @@ import Evaluator from './Evaluator';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
-import StatsigOptions from './StatsigOptions';
-import { StatsigOptionsType } from './StatsigOptionsType';
+import {
+  ExplicitStatsigOptions,
+  UnwrapStatsigOptions,
+  StatsigOptions,
+} from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -20,22 +23,30 @@ const MAX_OBJ_SIZE = 2048;
 const MAX_USER_SIZE = 2048;
 let hasLoggedNoUserIdWarning = false;
 
+export type LogEventObject = {
+  eventName: string;
+  user: StatsigUser;
+  value?: string | number | null;
+  metadata?: Record<string, unknown> | null;
+  time?: string | null;
+};
+
 /**
  * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
  */
 export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
   private _ready: boolean = false;
-  private _options: StatsigOptions;
+  private _options: ExplicitStatsigOptions;
   private _logger: LogEventProcessor;
   private _secretKey: string;
   private _evaluator: Evaluator;
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
 
-  public constructor(secretKey: string, options: StatsigOptionsType = {}) {
+  public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
-    this._options = new StatsigOptions(options);
+    this._options = UnwrapStatsigOptions(options);
     this._pendingInitPromise = null;
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
@@ -216,13 +227,7 @@ export default class StatsigServer {
     });
   }
 
-  public logEventObject(eventObject: {
-    eventName: string;
-    user: StatsigUser;
-    value?: string | number | null;
-    metadata?: Record<string, unknown> | null;
-    time?: string | null;
-  }) {
+  public logEventObject(eventObject: LogEventObject) {
     return this._errorBoundary.swallow(() => {
       let eventName = eventObject.eventName;
       let user = eventObject.user ?? null;
@@ -537,7 +542,7 @@ function shouldTrimParam(
 
 function normalizeUser(
   user: StatsigUser,
-  options: StatsigOptions,
+  options: ExplicitStatsigOptions,
 ): StatsigUser {
   user = trimUserObjIfNeeded(user);
   user = JSON.parse(JSON.stringify(user));

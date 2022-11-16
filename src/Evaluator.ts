@@ -1,14 +1,14 @@
 import ConfigEvaluation from './ConfigEvaluation';
 
+import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import SpecStore from './SpecStore';
 import { StatsigUser } from './StatsigUser';
-import { ConfigSpec, ConfigRule, ConfigCondition } from './ConfigSpec';
 
+import { EvaluationDetails } from './EvaluationDetails';
+import { ExplicitStatsigOptions } from './StatsigOptions';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
-import StatsigOptions from './StatsigOptions';
-import { EvaluationDetails, EvaluationReason } from './EvaluationDetails';
 
 const shajs = require('sha.js');
 const ip3country = require('ip3country');
@@ -41,7 +41,7 @@ export default class Evaluator {
 
   private store: SpecStore;
 
-  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
+  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.store = new SpecStore(fetcher, options);
     this.gateOverrides = {};
     this.configOverrides = {};
@@ -827,12 +827,12 @@ function numberCompare(
 ): (a: unknown, b: unknown) => boolean {
   return (a: unknown, b: unknown) => {
     if (a == null || b == null) {
-        return false;
+      return false;
     }
     const numA = Number(a);
     const numB = Number(b);
     if (isNaN(numA) || isNaN(numB)) {
-        return false;
+      return false;
     }
     return fn(numA, numB);
   };

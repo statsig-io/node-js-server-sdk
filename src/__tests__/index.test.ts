@@ -1,7 +1,9 @@
+// @ts-nocheck
 import ConfigEvaluation from '../ConfigEvaluation';
-import * as statsigsdk from '../index';
-// @ts-ignore
-const statsig = statsigsdk.default;
+
+// const statsig = require("../index")
+
+import statsig from '../index';
 import LogEvent from '../LogEvent';
 import DynamicConfig from '../DynamicConfig';
 import { StatsigUninitializedError } from '../Errors';
@@ -42,7 +44,8 @@ fetch.mockImplementation((url, params) => {
   } else if (url.includes('log_event') || url.includes('rgstr')) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        flushedEventCount += JSON.parse(params.body).events.length;
+        const events = JSON.parse(params.body).events;
+        flushedEventCount += events.length;
         resolve({
           ok: true,
           json: () => {
@@ -63,6 +66,10 @@ describe('Verify behavior of top level index functions', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
+
+    try {
+      statsig.shutdown();
+    } catch (e) {}
 
     statsig._instance = null;
     flushedEventCount = 0;
@@ -769,6 +776,9 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('flush() works', async () => {
+    jest.advanceTimersByTime(100);
+    flushedEventCount = 0;
+
     expect.assertions(2);
 
     await statsig.initialize(secretKey);

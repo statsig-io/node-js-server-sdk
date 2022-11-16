@@ -1,13 +1,13 @@
 import { ConfigSpec } from './ConfigSpec';
-import StatsigOptions from './StatsigOptions';
+import { StatsigLocalModeNetworkError } from './Errors';
+import { EvaluationReason } from './EvaluationDetails';
+import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
+import { ExplicitStatsigOptions } from './StatsigOptions';
+import { poll } from './utils/core';
+import IDListUtil, { IDList } from './utils/IDListUtil';
+import safeFetch from './utils/safeFetch';
 import StatsigFetcher from './utils/StatsigFetcher';
 const { getStatsigMetadata } = require('./utils/core');
-import safeFetch from './utils/safeFetch';
-import { StatsigLocalModeNetworkError } from './Errors';
-import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
-import { EvaluationReason } from './EvaluationDetails';
-import IDListUtil, { IDList } from './utils/IDListUtil';
-import { poll } from './utils/core';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
@@ -37,7 +37,7 @@ export default class SpecStore {
   private syncFailureCount: number = 0;
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
 
-  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
+  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;

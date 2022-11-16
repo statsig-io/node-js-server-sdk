@@ -1,7 +1,7 @@
 import SpecStore from '../SpecStore';
 import { ConfigSpec } from '../ConfigSpec';
 import StatsigFetcher from '../utils/StatsigFetcher';
-import StatsigOptions from '../StatsigOptions';
+import { UnwrapStatsigOptions } from '../StatsigOptions';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -70,8 +70,8 @@ describe('Verify behavior of SpecStore', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    const net = new StatsigFetcher('secret-', new StatsigOptions({}));
-    const options = new StatsigOptions({
+    const net = new StatsigFetcher('secret-', UnwrapStatsigOptions({}));
+    const options = UnwrapStatsigOptions({
       rulesetsSyncIntervalMs: 1000,
       idListsSyncIntervalMs: 1000,
     });

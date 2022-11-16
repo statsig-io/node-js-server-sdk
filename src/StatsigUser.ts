@@ -1,4 +1,4 @@
-import { StatsigEnvironment } from "./StatsigOptionsType";
+import { StatsigEnvironment } from './StatsigOptions';
 
 export type StatsigUser = {
   userID?: string;
