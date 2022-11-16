@@ -1,6 +1,15 @@
 import * as starsig from '../index';
-import { StatsigUser } from '../StatsigUser';
-import Statsig from '../index';
+import Statsig, {
+  DynamicConfig,
+  Layer,
+  LogEventObject,
+  RulesUpdatedCallback,
+  StatsigEnvironment,
+  StatsigOptions,
+  StatsigUser,
+  IDataAdapter,
+  AdapterResponse,
+} from '../index';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -44,6 +53,24 @@ describe('Backward Compatibility', () => {
         text: () => Promise.resolve('{}'),
       });
     });
+  });
+
+  it('has top level types', () => {
+    // just checking this compiles
+    let topLevelTypes: {
+      options?: StatsigOptions;
+      environment?: StatsigEnvironment;
+      user?: StatsigUser;
+      dc?: DynamicConfig;
+      layer?: Layer;
+      eventObj?: LogEventObject;
+      callback?: RulesUpdatedCallback;
+      dataAdapter?: IDataAdapter;
+      adapterRes?: AdapterResponse;
+    } = {};
+
+    delete topLevelTypes['options'];
+    expect(topLevelTypes).toEqual({});
   });
 
   test.each([

@@ -3,7 +3,7 @@ import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
 const exampleConfigSpecs = require('./jest.setup');
 import Evaluator from '../Evaluator';
 import SpecStore from '../SpecStore';
-import { UnwrapStatsigOptions } from '../StatsigOptions';
+import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 describe('Test condition evaluation', () => {
@@ -244,8 +244,8 @@ describe('Test condition evaluation', () => {
     ['user_field',         'eq',              null,                 'nullable',             {custom: {nullable: 'sth'}}, false],
   ]
 
-  const fetcher = new StatsigFetcher('secret-123', UnwrapStatsigOptions({}));
-  const mockedEvaluator = new Evaluator(fetcher, UnwrapStatsigOptions({}));
+  const fetcher = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
+  const mockedEvaluator = new Evaluator(fetcher, OptionsWithDefaults({}));
   jest
     .spyOn(mockedEvaluator, 'checkGate')
     .mockImplementation((user, gateName) => {
@@ -270,10 +270,10 @@ describe('Test condition evaluation', () => {
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
-    const network = new StatsigFetcher('secret-123', UnwrapStatsigOptions({}));
+    const network = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
     const store = new SpecStore(
       network,
-      UnwrapStatsigOptions({ api: 'https://statsigapi.net/v1' }),
+      OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
     );
     // @ts-ignore
     store.store = {
@@ -499,10 +499,10 @@ describe('testing checkGate and getConfig', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    const network = new StatsigFetcher('secret-123', UnwrapStatsigOptions({}));
+    const network = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
     evaluator = new Evaluator(
       network,
-      UnwrapStatsigOptions({ api: 'https://statsigapi.net/v1' }),
+      OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
     );
 
     let now = Date.now();

@@ -11,7 +11,7 @@ import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
 import {
   ExplicitStatsigOptions,
-  UnwrapStatsigOptions,
+  OptionsWithDefaults,
   StatsigOptions,
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
@@ -46,7 +46,7 @@ export default class StatsigServer {
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
-    this._options = UnwrapStatsigOptions(options);
+    this._options = OptionsWithDefaults(options);
     this._pendingInitPromise = null;
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);

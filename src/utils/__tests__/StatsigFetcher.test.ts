@@ -1,7 +1,7 @@
 import StatsigFetcher from '../StatsigFetcher';
 import {
   ExplicitStatsigOptions,
-  UnwrapStatsigOptions,
+  OptionsWithDefaults,
 } from '../../StatsigOptions';
 
 let calls = 0;
@@ -38,12 +38,12 @@ fetch.mockImplementation((_url) => {
 });
 
 describe('Verify behavior of top level index functions', () => {
-  let fetcher = new StatsigFetcher('secret-', UnwrapStatsigOptions({}));
+  let fetcher = new StatsigFetcher('secret-', OptionsWithDefaults({}));
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
 
-    fetcher = new StatsigFetcher('secret-', UnwrapStatsigOptions({}));
+    fetcher = new StatsigFetcher('secret-', OptionsWithDefaults({}));
   });
 
   test('Test retries', async () => {

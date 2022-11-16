@@ -11,7 +11,7 @@ const DEFAULT_MAX_LOGGING_BUFFER_SIZE = 1000;
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
 
 export type StatsigEnvironment = {
-  tier?: 'production' | 'staging' | 'development';
+  tier?: 'production' | 'staging' | 'development' | string;
   [key: string]: string | undefined;
 };
 
@@ -31,7 +31,7 @@ export type ExplicitStatsigOptions = {
 
 export type StatsigOptions = Partial<ExplicitStatsigOptions>;
 
-export function UnwrapStatsigOptions(
+export function OptionsWithDefaults(
   opts: StatsigOptions,
 ): ExplicitStatsigOptions {
   return {

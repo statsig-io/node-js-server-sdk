@@ -1,5 +1,6 @@
 import DynamicConfig from './DynamicConfig';
 import { StatsigUninitializedError } from './Errors';
+import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
 import {
   RulesUpdatedCallback,
@@ -18,6 +19,8 @@ export {
   StatsigUser,
   StatsigOptions,
   StatsigEnvironment,
+  IDataAdapter,
+  AdapterResponse,
 };
 
 const Statsig = {
