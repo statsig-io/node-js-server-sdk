@@ -240,8 +240,15 @@ export default class SpecStore {
   }
 
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
+    const adapter = this.dataAdapter;
+    const shouldSyncFromAdapter = !!(adapter && adapter.shouldPollForUpdates?.(DataAdapterKey.Rulesets));
+
     try {
-      await this._fetchConfigSpecsFromServer();
+      if (shouldSyncFromAdapter) {
+        await this._fetchConfigSpecsFromAdapter();
+      } else {
+        await this._fetchConfigSpecsFromServer();
+      }
       this.syncFailureCount = 0;
     } catch (e) {
       this.syncFailureCount++;
@@ -255,7 +262,7 @@ export default class SpecStore {
           SYNC_OUTDATED_MAX
         ) {
           console.warn(
-            `statsigSDK::sync> Syncing the server SDK with statsig has failed for  ${
+            `statsigSDK::sync> Syncing the server SDK with ${shouldSyncFromAdapter ? "the data adapter" : "statsig"} has failed for  ${
               this.syncFailureCount * this.syncInterval
             }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
           );

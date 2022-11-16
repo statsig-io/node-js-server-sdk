@@ -18,3 +18,9 @@ export default class TestDataAdapter implements IDataAdapter {
     return Promise.resolve();
   }
 }
+
+export class TestSyncingDataAdapter extends TestDataAdapter {
+  shouldPollForUpdates(_key): boolean {
+    return true;
+  }
+}

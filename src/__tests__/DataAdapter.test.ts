@@ -1,6 +1,6 @@
 import * as statsigsdk from '../index';
 import exampleConfigSpecs from './jest.setup';
-import TestDataAdapter from './TestDataAdapter';
+import TestDataAdapter, { TestSyncingDataAdapter } from './TestDataAdapter';
 
 jest.mock('node-fetch', () => jest.fn());
 import fetch from 'node-fetch';
@@ -25,7 +25,7 @@ describe('DataAdapter', () => {
     custom: { level: 9 },
   };
 
-  async function loadStore() {
+  async function loadStore(dataAdapter: TestDataAdapter) {
     // Manually load data into adapter store
     const gates: unknown[] = [];
     const configs: unknown[] = [];
@@ -113,7 +113,7 @@ describe('DataAdapter', () => {
     });
 
     it('fetches config specs from adapter when network is down', async () => {
-      await loadStore();
+      await loadStore(dataAdapter);
 
       // Initialize without network
       await statsig.initialize('secret-key', {
@@ -136,7 +136,7 @@ describe('DataAdapter', () => {
       });
     });
 
-    it('updates config sepcs when with newer network values', async () => {
+    it('updates config specs when with newer network values', async () => {
       expect.assertions(2);
 
       isNetworkEnabled = true;
@@ -182,7 +182,7 @@ describe('DataAdapter', () => {
     it('correctly handles bootstrap and adapter at the same time', async () => {
       expect.assertions(2);
 
-      await loadStore();
+      await loadStore(dataAdapter);
 
       const jsonResponse = {
         time: Date.now(),
@@ -227,5 +227,55 @@ describe('DataAdapter', () => {
     const { result: gates } = await dataAdapter.get('feature_gates');
 
     expect(gates).toEqual('test123');
+  });
+  
+  describe('when data adapter is used for syncing', () => {
+    const syncingDataAdapter = new TestSyncingDataAdapter();
+    beforeEach(() => {
+      statsig._instance = null;
+    });
+
+    afterEach(async () => {
+      await statsig.shutdown();
+    });
+
+    it('updates config specs when adapter config spec update', async () => {
+      // Initialize without network
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+        rulesetsSyncIntervalMs: 5000,
+      });
+
+      // Check gates
+      const passesGate1 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate1).toEqual(false);
+
+      // Check configs
+      const config1 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config1.getValue('seahawks', null)).toEqual(null);
+
+      await loadStore(syncingDataAdapter);
+
+      await new Promise((_) => setTimeout(_, 5001));
+
+      // Check gates after syncing
+      const passesGate2 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate2).toEqual(true);
+
+      // Check configs after syncing
+      const config2 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config2.getValue('seahawks', null)).toEqual({
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      });
+    });
   });
 });
