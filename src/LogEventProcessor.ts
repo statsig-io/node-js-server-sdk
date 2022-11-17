@@ -3,7 +3,7 @@ import LogEvent from './LogEvent';
 import { StatsigUser } from './StatsigUser';
 import ConfigEvaluation from './ConfigEvaluation';
 import StatsigFetcher from './utils/StatsigFetcher';
-import StatsigOptions from './StatsigOptions';
+import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import Layer from './Layer';
@@ -23,7 +23,7 @@ const ignoredMetadataKeys = new Set([
 ]);
 
 export default class LogEventProcessor {
-  private options: StatsigOptions;
+  private options: ExplicitStatsigOptions;
   private fetcher: StatsigFetcher;
 
   private queue: LogEvent[];
@@ -33,7 +33,7 @@ export default class LogEventProcessor {
   private deduper: Set<string>;
   private deduperTimer: NodeJS.Timer | null;
 
-  public constructor(fetcher: StatsigFetcher, options: StatsigOptions) {
+  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.options = options;
     this.fetcher = fetcher;
 

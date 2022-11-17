@@ -1,83 +1,48 @@
 import DynamicConfig from './DynamicConfig';
 import { StatsigUninitializedError } from './Errors';
+import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
-import { StatsigOptionsType } from './StatsigOptionsType';
-import StatsigServer from './StatsigServer';
+import {
+  RulesUpdatedCallback,
+  StatsigEnvironment,
+  StatsigOptions,
+} from './StatsigOptions';
+
+import StatsigServer, { LogEventObject } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
 
-type StatsigSingleton = {
-  _instance: StatsigServer | null;
-
-  initialize(secretKey: string, options?: StatsigOptionsType): Promise<void>;
-
-  checkGate(user: StatsigUser, gateName: string): Promise<boolean>;
-
-  getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig>;
-
-  getExperiment(
-    user: StatsigUser,
-    experimentName: string,
-  ): Promise<DynamicConfig>;
-
-  getLayer(user: StatsigUser, layerName: string): Promise<Layer>;
-
-  logEvent(
-    user: StatsigUser,
-    eventName: string,
-    value?: string | number | null,
-    metadata?: Record<string, unknown> | null,
-  ): void;
-
-  logEventObject(eventObject: {
-    eventName: string;
-    user: StatsigUser;
-    value?: string | number | null;
-    metadata?: Record<string, unknown>;
-    time?: string | null;
-  }): void;
-
-  shutdown(): void;
-
-  getClientInitializeResponse(
-    user: StatsigUser,
-  ): Record<string, unknown> | null;
-
-  overrideGate(gateName: string, value: boolean, userID?: string): void;
-
-  overrideConfig(
-    configName: string,
-    value: Record<string, unknown>,
-    userID?: string,
-  ): void;
-
-  flush(): Promise<void>;
-
-  _ensureInitialized(): StatsigServer;
+export {
+  DynamicConfig,
+  Layer,
+  LogEventObject,
+  RulesUpdatedCallback,
+  StatsigUser,
+  StatsigOptions,
+  StatsigEnvironment,
+  IDataAdapter,
+  AdapterResponse,
 };
 
-const statsig: StatsigSingleton = {
-  _instance: null,
+const Statsig = {
+  _instance: null as StatsigServer | null,
 
-  initialize(
-    secretKey: string,
-    options: StatsigOptionsType = {},
-  ): Promise<void> {
-    const inst = statsig._instance ?? new StatsigServer(secretKey, options);
+  initialize(secretKey: string, options: StatsigOptions = {}): Promise<void> {
+    const inst = Statsig._instance ?? new StatsigServer(secretKey, options);
 
-    if (statsig._instance == null) {
-      statsig._instance = inst;
+    if (Statsig._instance == null) {
+      Statsig._instance = inst;
     }
 
     return inst.initializeAsync();
   },
 
   checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     return server.checkGate(user, gateName);
   },
 
   getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig> {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     return server.getConfig(user, configName);
   },
 
@@ -85,12 +50,12 @@ const statsig: StatsigSingleton = {
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     return server.getExperiment(user, experimentName);
   },
 
   getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     return server.getLayer(user, layerName);
   },
 
@@ -100,7 +65,7 @@ const statsig: StatsigSingleton = {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ): void {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     server.logEvent(user, eventName, value, metadata);
   },
 
@@ -111,24 +76,24 @@ const statsig: StatsigSingleton = {
     metadata?: Record<string, unknown>;
     time?: string | null;
   }): void {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     server.logEventObject(eventObject);
   },
 
   shutdown(): void {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     server.shutdown();
   },
 
   getClientInitializeResponse(
     user: StatsigUser,
   ): Record<string, unknown> | null {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     return server.getClientInitializeResponse(user);
   },
 
   overrideGate(gateName: string, value: boolean, userID: string = ''): void {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     server.overrideGate(gateName, value, userID);
   },
 
@@ -137,12 +102,12 @@ const statsig: StatsigSingleton = {
     value: Record<string, unknown>,
     userID: string = '',
   ): void {
-    const server = statsig._ensureInitialized();
+    const server = Statsig._ensureInitialized();
     server.overrideConfig(configName, value, userID);
   },
 
   flush(): Promise<void> {
-    const inst = statsig._instance;
+    const inst = Statsig._instance;
     if (inst == null) {
       return Promise.resolve();
     }
@@ -150,11 +115,13 @@ const statsig: StatsigSingleton = {
   },
 
   _ensureInitialized(): StatsigServer {
-    if (statsig._instance == null) {
+    if (Statsig._instance == null) {
       throw new StatsigUninitializedError();
     }
-    return statsig._instance;
+    return Statsig._instance;
   },
 };
 
-module.exports = statsig;
+type Statsig = Omit<typeof Statsig, '_instance'>;
+export default Statsig as Statsig;
+module.exports = Statsig as Statsig;

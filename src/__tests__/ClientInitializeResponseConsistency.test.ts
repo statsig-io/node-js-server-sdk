@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 const shajs = require('sha.js');
 
 import * as statsigsdk from '../index';
-import { StatsigOptionsType } from '../StatsigOptionsType';
+
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -112,16 +112,18 @@ async function _validateInitializeConsistency(api, environment) {
     }
   }
 
-  let options: StatsigOptionsType = {
+  let options: statsigsdk.StatsigOptions = {
     api,
   };
   if (environment != null) {
     options.environment = environment;
   }
 
-  await statsig.initialize(secret, options);
+  await statsig.initialize(secret!, options);
 
-  const sdkInitializeResponse = statsig.getClientInitializeResponse(user);
+  const sdkInitializeResponse = statsig.getClientInitializeResponse(
+    user,
+  ) as any;
 
   for (const topLevel in sdkInitializeResponse) {
     for (const property in sdkInitializeResponse[topLevel]) {

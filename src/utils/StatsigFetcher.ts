@@ -2,7 +2,7 @@ import {
   StatsigLocalModeNetworkError,
   StatsigTooManyRequestsError,
 } from '../Errors';
-import StatsigOptions from '../StatsigOptions';
+import { ExplicitStatsigOptions } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import safeFetch from './safeFetch';
@@ -18,7 +18,7 @@ export default class StatsigFetcher {
   private localMode: boolean;
   private sdkKey: string;
 
-  public constructor(secretKey: string, options: StatsigOptions) {
+  public constructor(secretKey: string, options: ExplicitStatsigOptions) {
     this.sessionID = uuidv4();
     this.leakyBucket = {};
     this.pendingTimers = [];
