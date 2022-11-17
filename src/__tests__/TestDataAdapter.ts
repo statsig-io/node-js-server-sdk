@@ -29,7 +29,7 @@ export class TestSyncingDataAdapter extends TestDataAdapter {
 
   supportsPollingUpdatesFor(key): boolean {
     if (!this.keysToSync) {
-      return true;
+      return false;
     }
     return this.keysToSync.includes(key);
   }

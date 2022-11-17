@@ -315,7 +315,7 @@ describe('DataAdapter', () => {
   });
 
   describe('when data adapter is used for syncing for rulesets and id lists', () => {
-    const syncingDataAdapter = new TestSyncingDataAdapter();
+    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets, DataAdapterKey.IDLists]);
     beforeEach(() => {
       statsig._instance = null;
     });
@@ -324,7 +324,7 @@ describe('DataAdapter', () => {
       await statsig.shutdown();
     });
 
-    it('updates config specs and is lists when adapter config spec update', async () => {
+    it('updates config specs and id lists when adapter config spec update', async () => {
       // Initialize without network
       await statsig.initialize('secret-key', {
         localMode: true,

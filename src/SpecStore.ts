@@ -241,7 +241,7 @@ export default class SpecStore {
 
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     const adapter = this.dataAdapter;
-    const shouldSyncFromAdapter = !!(adapter && adapter.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets));
+    const shouldSyncFromAdapter = adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
 
     try {
       if (shouldSyncFromAdapter) {
@@ -274,7 +274,7 @@ export default class SpecStore {
 
   private async _syncIdLists(): Promise<void> {
     const adapter = this.dataAdapter;
-    const shouldSyncFromAdapter = !!(adapter && adapter.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists));
+    const shouldSyncFromAdapter = adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
     const adapterIdLists = await adapter?.get(DataAdapterKey.IDLists);
     if (shouldSyncFromAdapter && typeof adapterIdLists?.result === 'string') {
       await this.syncIdListsFromDataAdapter(adapter, adapterIdLists.result);
