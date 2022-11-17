@@ -34,7 +34,7 @@ jobs:
         run: |
           cd kong
           npm install
-          FORCE_COLOR=true npm run kong -- test nodejs -w -r
+          FORCE_COLOR=true npm run kong -- test nodejs -w -r -vb
         env:
           test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
