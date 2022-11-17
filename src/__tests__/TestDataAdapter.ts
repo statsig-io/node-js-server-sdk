@@ -1,4 +1,4 @@
-import { AdapterResponse, IDataAdapter } from '../interfaces/IDataAdapter';
+import { AdapterResponse, IDataAdapter, DataAdapterKey } from '../interfaces/IDataAdapter';
 
 export default class TestDataAdapter implements IDataAdapter {
   private store: Record<string, string> = {};
@@ -16,5 +16,21 @@ export default class TestDataAdapter implements IDataAdapter {
   shutdown(): Promise<void> {
     this.store = {};
     return Promise.resolve();
+  }
+}
+
+export class TestSyncingDataAdapter extends TestDataAdapter {
+  private keysToSync: DataAdapterKey[] | undefined;
+
+  constructor(keysToSync?: DataAdapterKey[]) {
+    super();
+    this.keysToSync = keysToSync;
+  }
+
+  supportsPollingUpdatesFor(key): boolean {
+    if (!this.keysToSync) {
+      return false;
+    }
+    return this.keysToSync.includes(key);
   }
 }

@@ -38,4 +38,11 @@ export interface IDataAdapter {
    * Cleanup tasks to run when statsig is shutdown
    */
   shutdown(): Promise<void>;
+
+  /**
+   * Determines whether the SDK should poll for updates from
+   * the data adapter for the given key
+   * @param key - Key of stored item to poll from data adapter
+   */
+   supportsPollingUpdatesFor?(key: DataAdapterKey): boolean;
 }

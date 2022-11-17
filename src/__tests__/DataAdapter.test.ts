@@ -1,6 +1,9 @@
 import * as statsigsdk from '../index';
 import exampleConfigSpecs from './jest.setup';
-import TestDataAdapter from './TestDataAdapter';
+import TestDataAdapter, { TestSyncingDataAdapter } from './TestDataAdapter';
+import {
+  GatesForIdListTest,
+} from './BootstrapWithDataAdapter.data';
 
 jest.mock('node-fetch', () => jest.fn());
 import fetch from 'node-fetch';
@@ -8,7 +11,6 @@ import { DataAdapterKey } from '../interfaces/IDataAdapter';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
-const STORAGE_ADAPTER_KEY = 'statsig.cache';
 
 let isNetworkEnabled = false;
 
@@ -25,7 +27,7 @@ describe('DataAdapter', () => {
     custom: { level: 9 },
   };
 
-  async function loadStore() {
+  async function loadStore(dataAdapter: TestDataAdapter) {
     // Manually load data into adapter store
     const gates: unknown[] = [];
     const configs: unknown[] = [];
@@ -34,7 +36,7 @@ describe('DataAdapter', () => {
     const time = Date.now();
     await dataAdapter.initialize();
     await dataAdapter.set(
-      STORAGE_ADAPTER_KEY,
+      DataAdapterKey.Rulesets,
       JSON.stringify({
         dynamic_configs: configs,
         feature_gates: gates,
@@ -113,7 +115,7 @@ describe('DataAdapter', () => {
     });
 
     it('fetches config specs from adapter when network is down', async () => {
-      await loadStore();
+      await loadStore(dataAdapter);
 
       // Initialize without network
       await statsig.initialize('secret-key', {
@@ -136,14 +138,14 @@ describe('DataAdapter', () => {
       });
     });
 
-    it('updates config sepcs when with newer network values', async () => {
+    it('updates config specs when with newer network values', async () => {
       expect.assertions(2);
 
       isNetworkEnabled = true;
       // Initialize with network
       await statsig.initialize('secret-key', statsigOptions);
 
-      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
       const configSpecs = JSON.parse(result!);
 
       // Check gates
@@ -182,7 +184,7 @@ describe('DataAdapter', () => {
     it('correctly handles bootstrap and adapter at the same time', async () => {
       expect.assertions(2);
 
-      await loadStore();
+      await loadStore(dataAdapter);
 
       const jsonResponse = {
         time: Date.now(),
@@ -199,7 +201,7 @@ describe('DataAdapter', () => {
         ...statsigOptions,
       });
 
-      const { result } = await dataAdapter.get(STORAGE_ADAPTER_KEY);
+      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
       const configSpecs = JSON.parse(result!);
 
       // Check gates
@@ -227,5 +229,168 @@ describe('DataAdapter', () => {
     const { result: gates } = await dataAdapter.get('feature_gates');
 
     expect(gates).toEqual('test123');
+  });
+  
+  describe('when data adapter is used for syncing for rulesets', () => {
+    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets]);
+    beforeEach(() => {
+      statsig._instance = null;
+    });
+
+    afterEach(async () => {
+      await statsig.shutdown();
+    });
+
+    it('updates config specs when adapter config spec update', async () => {
+      // Initialize without network
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+      });
+
+      // Check gates
+      const passesGate1 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate1).toEqual(false);
+
+      // Check configs
+      const config1 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config1.getValue('seahawks', null)).toEqual(null);
+
+      await loadStore(syncingDataAdapter);
+
+      statsig._instance._evaluator.store.syncInterval = 1000;
+      statsig._instance._evaluator.store.syncTimer = null;
+      statsig._instance._evaluator.store.pollForUpdates();
+      await new Promise((_) => setTimeout(_, 1100));
+
+      // Check gates after syncing
+      const passesGate2 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate2).toEqual(true);
+
+      // Check configs after syncing
+      const config2 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config2.getValue('seahawks', null)).toEqual({
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      });
+    });
+
+    it('still initializes id lists from the network', async () => {
+      isNetworkEnabled = true;
+      const time = Date.now();
+      await syncingDataAdapter.initialize();
+      await syncingDataAdapter.set(
+        DataAdapterKey.Rulesets,
+        JSON.stringify({
+          dynamic_configs: [],
+          feature_gates: GatesForIdListTest,
+          layer_configs: [],
+          layers: [],
+          has_updates: true,
+        }),
+        time,
+      );
+
+      await statsig.initialize('secret-key', {
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+      });
+
+      let value = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      expect(value).toBe(true);
+  
+      value = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
+      expect(value).toBe(true);
+  
+      value = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
+      expect(value).toBe(false);
+    });
+  });
+
+  describe('when data adapter is used for syncing for rulesets and id lists', () => {
+    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets, DataAdapterKey.IDLists]);
+    beforeEach(() => {
+      statsig._instance = null;
+    });
+
+    afterEach(async () => {
+      await statsig.shutdown();
+    });
+
+    it('updates config specs and id lists when adapter config spec update', async () => {
+      // Initialize without network
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+      });
+
+      // Check gates
+      let value1 = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      expect(value1).toBe(false);
+  
+      value1 = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
+      expect(value1).toBe(false);
+  
+      value1 = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
+      expect(value1).toBe(false);
+
+      // Check configs
+      const config1 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config1.getValue('seahawks', null)).toEqual(null);
+
+      const time = Date.now();
+      await syncingDataAdapter.initialize();
+      await syncingDataAdapter.set(
+        DataAdapterKey.Rulesets,
+        JSON.stringify({
+          dynamic_configs: [exampleConfigSpecs.config],
+          feature_gates: GatesForIdListTest,
+          layer_configs: [],
+          layers: [],
+          has_updates: true,
+        }),
+        time,
+      );
+      syncingDataAdapter.set(DataAdapterKey.IDLists, '["user_id_list"]');
+      syncingDataAdapter.set(DataAdapterKey.IDLists + '::user_id_list', '+Z/hEKLio\n+M5m6a10x\n')
+
+      statsig._instance._evaluator.store.syncInterval = 1000;
+      statsig._instance._evaluator.store.idListSyncInterval = 1000;
+      statsig._instance._evaluator.store.syncTimer = null;
+      statsig._instance._evaluator.store.idListsSyncTimer = null;
+      statsig._instance._evaluator.store.pollForUpdates();
+      await new Promise((_) => setTimeout(_, 1100));
+
+      // Check gates after syncing
+      let value2 = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      expect(value2).toBe(true);
+  
+      value2 = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
+      expect(value2).toBe(true);
+  
+      value2 = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
+      expect(value2).toBe(false);
+
+      // Check configs after syncing
+      const config2 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config2.getValue('seahawks', null)).toEqual({
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      });
+    });
   });
 });
