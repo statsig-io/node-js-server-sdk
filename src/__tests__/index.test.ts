@@ -169,7 +169,7 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate(null)).rejects.toEqual(
-        new Error('Must pass a valid gateName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -182,7 +182,7 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.checkGate({ userID: '123' }, 12)).rejects.toEqual(
-        new Error('Must pass a valid gateName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -265,11 +265,11 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({ userID: '123' })).rejects.toEqual(
-        new Error('Must pass a valid configName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getExperiment({ userID: '123' })).rejects.toEqual(
-        new Error('Must pass a valid experimentName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });
@@ -282,11 +282,11 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getConfig({ userID: '123' }, false)).rejects.toEqual(
-        new Error('Must pass a valid configName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       // @ts-ignore intentionally testing incorrect param type
       expect(statsig.getExperiment({ userID: '123' }, false)).rejects.toEqual(
-        new Error('Must pass a valid experimentName to check'),
+        new Error('Lookup key must be a non-empty string'),
       );
       expect(spy).toHaveBeenCalledTimes(0);
     });

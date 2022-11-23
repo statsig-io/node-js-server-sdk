@@ -23,6 +23,16 @@ const MAX_OBJ_SIZE = 2048;
 const MAX_USER_SIZE = 2048;
 let hasLoggedNoUserIdWarning = false;
 
+enum ExposureLogging {
+  Disabled = 'exposures_disabled',
+  Enabled = 'exposures_enabled',
+}
+
+enum ExposureCause {
+  Automatic = 'automatic_exposure',
+  Manual = 'manual_exposure',
+}
+
 export type LogEventObject = {
   eventName: string;
   user: StatsigUser;
@@ -121,22 +131,38 @@ export default class StatsigServer {
    */
   public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
     return this._errorBoundary.capture(
-      () => {
-        const { rejection, normalizedUser } = this._validateInputs(
+      async () => {
+        const gate = await this.checkGateImpl(
           user,
           gateName,
-          'gateName',
+          ExposureLogging.Enabled,
         );
-
-        return (
-          rejection ??
-          this._getGateValue(normalizedUser, gateName).then((gate) => {
-            return gate?.value === true ?? false;
-          })
-        );
+        return gate?.value === true;
       },
       () => Promise.resolve(false),
     );
+  }
+
+  public checkGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<boolean> {
+    return this._errorBoundary.capture(
+      async () => {
+        const gate = await this.checkGateImpl(
+          user,
+          gateName,
+          ExposureLogging.Disabled,
+        );
+        return gate?.value === true;
+      },
+      () => Promise.resolve(false),
+    );
+  }
+
+  public logGateExposure(user: StatsigUser, gateName: string) {
+    const evaluation = this._evaluator.checkGate(user, gateName);
+    this.logGateExposureImpl(user, gateName, evaluation, ExposureCause.Manual);
   }
 
   /**
@@ -150,15 +176,31 @@ export default class StatsigServer {
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
       () => {
-        const { rejection, normalizedUser } = this._validateInputs(
-          user,
-          configName,
-          'configName',
-        );
-
-        return rejection ?? this._getConfigValue(normalizedUser, configName);
+        return this.getConfigImpl(user, configName, ExposureLogging.Enabled);
       },
       () => Promise.resolve(new DynamicConfig(configName)),
+    );
+  }
+
+  public getConfigWithExposureLoggingDisabled(
+    user: StatsigUser,
+    configName: string,
+  ): Promise<DynamicConfig> {
+    return this._errorBoundary.capture(
+      () => {
+        return this.getConfigImpl(user, configName, ExposureLogging.Disabled);
+      },
+      () => Promise.resolve(new DynamicConfig(configName)),
+    );
+  }
+
+  public logConfigExposure(user: StatsigUser, configName: string) {
+    const evaluation = this._evaluator.getConfig(user, configName);
+    this.logConfigExposureImpl(
+      user,
+      configName,
+      evaluation,
+      ExposureCause.Manual,
     );
   }
 
@@ -173,17 +215,39 @@ export default class StatsigServer {
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
       () => {
-        const { rejection, normalizedUser } = this._validateInputs(
+        return this.getConfigImpl(
           user,
           experimentName,
-          'experimentName',
-        );
-
-        return (
-          rejection ?? this._getConfigValue(normalizedUser, experimentName)
+          ExposureLogging.Enabled,
         );
       },
       () => Promise.resolve(new DynamicConfig(experimentName)),
+    );
+  }
+
+  public getExperimentWithExposureLoggingDisabled(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig> {
+    return this._errorBoundary.capture(
+      () => {
+        return this.getConfigImpl(
+          user,
+          experimentName,
+          ExposureLogging.Disabled,
+        );
+      },
+      () => Promise.resolve(new DynamicConfig(experimentName)),
+    );
+  }
+
+  public logExperimentExposure(user: StatsigUser, experimentName: string) {
+    const evaluation = this._evaluator.getConfig(user, experimentName);
+    this.logConfigExposureImpl(
+      user,
+      experimentName,
+      evaluation,
+      ExposureCause.Manual,
     );
   }
 
@@ -195,15 +259,36 @@ export default class StatsigServer {
   public getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
     return this._errorBoundary.capture(
       () => {
-        const { rejection, normalizedUser } = this._validateInputs(
-          user,
-          layerName,
-          'layerName',
-        );
-
-        return rejection ?? this._getLayerValue(normalizedUser, layerName);
+        return this.getLayerImpl(user, layerName, ExposureLogging.Enabled);
       },
       () => Promise.resolve(new Layer(layerName)),
+    );
+  }
+
+  public getLayerWithExposureLoggingDisabled(
+    user: StatsigUser,
+    layerName: string,
+  ): Promise<Layer> {
+    return this._errorBoundary.capture(
+      () => {
+        return this.getLayerImpl(user, layerName, ExposureLogging.Disabled);
+      },
+      () => Promise.resolve(new Layer(layerName)),
+    );
+  }
+
+  public logLayerParameterExposure(
+    user: StatsigUser,
+    layerName: string,
+    parameterName: string,
+  ) {
+    const evaluation = this._evaluator.getLayer(user, layerName);
+    this.logLayerParameterExposureImpl(
+      user,
+      layerName,
+      parameterName,
+      evaluation,
+      ExposureCause.Manual,
     );
   }
 
@@ -368,16 +453,205 @@ export default class StatsigServer {
     });
   }
 
-  private _validateInputs(user: StatsigUser, name: string, usage: string) {
+  //
+  // PRIVATE
+  //
+
+  private logGateExposureImpl(
+    user: StatsigUser,
+    gateName: string,
+    evaluation: ConfigEvaluation,
+    exposureCause: ExposureCause,
+  ) {
+    this._logger.logGateExposure(
+      user,
+      gateName,
+      evaluation,
+      exposureCause === ExposureCause.Manual,
+    );
+  }
+
+  private async checkGateImpl(
+    inputUser: StatsigUser,
+    gateName: string,
+    exposureLogging: ExposureLogging,
+  ): Promise<{ value: boolean }> {
+    const { rejection, normalizedUser: user } = this._validateInputs(
+      inputUser,
+      gateName,
+    );
+
+    if (rejection) {
+      return rejection;
+    }
+
+    const evaluation = this._evaluator.checkGate(user, gateName);
+    if (evaluation.fetch_from_server) {
+      const res = await this._fetcher.dispatch(
+        this._options.api + '/check_gate',
+        Object.assign({
+          user: user,
+          gateName: gateName,
+          statsigMetadata: getStatsigMetadata({
+            exposureLoggingDisabled:
+              exposureLogging === ExposureLogging.Disabled,
+          }),
+        }),
+        5000,
+      );
+      return await res.json();
+    }
+
+    if (exposureLogging !== ExposureLogging.Disabled) {
+      this.logGateExposureImpl(
+        user,
+        gateName,
+        evaluation,
+        ExposureCause.Automatic,
+      );
+    }
+
+    return Promise.resolve({ value: evaluation.value });
+  }
+
+  private logConfigExposureImpl(
+    user: StatsigUser,
+    configName: string,
+    evaluation: ConfigEvaluation,
+    exposureCause: ExposureCause,
+  ) {
+    this._logger.logConfigExposure(
+      user,
+      configName,
+      evaluation,
+      exposureCause === ExposureCause.Manual,
+    );
+  }
+
+  private getConfigImpl(
+    inputUser: StatsigUser,
+    configName: string,
+    exposureLogging: ExposureLogging,
+  ): Promise<DynamicConfig> {
+    const { rejection, normalizedUser: user } = this._validateInputs(
+      inputUser,
+      configName,
+    );
+
+    if (rejection) {
+      return rejection;
+    }
+
+    const evaluation = this._evaluator.getConfig(user, configName);
+    if (evaluation.fetch_from_server) {
+      return this._fetchConfig(user, configName, exposureLogging);
+    }
+
+    const config = new DynamicConfig(
+      configName,
+      evaluation.json_value as Record<string, unknown>,
+      evaluation.rule_id,
+      evaluation.secondary_exposures,
+    );
+
+    if (exposureLogging !== ExposureLogging.Disabled) {
+      this.logConfigExposureImpl(
+        user,
+        configName,
+        evaluation,
+        ExposureCause.Automatic,
+      );
+    }
+
+    return Promise.resolve(config);
+  }
+
+  private async getLayerImpl(
+    inputUser: StatsigUser,
+    layerName: string,
+    exposureLogging: ExposureLogging,
+  ): Promise<Layer> {
+    const { rejection, normalizedUser: user } = this._validateInputs(
+      inputUser,
+      layerName,
+    );
+
+    if (rejection) {
+      return rejection;
+    }
+
+    const ret = this._evaluator.getLayer(user, layerName);
+
+    if (!ret.fetch_from_server) {
+      const logFunc = (layer: Layer, parameterName: string) => {
+        this.logLayerParameterExposureImpl(
+          user,
+          layerName,
+          parameterName,
+          ret,
+          ExposureCause.Automatic,
+        );
+      };
+      const layer = new Layer(
+        layerName,
+        ret?.json_value as Record<string, unknown>,
+        ret?.rule_id,
+        exposureLogging === ExposureLogging.Disabled ? null : logFunc,
+      );
+
+      return Promise.resolve(layer);
+    }
+
+    if (ret.config_delegate) {
+      try {
+        const config = await this._fetchConfig(
+          user,
+          ret.config_delegate,
+          exposureLogging,
+        );
+        return await Promise.resolve(
+          new Layer(layerName, config?.value, config?.getRuleID()),
+        );
+      } catch {
+        return await Promise.resolve(new Layer(layerName));
+      }
+    }
+
+    return Promise.resolve(new Layer(layerName));
+  }
+
+  private logLayerParameterExposureImpl(
+    user: StatsigUser,
+    layerName: string,
+    parameterName: string,
+    evaluation: ConfigEvaluation,
+    exposureCause: ExposureCause,
+  ) {
+    if (this._logger == null) {
+      return;
+    }
+
+    this._logger.logLayerExposure(
+      user,
+      layerName,
+      parameterName,
+      evaluation,
+      exposureCause === ExposureCause.Manual,
+    );
+  }
+
+  private _validateInputs(user: StatsigUser, configName: string) {
     const result: {
       rejection: null | Promise<never>;
       normalizedUser: StatsigUser;
     } = { rejection: null, normalizedUser: {} };
     if (this._ready !== true) {
       result.rejection = Promise.reject(new StatsigUninitializedError());
-    } else if (typeof name !== 'string' || name.length === 0) {
+    } else if (typeof configName !== 'string' || configName.length === 0) {
       result.rejection = Promise.reject(
-        new StatsigInvalidArgumentError(`Must pass a valid ${usage} to check`),
+        new StatsigInvalidArgumentError(
+          'Lookup key must be a non-empty string',
+        ),
       );
     } else if (!isUserIdentifiable(user)) {
       result.rejection = Promise.reject(
@@ -397,110 +671,10 @@ export default class StatsigServer {
     return result;
   }
 
-  private _getGateValue(
-    user: StatsigUser,
-    gateName: string,
-  ): Promise<{ value: boolean }> {
-    let ret = this._evaluator.checkGate(user, gateName);
-
-    if (ret.fetch_from_server) {
-      return this._fetcher
-        .dispatch(
-          this._options.api + '/check_gate',
-          Object.assign({
-            user: user,
-            gateName: gateName,
-            statsigMetadata: getStatsigMetadata(),
-          }),
-          5000,
-        )
-        .then((res) => {
-          // @ts-ignore
-          return res.json();
-        });
-    }
-
-    this._logger.logGateExposure(
-      user,
-      gateName,
-      ret.value,
-      ret.rule_id,
-      ret.secondary_exposures,
-      ret.evaluation_details,
-    );
-    return Promise.resolve({ value: ret.value });
-  }
-
-  private _getConfigValue(
-    user: StatsigUser,
-    configName: string,
-  ): Promise<DynamicConfig> {
-    const ret = this._evaluator.getConfig(user, configName);
-    if (ret.fetch_from_server) {
-      return this._fetchConfig(user, configName);
-    }
-
-    const config = new DynamicConfig(
-      configName,
-      ret.json_value as Record<string, unknown>,
-      ret.rule_id,
-      ret.secondary_exposures,
-    );
-
-    this._logger.logConfigExposure(
-      user,
-      configName,
-      config.getRuleID(),
-      config._getSecondaryExposures(),
-      ret.evaluation_details,
-    );
-
-    return Promise.resolve(config);
-  }
-
-  private _getLayerValue(user: StatsigUser, layerName: string): Promise<Layer> {
-    const ret = this._evaluator.getLayer(user, layerName);
-
-    if (!ret.fetch_from_server) {
-      const logFunc = (layer: Layer, parameterName: string) => {
-        if (this._logger == null) {
-          return;
-        }
-        this._logger.logLayerExposure(
-          user,
-          layer,
-          parameterName,
-          ret as ConfigEvaluation,
-        );
-      };
-      const layer = new Layer(
-        layerName,
-        ret?.json_value as Record<string, unknown>,
-        ret?.rule_id,
-        logFunc,
-      );
-
-      return Promise.resolve(layer);
-    }
-
-    if (ret.config_delegate) {
-      return this._fetchConfig(user, ret.config_delegate)
-        .then((config) => {
-          return Promise.resolve(
-            new Layer(layerName, config?.value, config?.getRuleID()),
-          );
-        })
-        .catch(() => {
-          return Promise.resolve(new Layer(layerName));
-        });
-    }
-
-    return Promise.resolve(new Layer(layerName));
-  }
-
   private _fetchConfig(
     user: StatsigUser,
     name: string,
+    exposureLogging: ExposureLogging,
   ): Promise<DynamicConfig> {
     return this._fetcher
       .dispatch(
@@ -508,7 +682,10 @@ export default class StatsigServer {
         {
           user: user,
           configName: name,
-          statsigMetadata: getStatsigMetadata(),
+          statsigMetadata: getStatsigMetadata({
+            exposureLoggingDisabled:
+              exposureLogging === ExposureLogging.Disabled,
+          }),
         },
         5000,
       )

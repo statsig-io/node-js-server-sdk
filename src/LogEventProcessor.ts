@@ -145,78 +145,99 @@ export default class LogEventProcessor {
   public logGateExposure(
     user: StatsigUser,
     gateName: string,
-    gateValue: boolean,
-    ruleID: string = '',
-    secondaryExposures: Record<string, unknown>[] = [],
-    evaluationDetails?: EvaluationDetails,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
   ) {
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       gate: gateName,
-      gateValue: String(gateValue),
-      ruleID: ruleID,
+      gateValue: String(evaluation.value),
+      ruleID: evaluation.rule_id,
     };
 
-    this.safeAddEvaulationDetailsToEvent(metadata, evaluationDetails);
+    this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
+
+    this.safeAddEvaulationDetailsToEvent(
+      metadata,
+      evaluation.evaluation_details,
+    );
 
     this.logStatsigInternal(
       user,
       GATE_EXPOSURE_EVENT,
       metadata,
-      secondaryExposures,
+      evaluation.secondary_exposures,
     );
   }
 
   public logConfigExposure(
     user: StatsigUser,
     configName: string,
-    ruleID: string = '',
-    secondaryExposures: Record<string, unknown>[] = [],
-    evaluationDetails?: EvaluationDetails,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
   ): void {
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       config: configName,
-      ruleID: ruleID,
+      ruleID: evaluation.rule_id,
     };
 
-    this.safeAddEvaulationDetailsToEvent(metadata, evaluationDetails);
+    this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
+
+    this.safeAddEvaulationDetailsToEvent(
+      metadata,
+      evaluation.evaluation_details,
+    );
 
     this.logStatsigInternal(
       user,
       CONFIG_EXPOSURE_EVENT,
       metadata,
-      secondaryExposures,
+      evaluation.secondary_exposures,
     );
   }
 
   public logLayerExposure(
     user: StatsigUser,
-    layer: Layer,
+    layerName: string,
     parameterName: string,
-    configEvaluation: ConfigEvaluation,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
   ): void {
     let allocatedExperiment = '';
-    let exposures = configEvaluation.undelegated_secondary_exposures;
+    let exposures = evaluation.undelegated_secondary_exposures;
     const isExplicit =
-      configEvaluation.explicit_parameters?.includes(parameterName) ?? false;
+      evaluation.explicit_parameters?.includes(parameterName) ?? false;
     if (isExplicit) {
-      allocatedExperiment = configEvaluation.config_delegate ?? '';
-      exposures = configEvaluation.secondary_exposures;
+      allocatedExperiment = evaluation.config_delegate ?? '';
+      exposures = evaluation.secondary_exposures;
     }
 
-    const metadata = {
-      config: layer.name,
-      ruleID: layer.getRuleID(),
+    const metadata: Record<string, unknown> = {
+      config: layerName,
+      ruleID: evaluation.rule_id,
       allocatedExperiment: allocatedExperiment,
       parameterName,
       isExplicitParameter: String(isExplicit),
     };
 
+    this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
+
     this.safeAddEvaulationDetailsToEvent(
       metadata,
-      configEvaluation.evaluation_details,
+      evaluation.evaluation_details,
     );
 
     this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+  }
+
+  private maybeAddManualExposureFlagToMetadata(
+    metadata: Record<string, unknown>,
+    isManualExposure: boolean,
+  ) {
+    if (!isManualExposure) {
+      return;
+    }
+
+    metadata['isManualExposure'] = 'true';
   }
 
   private safeAddEvaulationDetailsToEvent(

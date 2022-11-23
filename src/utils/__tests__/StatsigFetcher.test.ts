@@ -1,8 +1,5 @@
+import { OptionsWithDefaults } from '../../StatsigOptions';
 import StatsigFetcher from '../StatsigFetcher';
-import {
-  ExplicitStatsigOptions,
-  OptionsWithDefaults,
-} from '../../StatsigOptions';
 
 let calls = 0;
 

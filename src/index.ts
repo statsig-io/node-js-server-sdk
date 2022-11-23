@@ -37,26 +37,86 @@ const Statsig = {
   },
 
   checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    const server = Statsig._ensureInitialized();
-    return server.checkGate(user, gateName);
+    return this._enforceServer().checkGate(user, gateName);
+  },
+
+  checkGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<boolean> {
+    return this._enforceServer().checkGateWithExposureLoggingDisabled(
+      user,
+      gateName,
+    );
+  },
+
+  manuallyLogGateExposure(user: StatsigUser, gateName: string) {
+    return this._enforceServer().logGateExposure(user, gateName);
   },
 
   getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig> {
-    const server = Statsig._ensureInitialized();
-    return server.getConfig(user, configName);
+    return this._enforceServer().getConfig(user, configName);
+  },
+
+  getConfigWithExposureLoggingDisabled(
+    user: StatsigUser,
+    configName: string,
+  ): Promise<DynamicConfig> {
+    return this._enforceServer().getConfigWithExposureLoggingDisabled(
+      user,
+      configName,
+    );
+  },
+
+  manuallyLogConfigExposure(user: StatsigUser, configName: string) {
+    return this._enforceServer().logConfigExposure(user, configName);
   },
 
   getExperiment(
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    const server = Statsig._ensureInitialized();
-    return server.getExperiment(user, experimentName);
+    return this._enforceServer().getExperiment(user, experimentName);
+  },
+
+  getExperimentWithExposureLoggingDisabled(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig> {
+    return this._enforceServer().getExperimentWithExposureLoggingDisabled(
+      user,
+      experimentName,
+    );
+  },
+
+  manuallyLogExperimentExposure(user: StatsigUser, experimentName: string) {
+    return this._enforceServer().logExperimentExposure(user, experimentName);
   },
 
   getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    const server = Statsig._ensureInitialized();
-    return server.getLayer(user, layerName);
+    return this._enforceServer().getLayer(user, layerName);
+  },
+
+  getLayerWithExposureLoggingDisabled(
+    user: StatsigUser,
+    layerName: string,
+  ): Promise<Layer> {
+    return this._enforceServer().getLayerWithExposureLoggingDisabled(
+      user,
+      layerName,
+    );
+  },
+
+  manuallyLogLayerParameterExposure(
+    user: StatsigUser,
+    layerName: string,
+    parameterName: string,
+  ) {
+    this._enforceServer().logLayerParameterExposure(
+      user,
+      layerName,
+      parameterName,
+    );
   },
 
   logEvent(
@@ -65,8 +125,7 @@ const Statsig = {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ): void {
-    const server = Statsig._ensureInitialized();
-    server.logEvent(user, eventName, value, metadata);
+    this._enforceServer().logEvent(user, eventName, value, metadata);
   },
 
   logEventObject(eventObject: {
@@ -76,25 +135,21 @@ const Statsig = {
     metadata?: Record<string, unknown>;
     time?: string | null;
   }): void {
-    const server = Statsig._ensureInitialized();
-    server.logEventObject(eventObject);
+    this._enforceServer().logEventObject(eventObject);
   },
 
   shutdown(): void {
-    const server = Statsig._ensureInitialized();
-    server.shutdown();
+    this._enforceServer().shutdown();
   },
 
   getClientInitializeResponse(
     user: StatsigUser,
   ): Record<string, unknown> | null {
-    const server = Statsig._ensureInitialized();
-    return server.getClientInitializeResponse(user);
+    return this._enforceServer().getClientInitializeResponse(user);
   },
 
   overrideGate(gateName: string, value: boolean, userID: string = ''): void {
-    const server = Statsig._ensureInitialized();
-    server.overrideGate(gateName, value, userID);
+    this._enforceServer().overrideGate(gateName, value, userID);
   },
 
   overrideConfig(
@@ -102,8 +157,7 @@ const Statsig = {
     value: Record<string, unknown>,
     userID: string = '',
   ): void {
-    const server = Statsig._ensureInitialized();
-    server.overrideConfig(configName, value, userID);
+    this._enforceServer().overrideConfig(configName, value, userID);
   },
 
   flush(): Promise<void> {
@@ -114,7 +168,7 @@ const Statsig = {
     return inst.flush();
   },
 
-  _ensureInitialized(): StatsigServer {
+  _enforceServer(): StatsigServer {
     if (Statsig._instance == null) {
       throw new StatsigUninitializedError();
     }
@@ -122,6 +176,6 @@ const Statsig = {
   },
 };
 
-type Statsig = Omit<typeof Statsig, '_instance'>;
+type Statsig = Omit<typeof Statsig, '_instance' | '_enforceServer'>;
 export default Statsig as Statsig;
 module.exports = Statsig as Statsig;

@@ -63,10 +63,13 @@ export type StatsigMetadata = {
   sdkVersion: string;
 };
 
-function getStatsigMetadata(): StatsigMetadata {
+function getStatsigMetadata(
+  extra: Record<string, unknown> = {},
+): StatsigMetadata {
   return {
     sdkType: getSDKType(),
     sdkVersion: getSDKVersion(),
+    ...extra,
   };
 }
 
