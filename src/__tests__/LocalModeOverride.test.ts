@@ -124,4 +124,39 @@ describe('Test local mode with overrides', () => {
     statsig.shutdown();
     expect(hitNetwork).toEqual(false);
   });
+
+  describe('Layer overrides', () => {
+    beforeEach(async () => {
+      await statsig.initialize('secret-key', { localMode: true });
+      expect(hitNetwork).toEqual(false);
+    });
+
+    it('returns fallback values when there are no overrides', async () => {
+      let layer = await statsig.getLayer({ userID: 'a-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('fallback');
+
+      layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('fallback');
+    });
+
+    it('returns override values for a specific user', async () => {
+      statsig.overrideLayer('a_layer', { a_param: 'a_value' }, 'a-user');
+
+      let layer = await statsig.getLayer({ userID: 'a-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('a_value');
+
+      layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('fallback');
+    });
+
+    it('returns override values for all users', async () => {
+      statsig.overrideLayer('a_layer', { a_param: 'a_value' });
+
+      let layer = await statsig.getLayer({ userID: 'a-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('a_value');
+
+      layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('a_value');
+    });
+  });
 });

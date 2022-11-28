@@ -37,6 +37,10 @@ export default class Evaluator {
     string,
     Record<string, Record<string, unknown>>
   >;
+  private layerOverrides: Record<
+    string,
+    Record<string, Record<string, unknown>>
+  >;
   private initialized: boolean = false;
 
   private store: SpecStore;
@@ -45,6 +49,7 @@ export default class Evaluator {
     this.store = new SpecStore(fetcher, options);
     this.gateOverrides = {};
     this.configOverrides = {};
+    this.layerOverrides = {};
   }
 
   public async init(): Promise<void> {
@@ -77,53 +82,14 @@ export default class Evaluator {
     this.configOverrides[configName] = overrides;
   }
 
-  public lookupGateOverride(
-    user: StatsigUser,
-    gateName: string,
-  ): ConfigEvaluation | null {
-    const overrides = this.gateOverrides[gateName];
-    if (overrides == null) {
-      return null;
-    }
-    if (user.userID != null) {
-      // check for a user level override
-      const userOverride = overrides[user.userID];
-      if (userOverride != null) {
-        return new ConfigEvaluation(userOverride, 'override');
-      }
-    }
-
-    // check if there is a global override
-    const allOverride = overrides[''];
-    if (allOverride != null) {
-      return new ConfigEvaluation(allOverride, 'override');
-    }
-    return null;
-  }
-
-  public lookupConfigOverride(
-    user: StatsigUser,
-    configName: string,
-  ): ConfigEvaluation | null {
-    const overrides = this.configOverrides[configName];
-    if (overrides == null) {
-      return null;
-    }
-
-    if (user.userID != null) {
-      // check for a user level override
-      const userOverride = overrides[user.userID];
-      if (userOverride != null) {
-        return new ConfigEvaluation(true, 'override', [], userOverride);
-      }
-    }
-
-    // check if there is a global override
-    const allOverride = overrides[''];
-    if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', [], allOverride);
-    }
-    return null;
+  public overrideLayer(
+    layerName: string,
+    value: Record<string, unknown>,
+    userID: string | null = '',
+  ): void {
+    let overrides = this.layerOverrides[layerName] ?? {};
+    overrides[userID == null ? '' : userID] = value;
+    this.layerOverrides[layerName] = overrides;
   }
 
   public checkGate(user: StatsigUser, gateName: string): ConfigEvaluation {
@@ -161,6 +127,13 @@ export default class Evaluator {
   }
 
   public getLayer(user: StatsigUser, layerName: string): ConfigEvaluation {
+    const override = this.lookupLayerOverride(user, layerName);
+    if (override) {
+      return override.withEvaluationDetails(
+        EvaluationDetails.make(this.store, 'LocalOverride'),
+      );
+    }
+
     if (this.store.getInitReason() === 'Uninitialized') {
       return new ConfigEvaluation(false).withEvaluationDetails(
         EvaluationDetails.uninitialized(),
@@ -281,6 +254,70 @@ export default class Evaluator {
 
   public resetSyncTimerIfExited(): Error | null {
     return this.store.resetSyncTimerIfExited();
+  }
+
+  private lookupGateOverride(
+    user: StatsigUser,
+    gateName: string,
+  ): ConfigEvaluation | null {
+    const overrides = this.gateOverrides[gateName];
+    if (overrides == null) {
+      return null;
+    }
+    if (user.userID != null) {
+      // check for a user level override
+      const userOverride = overrides[user.userID];
+      if (userOverride != null) {
+        return new ConfigEvaluation(userOverride, 'override');
+      }
+    }
+
+    // check if there is a global override
+    const allOverride = overrides[''];
+    if (allOverride != null) {
+      return new ConfigEvaluation(allOverride, 'override');
+    }
+    return null;
+  }
+
+  private lookupConfigOverride(
+    user: StatsigUser,
+    configName: string,
+  ): ConfigEvaluation | null {
+    const overrides = this.configOverrides[configName];
+    return this.lookupConfigBasedOverride(user, overrides);
+  }
+
+  private lookupLayerOverride(
+    user: StatsigUser,
+    layerName: string,
+  ): ConfigEvaluation | null {
+    const overrides = this.layerOverrides[layerName];
+    return this.lookupConfigBasedOverride(user, overrides);
+  }
+
+  private lookupConfigBasedOverride(
+    user: StatsigUser,
+    overrides: Record<string, Record<string, unknown>>,
+  ): ConfigEvaluation | null {
+    if (overrides == null) {
+      return null;
+    }
+
+    if (user.userID != null) {
+      // check for a user level override
+      const userOverride = overrides[user.userID];
+      if (userOverride != null) {
+        return new ConfigEvaluation(true, 'override', [], userOverride);
+      }
+    }
+
+    // check if there is a global override
+    const allOverride = overrides[''];
+    if (allOverride != null) {
+      return new ConfigEvaluation(true, 'override', [], allOverride);
+    }
+    return null;
   }
 
   private _specToInitializeResponse(

@@ -453,6 +453,22 @@ export default class StatsigServer {
     });
   }
 
+  public overrideLayer(
+    layerName: string,
+    value: Record<string, unknown>,
+    userID: string | null = '',
+  ) {
+    this._errorBoundary.swallow(() => {
+      if (typeof value !== 'object') {
+        console.warn(
+          'statsigSDK> Attempted to override a layer with a non object value',
+        );
+        return;
+      }
+      this._evaluator.overrideLayer(layerName, value, userID);
+    });
+  }
+
   //
   // PRIVATE
   //

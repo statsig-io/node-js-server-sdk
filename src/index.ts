@@ -160,6 +160,14 @@ const Statsig = {
     this._enforceServer().overrideConfig(configName, value, userID);
   },
 
+  overrideLayer(
+    layerName: string,
+    value: Record<string, unknown>,
+    userID = '',
+  ) {
+    this._enforceServer().overrideLayer(layerName, value, userID);
+  },
+
   flush(): Promise<void> {
     const inst = Statsig._instance;
     if (inst == null) {
