@@ -1,6 +1,6 @@
 {
   "name": "statsig-node",
-  "version": "4.20.1",
+  "version": "5.0.0",
   "description": "Statsig Node.js SDK for usage in multi-user server environments.",
   "main": "dist/index.js",
   "scripts": {
