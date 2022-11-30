@@ -278,6 +278,39 @@
   ],
   "feature_gates": [
     {
+      "name": "partial_rollout_gate",
+      "type": "feature_gate",
+      "salt": "6e32ca51-b68p-44fb-9654-f5494cdfb2c5",
+      "enabled": true,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "2DWuOvXQZWKvoaNm27dqcs",
+          "groupName": "all",
+          "passPercentage": 50,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "2DWuOvXQZWKvoaNm27dqcs",
+          "salt": "bda12dcd-f047-4674-b229-04d0215198c1",
+          "isDeviceBased": false,
+          "idType": "userID"
+        }
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
+    },
+    {
       "name": "always_on_gate",
       "type": "feature_gate",
       "salt": "6e32ca51-c22e-44fb-9654-f5494cdfb2c5",

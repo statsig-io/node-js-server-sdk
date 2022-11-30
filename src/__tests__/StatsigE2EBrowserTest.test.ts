@@ -246,4 +246,34 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(postedLogs.events[0].user.userID).toEqual('123');
     expect(postedLogs.events[0].user.email).toEqual('testuser@statsig.com');
   });
+
+  test('Verify partial rollout', async () => {
+    await statsig.initialize('secret-123');
+    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
+      INIT_RESPONSE,
+    );
+
+    const on1 = await statsig.checkGate(statsigUser, 'partial_rollout_gate');
+    expect(on1).toEqual(true);
+
+    const on2 = await statsig.checkGate(randomUser, 'partial_rollout_gate');
+    expect(on2).toEqual(false);
+
+    statsig.shutdown();
+
+    expect(postedLogs.events.length).toEqual(2);
+    expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
+    expect(postedLogs.events[0].metadata['gate']).toEqual('partial_rollout_gate');
+    expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
+    expect(postedLogs.events[0].metadata['ruleID']).toEqual(
+      '2DWuOvXQZWKvoaNm27dqcs',
+    );
+
+    expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
+    expect(postedLogs.events[1].metadata['gate']).toEqual('partial_rollout_gate');
+    expect(postedLogs.events[1].metadata['gateValue']).toEqual('false');
+    expect(postedLogs.events[1].metadata['ruleID']).toEqual(
+      '2DWuOvXQZWKvoaNm27dqcs',
+    );
+  });
 });
