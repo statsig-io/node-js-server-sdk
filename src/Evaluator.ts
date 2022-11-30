@@ -10,7 +10,7 @@ import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
 
-const shajs = require('sha.js');
+import forge from 'node-forge';
 const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -782,23 +782,15 @@ export default class Evaluator {
 }
 
 function computeUserHash(userHash: string) {
-  const buffer = shajs('sha256').update(userHash).digest();
-  if (buffer.readBigUInt64BE) {
-    return buffer.readBigUInt64BE();
-  }
-
-  const ab = new ArrayBuffer(buffer.length);
-  const view = new Uint8Array(ab);
-  for (let ii = 0; ii < buffer.length; ii++) {
-    view[ii] = buffer[ii];
-  }
-
-  const dv = new DataView(ab);
-  return dv.getBigUint64(0, false);
+  var md = forge.md.sha256.create();
+  md.update(userHash);
+  return BigInt(`0x${md.digest().toHex().substring(0, 16)}`);
 }
 
 function getHashedName(name: string) {
-  return shajs('sha256').update(name).digest('base64');
+  var md = forge.md.sha256.create();
+  md.update(name);
+  return forge.util.encode64(md.digest().getBytes());
 }
 
 function hashUnitIDForIDList(unitID: string) {
