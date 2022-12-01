@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 // @ts-ignore
 const fetch = require('node-fetch');
-const shajs = require('sha.js');
 
 import * as statsigsdk from '../index';
 
