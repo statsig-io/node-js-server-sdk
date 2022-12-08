@@ -7,7 +7,7 @@ specifiers:
   '@types/jest': ^26.0.24
   '@types/node': ^14.18.26
   '@types/node-fetch': ^2.6.2
-  '@types/sha.js': ^2.4.0
+  '@types/node-forge': ^1.3.1
   '@types/ua-parser-js': ^0.7.36
   '@types/useragent': ^2.3.1
   '@types/uuid': ^8.3.4
@@ -17,7 +17,7 @@ specifiers:
   jest: ^26.6.3
   jsdoc-to-markdown: ^7.1.1
   node-fetch: ^2.6.7
-  sha.js: ^2.4.11
+  node-forge: ^1.3.1
   typescript: ^4.7.4
   ua-parser-js: ^1.0.2
   uuid: ^8.3.2
@@ -26,7 +26,7 @@ dependencies:
   '@types/node-fetch': 2.6.2
   ip3country: 5.0.0
   node-fetch: 2.6.7
-  sha.js: 2.4.11
+  node-forge: 1.3.1
   ua-parser-js: 1.0.2
   uuid: 8.3.2
 
@@ -36,7 +36,7 @@ devDependencies:
   '@babel/preset-typescript': 7.18.6_@babel+core@7.18.13
   '@types/jest': 26.0.24
   '@types/node': 14.18.26
-  '@types/sha.js': 2.4.0
+  '@types/node-forge': 1.3.1
   '@types/ua-parser-js': 0.7.36
   '@types/useragent': 2.3.1
   '@types/uuid': 8.3.4
@@ -1602,6 +1602,12 @@ packages:
       form-data: 3.0.1
     dev: false
 
+  /@types/node-forge/1.3.1:
+    resolution: {integrity: sha512-hvQ7Wav8I0j9amPXJtGqI/Yx70zeF62UKlAYq8JPm0nHzjKKzZvo9iR3YI2MiOghZRlOI+tQ2f6D+G6vVf4V2Q==}
+    dependencies:
+      '@types/node': 14.18.26
+    dev: true
+
   /@types/node/14.18.26:
     resolution: {integrity: sha512-0b+utRBSYj8L7XAp0d+DX7lI4cSmowNaaTkk6/1SKzbKkG+doLuPusB9EOvzLJ8ahJSk03bTLIL6cWaEd4dBKA==}
 
@@ -1611,12 +1617,6 @@ packages:
 
   /@types/prettier/2.7.0:
     resolution: {integrity: sha512-RI1L7N4JnW5gQw2spvL7Sllfuf1SaHdrZpCHiBlCXjIlufi1SMNnbu2teze3/QE67Fg2tBlH7W+mi4hVNk4p0A==}
-    dev: true
-
-  /@types/sha.js/2.4.0:
-    resolution: {integrity: sha512-amxKgPy6WJTKuw8mpUwjX2BSxuBtBmZfRwIUDIuPJKNwGN8CWDli8JTg5ONTWOtcTkHIstvT7oAhhYXqEjStHQ==}
-    dependencies:
-      '@types/node': 14.18.26
     dev: true
 
   /@types/stack-utils/2.0.1:
@@ -2898,6 +2898,7 @@ packages:
 
   /inherits/2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+    dev: true
 
   /ip3country/5.0.0:
     resolution: {integrity: sha512-lcFLMFU4eO1Z7tIpbVFZkaZ5ltqpeaRx7L9NsAbA9uA7/O/rj3RF8+evE5gDitooaTTIqjdzZrenFO/OOxQ2ew==}
@@ -3988,6 +3989,11 @@ packages:
       whatwg-url: 5.0.0
     dev: false
 
+  /node-forge/1.3.1:
+    resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
+    engines: {node: '>= 6.13.0'}
+    dev: false
+
   /node-int64/0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
     dev: true
@@ -4451,10 +4457,6 @@ packages:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
     dev: true
 
-  /safe-buffer/5.2.1:
-    resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
-    dev: false
-
   /safe-regex/1.1.0:
     resolution: {integrity: sha512-aJXcif4xnaNUzvUuC5gcb46oTS7zvg4jpMTnuqtrEPlR3vFr4pxtdTwaF1Qs3Enjn9HK+ZlwQui+a7z0SywIzg==}
     dependencies:
@@ -4527,14 +4529,6 @@ packages:
       is-plain-object: 2.0.4
       split-string: 3.1.0
     dev: true
-
-  /sha.js/2.4.11:
-    resolution: {integrity: sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==}
-    hasBin: true
-    dependencies:
-      inherits: 2.0.4
-      safe-buffer: 5.2.1
-    dev: false
 
   /shebang-command/1.2.0:
     resolution: {integrity: sha512-EV3L1+UQWGor21OmnvojK36mhg+TyIKDh3iFBKBohr5xeXIhNBcx8oWdgkTEEQ+BEFFYdLRuqMfd5L84N1V5Vg==}
