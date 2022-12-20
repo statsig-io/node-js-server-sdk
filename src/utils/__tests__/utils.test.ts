@@ -1,3 +1,5 @@
+import { getStatsigMetadata } from '../core';
+
 const {
   clone,
   getBoolValue,
@@ -51,5 +53,14 @@ describe('Verify behavior of core utility functions', () => {
     expect(isUserIdentifiable({ id: '123' })).toStrictEqual(false);
     expect(isUserIdentifiable({ userID: '123' })).toStrictEqual(true);
     expect(isUserIdentifiable({ userID: 123 })).toStrictEqual(true);
+  });
+
+  test('Verify StatsigMetadata', () => {
+    const metadata = getStatsigMetadata();
+    expect(require('../../../package.json')?.version).toEqual(
+      metadata.sdkVersion,
+    );
+    expect(process.version).toEqual('v' + metadata.languageVersion);
+    expect('statsig-node').toEqual(metadata.sdkType);
   });
 });

@@ -61,6 +61,7 @@ function getBoolValue(val: unknown): boolean | null {
 export type StatsigMetadata = {
   sdkType: string;
   sdkVersion: string;
+  languageVersion: string;
 };
 
 function getStatsigMetadata(
@@ -69,6 +70,13 @@ function getStatsigMetadata(
   return {
     sdkType: getSDKType(),
     sdkVersion: getSDKVersion(),
+    languageVersion:
+      (typeof process !== 'undefined' &&
+        process &&
+        process.version &&
+        process.version.length > 1 &&
+        process.version.substring(1)) ||
+      '',
     ...extra,
   };
 }
