@@ -14,9 +14,6 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - name: Test names
-        run: |
-          echo "${{ github.actor }} - ${{ github.triggering_actor }} - ${{ github.event.actor }}
       - name: Get KONG
         run: |
           git clone https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/kong.git
