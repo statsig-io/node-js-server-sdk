@@ -1,7 +1,9 @@
 import { StatsigEnvironment } from './StatsigOptions';
 
-export type StatsigUser = {
-  userID?: string;
+export type StatsigUser = ( // at least one of userID or customIDs must be provided
+  | { userID: string }
+  | { customIDs: Record<string, string> }
+) & {
   email?: string;
   ip?: string;
   userAgent?: string;
@@ -16,6 +18,5 @@ export type StatsigUser = {
     string,
     string | number | boolean | Array<string> | undefined
   > | null;
-  customIDs?: Record<string, string>;
   statsigEnvironment?: StatsigEnvironment;
 };
