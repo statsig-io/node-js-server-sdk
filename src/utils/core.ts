@@ -25,9 +25,7 @@ function generateID(): string {
   return uuidv4();
 }
 
-function clone(
-  obj: Record<string, unknown> | null,
-): Record<string, unknown> | null {
+function clone<T>(obj: T | null): T | null {
   if (obj == null) {
     return null;
   }

@@ -660,7 +660,7 @@ export default class StatsigServer {
     const result: {
       rejection: null | Promise<never>;
       normalizedUser: StatsigUser;
-    } = { rejection: null, normalizedUser: {} };
+    } = { rejection: null, normalizedUser: { userID: '' } };
     if (this._ready !== true) {
       result.rejection = Promise.reject(new StatsigUninitializedError());
     } else if (typeof configName !== 'string' || configName.length === 0) {
@@ -745,21 +745,23 @@ function normalizeUser(
   return user;
 }
 
-function trimUserObjIfNeeded(user: StatsigUser | null): StatsigUser {
-  if (user == null) return {};
+function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
+  if (user == null) return { customIDs: {} }; // Being defensive here
+
   if (user.userID != null && shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
     console.warn(
       'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
     );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
   }
+
   if (shouldTrimParam(user, MAX_USER_SIZE)) {
     user.custom = { statsig_error: 'User object length too large' };
     if (shouldTrimParam(user, MAX_USER_SIZE)) {
       console.warn(
         'statsigSDK> User object is too large, only keeping the user ID.',
       );
-      user = { userID: user.userID };
+      user = { userID: user.userID, customIDs: user.customIDs ?? {} };
     } else {
       console.warn(
         'statsigSDK> User object is too large, dropping the custom property.',
