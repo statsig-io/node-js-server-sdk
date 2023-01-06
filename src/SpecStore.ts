@@ -474,7 +474,7 @@ export default class SpecStore {
             IDListUtil.updateIdList(this.store.idLists, name, data);
           })
           .catch((e) => {
-            console.error(e);
+            console.warn(e);
           });
 
         promises.push(p);
