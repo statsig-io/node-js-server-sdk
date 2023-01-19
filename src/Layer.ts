@@ -32,12 +32,12 @@ export default class Layer {
 
   public get<T>(
     key: string,
-    defaultValue: T | null,
-    typeGuard: ((value: unknown) => value is T | null) | null = null,
-  ): T | null {
-    if (defaultValue === undefined) {
-      defaultValue = null;
-    }
+    defaultValue: T,
+    typeGuard: ((value: unknown) => value is T) | null = null,
+  ): T {
+    // @ts-ignore
+    defaultValue = defaultValue ?? null;
+
     const val = this._value[key];
 
     if (val == null) {

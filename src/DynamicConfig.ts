@@ -1,4 +1,11 @@
-import { clone } from './utils/core';
+import { clone, getTypeOf } from './utils/core';
+
+export type OnDefaultValueFallback = (
+  config: DynamicConfig,
+  parameter: string,
+  defaultValueType: string,
+  valueType: string,
+) => void;
 
 /**
  * Returns the data for a DynamicConfig in the statsig console via typed get functions
@@ -8,12 +15,14 @@ export default class DynamicConfig {
   public value: Record<string, unknown>;
   private _ruleID: string;
   private _secondaryExposures: Record<string, unknown>[];
+  private _onDefaultValueFallback: OnDefaultValueFallback | null = null;
 
   public constructor(
     configName: string,
     value: Record<string, unknown> = {},
     ruleID: string = '',
     secondaryExposures: Record<string, unknown>[] = [],
+    onDefaultValueFallback: OnDefaultValueFallback | null = null,
   ) {
     if (typeof configName !== 'string' || configName.length === 0) {
       configName = '';
@@ -27,16 +36,17 @@ export default class DynamicConfig {
     this._secondaryExposures = Array.isArray(secondaryExposures)
       ? secondaryExposures
       : [];
+    this._onDefaultValueFallback = onDefaultValueFallback;
   }
 
   public get<T>(
     key: string,
-    defaultValue: T | null,
+    defaultValue: T,
     typeGuard: ((value: unknown) => value is T | null) | null = null,
-  ): T | null {
-    if (defaultValue === undefined) {
-      defaultValue = null;
-    }
+  ): T {
+    // @ts-ignore
+    defaultValue = defaultValue ?? null;
+
     // @ts-ignore
     const val = this.getValue(key, defaultValue);
 
@@ -44,21 +54,23 @@ export default class DynamicConfig {
       return defaultValue;
     }
 
+    const expectedType = getTypeOf(defaultValue);
+    const actualType = getTypeOf(val);
+
     if (typeGuard != null) {
-      return typeGuard(val) ? val as T : defaultValue;
+      if (typeGuard(val)) {
+        return val as T;
+      }
+
+      this._onDefaultValueFallback?.(this, key, expectedType, actualType);
+      return defaultValue;
     }
 
-    if (defaultValue == null) {
+    if (defaultValue == null || expectedType === actualType) {
       return val as unknown as T;
     }
 
-    if (
-      typeof val === typeof defaultValue &&
-      Array.isArray(defaultValue) === Array.isArray(val)
-    ) {
-      return val as unknown as T;
-    }
-
+    this._onDefaultValueFallback?.(this, key, expectedType, actualType);
     return defaultValue;
   }
 

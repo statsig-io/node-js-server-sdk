@@ -1,17 +1,17 @@
 const { getStatsigMetadata, poll } = require('./utils/core');
-import LogEvent from './LogEvent';
-import { StatsigUser } from './StatsigUser';
 import ConfigEvaluation from './ConfigEvaluation';
-import StatsigFetcher from './utils/StatsigFetcher';
-import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
-import Layer from './Layer';
+import LogEvent from './LogEvent';
+import { ExplicitStatsigOptions } from './StatsigOptions';
+import { StatsigUser } from './StatsigUser';
+import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
 const LAYER_EXPOSURE_EVENT = 'layer_exposure';
 const GATE_EXPOSURE_EVENT = 'gate_exposure';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
+const DEFAULT_VALUE_WARNING = 'default_value_type_mismatch';
 
 const deduperInterval = 60 * 1000;
 
@@ -117,6 +117,7 @@ export default class LogEventProcessor {
     eventName: string,
     metadata: Record<string, unknown> | null,
     secondaryExposures: Record<string, unknown>[] | null = null,
+    value: string | number | null = null,
   ) {
     if (!this.isUniqueExposure(user, eventName, metadata)) {
       return;
@@ -133,6 +134,10 @@ export default class LogEventProcessor {
 
     if (secondaryExposures != null) {
       event.setSecondaryExposures(secondaryExposures);
+    }
+
+    if (value != null) {
+      event.setValue(value);
     }
 
     if (metadata?.error != null) {
@@ -227,6 +232,20 @@ export default class LogEventProcessor {
     );
 
     this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+  }
+
+  public logConfigDefaultValueFallback(
+    user: StatsigUser,
+    message: string,
+    metadata: Record<string, unknown>,
+  ) {
+    this.logStatsigInternal(
+      user,
+      DEFAULT_VALUE_WARNING,
+      metadata,
+      null,
+      message,
+    );
   }
 
   private maybeAddManualExposureFlagToMetadata(

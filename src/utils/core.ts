@@ -101,6 +101,10 @@ function poll(fn: () => {}, interval: number): NodeJS.Timer {
   return timer;
 }
 
+function getTypeOf(value: unknown) {
+  return Array.isArray(value) ? 'array' : typeof value;
+}
+
 export {
   clone,
   generateID,
@@ -112,4 +116,5 @@ export {
   isUserIdentifiable,
   notEmpty,
   poll,
+  getTypeOf,
 };

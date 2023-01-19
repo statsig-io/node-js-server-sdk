@@ -1,5 +1,5 @@
 import ConfigEvaluation from './ConfigEvaluation';
-import DynamicConfig from './DynamicConfig';
+import DynamicConfig, { OnDefaultValueFallback } from './DynamicConfig';
 import ErrorBoundary from './ErrorBoundary';
 import {
   StatsigInvalidArgumentError,
@@ -568,6 +568,9 @@ export default class StatsigServer {
       evaluation.json_value as Record<string, unknown>,
       evaluation.rule_id,
       evaluation.secondary_exposures,
+      evaluation.rule_id !== ''
+        ? this._makeOnDefaultValueFallbackFunction(user)
+        : null,
     );
 
     if (exposureLogging !== ExposureLogging.Disabled) {
@@ -711,12 +714,41 @@ export default class StatsigServer {
       })
       .then((resJSON) => {
         return Promise.resolve(
-          new DynamicConfig(name, resJSON.value, resJSON.rule_id),
+          new DynamicConfig(
+            name,
+            resJSON.value,
+            resJSON.rule_id,
+            [],
+            this._makeOnDefaultValueFallbackFunction(user),
+          ),
         );
       })
       .catch(() => {
         return Promise.resolve(new DynamicConfig(name));
       });
+  }
+
+  private _makeOnDefaultValueFallbackFunction(
+    user: StatsigUser,
+  ): OnDefaultValueFallback | null {
+    if (!this._ready) {
+      return null;
+    }
+
+    return (config, parameter, defaultValueType, valueType) => {
+      this._logger.logConfigDefaultValueFallback(
+        user,
+        `Parameter ${parameter} is a value of type ${valueType}.
+      Returning requested defaultValue type ${defaultValueType}`,
+        {
+          name: config.name,
+          ruleID: config.getRuleID(),
+          parameter,
+          defaultValueType,
+          valueType,
+        },
+      );
+    };
   }
 }
 
