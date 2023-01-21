@@ -1,16 +1,15 @@
+import forge from 'node-forge';
+
 import ConfigEvaluation from './ConfigEvaluation';
-
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
-import SpecStore from './SpecStore';
-import { StatsigUser } from './StatsigUser';
-
 import { EvaluationDetails } from './EvaluationDetails';
+import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions } from './StatsigOptions';
+import { StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
 
-import forge from 'node-forge';
 const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -254,6 +253,30 @@ export default class Evaluator {
 
   public resetSyncTimerIfExited(): Error | null {
     return this.store.resetSyncTimerIfExited();
+  }
+
+  public getExperimentList(): string[] {
+    const configs = this.store.getAllConfigs();
+    const list = [];
+    for (const configName in configs) {
+      let config = configs[configName];
+      if (config.entity === 'experiment') {
+        list.push(configName);
+      }
+    }
+    return list;
+  }
+
+  public getFeatureGateList(): string[] {
+    const gates = this.store.getAllGates();
+    const list = [];
+    for (const gateName in gates) {
+      let gate = gates[gateName];
+      if (gate.entity === 'feature_gate') {
+        list.push(gateName);
+      }
+    }
+    return list;
   }
 
   private lookupGateOverride(

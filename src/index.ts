@@ -7,7 +7,6 @@ import {
   StatsigEnvironment,
   StatsigOptions,
 } from './StatsigOptions';
-
 import StatsigServer, { LogEventObject } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
 
@@ -174,6 +173,14 @@ const Statsig = {
       return Promise.resolve();
     }
     return inst.flush();
+  },
+
+  getExperimentList(): string[] {
+    return this._enforceServer().getExperimentList();
+  },
+
+  getFeatureGateList(): string[] {
+    return this._enforceServer().getFeatureGateList();
   },
 
   _enforceServer(): StatsigServer {
