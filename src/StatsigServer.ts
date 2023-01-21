@@ -469,6 +469,14 @@ export default class StatsigServer {
     });
   }
 
+  public getFeatureGateList(): string[] {
+    return this._evaluator.getFeatureGateList();
+  }
+
+  public getExperimentList(): string[] {
+    return this._evaluator.getExperimentList();
+  }
+
   //
   // PRIVATE
   //
