@@ -29,6 +29,9 @@ export type ExplicitStatsigOptions = {
   loggingMaxBufferSize: number;
 };
 
+/**
+ * An object of properties for initializing the sdk with advanced options
+ */
 export type StatsigOptions = Partial<ExplicitStatsigOptions>;
 
 export function OptionsWithDefaults(
