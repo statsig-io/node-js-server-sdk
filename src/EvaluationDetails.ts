@@ -1,12 +1,4 @@
-import SpecStore from './SpecStore';
-
-export type EvaluationReason =
-  | 'Network'
-  | 'LocalOverride'
-  | 'Unrecognized'
-  | 'Uninitialized'
-  | 'Bootstrap'
-  | 'DataAdapter';
+import { EvaluationReason } from './EvaluationReason';
 
 export class EvaluationDetails {
   readonly configSyncTime: number;
@@ -25,15 +17,19 @@ export class EvaluationDetails {
     this.serverTime = Date.now();
   }
 
-  static uninitialized(): EvaluationDetails {
-    return new EvaluationDetails(0, 0, 'Uninitialized');
+  static uninitialized() {
+    return new EvaluationDetails(
+      0,
+      0,
+      'Uninitialized',
+    );
   }
 
-  static make(store: SpecStore, reason?: EvaluationReason) {
+  static make(lastUpdateTime: number, initialUpdateTime: number, reason: EvaluationReason) {
     return new EvaluationDetails(
-      store.getLastUpdateTime(),
-      store.getInitialUpdateTime(),
-      reason ?? store.getInitReason(),
+      initialUpdateTime,
+      lastUpdateTime,
+      reason,
     );
   }
 }

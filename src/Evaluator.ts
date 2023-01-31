@@ -95,7 +95,7 @@ export default class Evaluator {
     const override = this.lookupGateOverride(user, gateName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store, 'LocalOverride'),
+        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
       );
     }
 
@@ -112,7 +112,7 @@ export default class Evaluator {
     const override = this.lookupConfigOverride(user, configName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store, 'LocalOverride'),
+        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
       );
     }
 
@@ -129,7 +129,7 @@ export default class Evaluator {
     const override = this.lookupLayerOverride(user, layerName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store, 'LocalOverride'),
+        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
       );
     }
 
@@ -387,12 +387,18 @@ export default class Evaluator {
   _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
       return new ConfigEvaluation(false).withEvaluationDetails(
-        EvaluationDetails.make(this.store, 'Unrecognized'),
+        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'Unrecognized'),
       );
     }
 
     const evaulation = this._eval(user, config);
-    return evaulation.withEvaluationDetails(EvaluationDetails.make(this.store));
+    return evaulation.withEvaluationDetails(
+      EvaluationDetails.make(
+        this.store.getLastUpdateTime(),
+        this.store.getInitialUpdateTime(),
+        this.store.getInitReason(),
+      ),
+    );
   }
 
   _eval(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
@@ -478,10 +484,10 @@ export default class Evaluator {
   _evalPassPercent(user: StatsigUser, rule: ConfigRule, config: ConfigSpec) {
     const hash = computeUserHash(
       config.salt +
-        '.' +
-        (rule.salt ?? rule.id) +
-        '.' +
-        (this._getUnitID(user, rule.idType) ?? ''),
+      '.' +
+      (rule.salt ?? rule.id) +
+      '.' +
+      (this._getUnitID(user, rule.idType) ?? ''),
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100

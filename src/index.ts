@@ -25,6 +25,12 @@ export {
 const Statsig = {
   _instance: null as StatsigServer | null,
 
+  // These need to be exported, and we currently export a top level Statsig object
+  // So in order to not make a breaking change, they must be exported as members of
+  // that top level object
+  DynamicConfig: DynamicConfig,
+  Layer: Layer,
+
   /**
    * Initializes the statsig server SDK.
    * This must be called before checking gates/configs or logging events.

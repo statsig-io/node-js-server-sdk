@@ -1,6 +1,6 @@
 import { ConfigSpec } from './ConfigSpec';
 import { StatsigLocalModeNetworkError } from './Errors';
-import { EvaluationReason } from './EvaluationDetails';
+import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import { ExplicitStatsigOptions } from './StatsigOptions';
 import { poll } from './utils/core';
@@ -164,9 +164,8 @@ export default class SpecStore {
     }
     this.clearTimers();
     this.pollForUpdates();
-    const message = `Force reset sync timer. Last update time: ${
-      this.lastDownloadConfigSpecsSyncTime
-    }, now: ${Date.now()}`;
+    const message = `Force reset sync timer. Last update time: ${this.lastDownloadConfigSpecsSyncTime
+      }, now: ${Date.now()}`;
     this._fetchConfigSpecsFromServer();
     return new Error(message);
   }
@@ -262,8 +261,7 @@ export default class SpecStore {
           SYNC_OUTDATED_MAX
         ) {
           console.warn(
-            `statsigSDK::sync> Syncing the server SDK with ${shouldSyncFromAdapter ? "the data adapter" : "statsig"} has failed for  ${
-              this.syncFailureCount * this.syncInterval
+            `statsigSDK::sync> Syncing the server SDK with ${shouldSyncFromAdapter ? "the data adapter" : "statsig"} has failed for  ${this.syncFailureCount * this.syncInterval
             }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
           );
           this.syncFailureCount = 0;
@@ -490,7 +488,7 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   public shutdown(): void {

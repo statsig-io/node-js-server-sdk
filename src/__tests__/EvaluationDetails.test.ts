@@ -1,4 +1,4 @@
-import { EvaluationReason } from '../EvaluationDetails';
+import { EvaluationReason } from '../EvaluationReason';
 import StatsigServer from '../StatsigServer';
 import { StatsigUser } from '../StatsigUser';
 jest.mock('node-fetch', () => jest.fn());
