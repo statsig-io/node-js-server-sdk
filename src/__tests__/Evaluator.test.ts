@@ -345,16 +345,16 @@ describe('Test condition evaluation', () => {
     );
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName('rule_1_employees'));
+    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}));
     expect(
       mockedEvaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName('rule_1_employees'));
+    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}));
     expect(
       mockedEvaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'default', [], {}).setGroupName('default'));
+    ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}).setGroupName('disabled'));
+    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}));
     expect(
       mockedEvaluator._eval(
         { custom: { email: 'tore@nfl.com' } },
@@ -557,7 +557,6 @@ describe('testing checkGate and getConfig', () => {
     );
     expect(result.value).toEqual(true);
     expect(result.rule_id).toEqual(exampleConfigSpecs.config.rules[0].id);
-    expect(result.group_name).toEqual(exampleConfigSpecs.config.rules[0].groupName);
     expect(result.json_value).toEqual(
       exampleConfigSpecs.config.rules[0].returnValue,
     );
@@ -596,7 +595,6 @@ describe('testing checkGate and getConfig', () => {
         );
         expect(layer.json_value).toEqual({ b_param: 'layer_default' });
         expect(layer.rule_id).toEqual('default');
-        expect(layer.group_name).toEqual('default');
       });
     });
   });
