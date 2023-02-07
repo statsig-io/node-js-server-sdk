@@ -445,7 +445,6 @@ export default class Evaluator {
           ruleResult.config_delegate,
         );
         evaluation.setIsExperimentGroup(ruleResult.is_experiment_group);
-        evaluation.group_name = ruleResult.group_name;
         return evaluation;
       }
     }
@@ -530,7 +529,6 @@ export default class Evaluator {
       rule.returnValue as Record<string, unknown>,
     );
     evaluation.setIsExperimentGroup(rule.isExperimentGroup ?? false);
-    evaluation.setGroupName(rule.groupName);
     return evaluation;
   }
 

@@ -575,7 +575,6 @@ export default class StatsigServer {
       configName,
       evaluation.json_value as Record<string, unknown>,
       evaluation.rule_id,
-      evaluation.group_name,
       evaluation.secondary_exposures,
       evaluation.rule_id !== ''
         ? this._makeOnDefaultValueFallbackFunction(user)
@@ -624,7 +623,6 @@ export default class StatsigServer {
         layerName,
         ret?.json_value as Record<string, unknown>,
         ret?.rule_id,
-        ret?.group_name,
         exposureLogging === ExposureLogging.Disabled ? null : logFunc,
       );
 
@@ -728,7 +726,6 @@ export default class StatsigServer {
             name,
             resJSON.value,
             resJSON.rule_id,
-            resJSON.groupName,
             [],
             this._makeOnDefaultValueFallbackFunction(user),
           ),

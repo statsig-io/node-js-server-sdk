@@ -9,14 +9,12 @@ export default class Layer {
   public name: string;
   private _value: Record<string, unknown>;
   private _ruleID: string;
-  private _groupName: string;
   private _logExposure: ExposeLayer | null;
 
   public constructor(
     layerName: string,
     value: Record<string, unknown> = {},
     ruleID: string = '',
-    groupName: string = '',
     logExposure: ExposeLayer | null = null,
   ) {
     if (typeof layerName !== 'string' || layerName.length === 0) {
@@ -29,7 +27,6 @@ export default class Layer {
     this.name = layerName;
     this._value = clone(value) ?? {};
     this._ruleID = ruleID;
-    this._groupName = groupName
     this._logExposure = logExposure;
   }
 
@@ -91,9 +88,5 @@ export default class Layer {
 
   getRuleID(): string {
     return this._ruleID;
-  }
-
-  getGroupName(): string {
-    return this._groupName;
   }
 }
