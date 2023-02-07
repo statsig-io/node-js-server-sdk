@@ -10,6 +10,7 @@ export default class ConfigEvaluation {
   public fetch_from_server: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
   public is_experiment_group: boolean;
+  public group_name: string;
   public evaluation_details: EvaluationDetails | undefined;
 
   constructor(
@@ -20,6 +21,7 @@ export default class ConfigEvaluation {
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,
     fetch_from_server = false,
+    group_name = '',
   ) {
     this.value = value;
     this.rule_id = rule_id;
@@ -35,6 +37,7 @@ export default class ConfigEvaluation {
     this.fetch_from_server = fetch_from_server;
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
+    this.group_name = group_name;
   }
 
   public withEvaluationDetails(
@@ -46,6 +49,10 @@ export default class ConfigEvaluation {
 
   public setIsExperimentGroup(isExperimentGroup: boolean = false) {
     this.is_experiment_group = isExperimentGroup;
+  }
+
+  public setGroupName(groupName: string = ''){
+    this.group_name = groupName;
   }
 
   public static fetchFromServer() {
