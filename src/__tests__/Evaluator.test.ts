@@ -338,37 +338,33 @@ describe('Test condition evaluation', () => {
 
   it('evals gates correctly', () => {
     expect(mockedEvaluator._eval({}, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', [], {}),
+      new ConfigEvaluation(false, 'default', '', [], {}),
     );
     expect(mockedEvaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', [], {}),
+      new ConfigEvaluation(false, 'default', '', [], {}),
     );
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, gateSpec),
     ).toEqual(
-      new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName(
-        'rule_1_employees',
-      ),
+      new ConfigEvaluation(true, 'rule_id_gate', 'rule_1_employees', [], {}),
     );
     expect(
       mockedEvaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
     ).toEqual(
-      new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName(
-        'rule_1_employees',
-      ),
+      new ConfigEvaluation(true, 'rule_id_gate', 'rule_1_employees', [], {}),
     );
     expect(
       mockedEvaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
+    ).toEqual(new ConfigEvaluation(false, 'default', '', [], {}));
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
-    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}));
+    ).toEqual(new ConfigEvaluation(false, 'disabled', '', [], {}));
     expect(
       mockedEvaluator._eval(
         { custom: { email: 'tore@nfl.com' } },
         disabledGateSpec,
       ),
-    ).toEqual(new ConfigEvaluation(false, 'disabled', [], {}));
+    ).toEqual(new ConfigEvaluation(false, 'disabled', '', [], {}));
   });
 
   it('implements pass percentage correctly', () => {

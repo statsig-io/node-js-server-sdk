@@ -16,12 +16,12 @@ export default class ConfigEvaluation {
   constructor(
     value: boolean,
     rule_id = '',
+    group_name = '',
     secondary_exposures: Record<string, string>[] = [],
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,
     fetch_from_server = false,
-    group_name = '',
   ) {
     this.value = value;
     this.rule_id = rule_id;
@@ -38,9 +38,6 @@ export default class ConfigEvaluation {
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
     this.group_name = group_name;
-    if (rule_id === 'override') {
-      this.group_name = 'local_override';
-    }
   }
 
   public withEvaluationDetails(
@@ -60,6 +57,15 @@ export default class ConfigEvaluation {
   }
 
   public static fetchFromServer() {
-    return new ConfigEvaluation(false, '', [], {}, undefined, undefined, true);
+    return new ConfigEvaluation(
+      false,
+      '',
+      '',
+      [],
+      {},
+      undefined,
+      undefined,
+      true,
+    );
   }
 }

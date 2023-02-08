@@ -321,7 +321,7 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(statsig._instance._evaluator, 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', [
+          return new ConfigEvaluation(true, 'rule_id_pass', '', [
             { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
           ]);
         }
@@ -330,7 +330,7 @@ describe('Verify behavior of top level index functions', () => {
           return ConfigEvaluation.fetchFromServer();
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail');
+        return new ConfigEvaluation(false, 'rule_id_fail', '');
       });
 
     let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -369,14 +369,14 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(statsig._instance._evaluator, 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', []);
+          return new ConfigEvaluation(true, 'rule_id_pass', '', []);
         }
 
         if (gateName === 'gate_server') {
           return ConfigEvaluation.fetchFromServer();
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail', []);
+        return new ConfigEvaluation(false, 'rule_id_fail', '', []);
       });
 
     let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -438,7 +438,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
           string: '12345',
           number: 12345,
         });
@@ -480,7 +480,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
           string: '12345',
           number: 12345,
         });
@@ -505,7 +505,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
           string: '12345',
           number: 12345,
         });
@@ -536,7 +536,7 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(statsig._instance._evaluator, 'getConfig')
         .mockImplementation((_, configName) => {
-          return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
+          return new ConfigEvaluation(true, 'rule_id_config_' + ii, '', [], {
             string: '12345',
           });
         });

@@ -343,14 +343,14 @@ export default class Evaluator {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return new ConfigEvaluation(true, 'override', [], userOverride);
+        return new ConfigEvaluation(true, 'override', '', [], userOverride);
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', [], allOverride);
+      return new ConfigEvaluation(true, 'override', '', [], allOverride);
     }
     return null;
   }
@@ -422,6 +422,7 @@ export default class Evaluator {
       return new ConfigEvaluation(
         false,
         'disabled',
+        '',
         [],
         config.defaultValue as Record<string, unknown>,
       );
@@ -453,6 +454,7 @@ export default class Evaluator {
         const evaluation = new ConfigEvaluation(
           pass,
           ruleResult.rule_id,
+          ruleResult.group_name,
           secondary_exposures,
           pass
             ? ruleResult.json_value
@@ -461,7 +463,6 @@ export default class Evaluator {
           ruleResult.config_delegate,
         );
         evaluation.setIsExperimentGroup(ruleResult.is_experiment_group);
-        evaluation.setGroupName(ruleResult.group_name);
         return evaluation;
       }
     }
@@ -469,6 +470,7 @@ export default class Evaluator {
     return new ConfigEvaluation(
       false,
       'default',
+      '',
       secondary_exposures,
       config.defaultValue as Record<string, unknown>,
       config.explicitParameters,
@@ -542,11 +544,11 @@ export default class Evaluator {
     const evaluation = new ConfigEvaluation(
       pass,
       rule.id,
+      rule.groupName,
       secondaryExposures,
       rule.returnValue as Record<string, unknown>,
     );
     evaluation.setIsExperimentGroup(rule.isExperimentGroup ?? false);
-    evaluation.setGroupName(rule.groupName);
     return evaluation;
   }
 
