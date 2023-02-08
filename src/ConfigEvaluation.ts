@@ -38,8 +38,8 @@ export default class ConfigEvaluation {
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
     this.group_name = group_name;
-    if(['override', 'disabled', 'default'].includes(rule_id) && this.group_name === ''){
-      this.group_name = this.rule_id
+    if(rule_id === 'override'){
+      this.group_name = 'local_override'
     }
   }
 
