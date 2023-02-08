@@ -150,6 +150,7 @@ const mock_dynamicConfigSpec = {
     {
       name: 'public',
       id: 'rule_id_config_public',
+      groupName: 'group_name_config_public',
       passPercentage: 100,
       conditions: [
         {
