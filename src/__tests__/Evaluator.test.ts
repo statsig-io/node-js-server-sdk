@@ -457,30 +457,23 @@ describe('Test condition evaluation', () => {
         yearFounded: 1974,
       },
     });
-    expect(
-      mockedEvaluator._eval(
-        { userID: 'jkw', custom: { level: 10 } },
-        dynamicConfigSpec,
-      ),
-    ).toEqual(
-      expect.objectContaining({
-        rule_id: 'rule_id_config',
-        group_name: 'group_name_config',
-      }),
-    );
+
+    let res = mockedEvaluator._eval(
+      { userID: 'jkw', custom: { level: 10 } },
+      dynamicConfigSpec,
+    )
+    expect(res.rule_id).toEqual('rule_id_config');
+    expect(res.group_name).toEqual('group_name_config')
+    
     expect(
       // @ts-expect-error
       mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).json_value,
     ).toEqual({});
-    expect(
-      // @ts-expect-error
-      mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec),
-    ).toEqual(
-      expect.objectContaining({
-        rule_id: 'rule_id_config_public',
-        group_name: 'group_name_config_public',
-      }),
-    );
+    
+    // @ts-expect-error
+    res = mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec)
+    expect(res.rule_id).toEqual('rule_id_config_public');
+    expect(res.group_name).toEqual('group_name_config_public')
   });
 });
 
