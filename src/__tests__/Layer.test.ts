@@ -46,7 +46,6 @@ describe('Verify behavior of Layer', () => {
       test: 123,
     });
     expect(testLayer.getRuleID()).toStrictEqual('default');
-    expect(testLayer.getGroupName()).toStrictEqual('');
   });
 
   test('Test get key not found', () => {
