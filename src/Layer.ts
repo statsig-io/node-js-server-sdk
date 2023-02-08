@@ -15,7 +15,6 @@ export default class Layer {
     layerName: string,
     value: Record<string, unknown> = {},
     ruleID: string = '',
-    groupName: string = '',
     logExposure: ExposeLayer | null = null,
   ) {
     if (typeof layerName !== 'string' || layerName.length === 0) {

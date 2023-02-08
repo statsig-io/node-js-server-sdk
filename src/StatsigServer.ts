@@ -624,7 +624,6 @@ export default class StatsigServer {
         layerName,
         ret?.json_value as Record<string, unknown>,
         ret?.rule_id,
-        ret?.group_name,
         exposureLogging === ExposureLogging.Disabled ? null : logFunc,
       );
 

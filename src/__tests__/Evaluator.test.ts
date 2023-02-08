@@ -607,7 +607,6 @@ describe('testing checkGate and getConfig', () => {
         );
         expect(layer.json_value).toEqual({ b_param: 'layer_default' });
         expect(layer.rule_id).toEqual('default');
-        expect(layer.group_name).toEqual('default');
       });
     });
   });
