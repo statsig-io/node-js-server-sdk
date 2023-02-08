@@ -350,7 +350,7 @@ export default class Evaluator {
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', 'override', [], allOverride);
+      return new ConfigEvaluation(true, 'override', 'local_override', [], allOverride);
     }
     return null;
   }
@@ -398,7 +398,7 @@ export default class Evaluator {
 
   _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
-      return new ConfigEvaluation(false).withEvaluationDetails(
+      return new ConfigEvaluation(false, '', 'code_default').withEvaluationDetails(
         EvaluationDetails.make(
           this.store.getLastUpdateTime(),
           this.store.getInitialUpdateTime(),
@@ -422,7 +422,7 @@ export default class Evaluator {
       return new ConfigEvaluation(
         false,
         'disabled',
-        '',
+        'disabled',
         [],
         config.defaultValue as Record<string, unknown>,
       );
@@ -470,7 +470,7 @@ export default class Evaluator {
     return new ConfigEvaluation(
       false,
       'default',
-      '',
+      'default',
       secondary_exposures,
       config.defaultValue as Record<string, unknown>,
       config.explicitParameters,
