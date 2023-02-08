@@ -551,22 +551,24 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
-    expect.assertions(3);
+    expect.assertions(5);
 
     await statsig.initialize(secretKey);
 
     jest
-      .spyOn(statsig._instance._evaluator, 'getConfig')
-      .mockImplementation(() => {
-        return new ConfigEvaluation(false);
+      .spyOn(statsig._instance._evaluator.store, 'getInitReason')
+      .mockReturnValue(() => {
+        'Network'
       });
 
     const configName = 'non_existent_config';
-    let config = new DynamicConfig(configName);
+    let config = new DynamicConfig(configName, {}, '', 'code_default');
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     await statsig.getConfig({ userID: '12345' }, configName).then((data) => {
       expect(data).toEqual(config);
+      expect(data.getRuleID()).toBe('');
+      expect(data.getGroupName()).toBe('code_default');
     });
 
     await statsig
