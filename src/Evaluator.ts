@@ -343,14 +343,14 @@ export default class Evaluator {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return new ConfigEvaluation(true, 'override', '', [], userOverride);
+        return new ConfigEvaluation(true, 'override', 'override', [], userOverride);
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', '', [], allOverride);
+      return new ConfigEvaluation(true, 'override', 'override', [], allOverride);
     }
     return null;
   }
