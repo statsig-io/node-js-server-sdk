@@ -38,8 +38,8 @@ export default class ConfigEvaluation {
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
     this.group_name = group_name;
-    if(rule_id === 'override'){
-      this.group_name = 'local_override'
+    if (rule_id === 'override') {
+      this.group_name = 'local_override';
     }
   }
 
@@ -54,7 +54,7 @@ export default class ConfigEvaluation {
     this.is_experiment_group = isExperimentGroup;
   }
 
-  public setGroupName(groupName: string = ''){
+  public setGroupName(groupName: string = '') {
     this.group_name = groupName;
     return this;
   }

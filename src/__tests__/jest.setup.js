@@ -124,7 +124,7 @@ const mock_dynamicConfigSpec = {
   enabled: true,
   rules: [
     {
-      name: 'can see teams',      
+      name: 'can see teams',
       groupName: 'rule_1_employees_disabled',
       passPercentage: 100,
       id: 'rule_id_config',

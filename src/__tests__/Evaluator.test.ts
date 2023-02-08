@@ -345,10 +345,18 @@ describe('Test condition evaluation', () => {
     );
     expect(
       mockedEvaluator._eval({ email: 'tore@packers.com' }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName('rule_1_employees'));
+    ).toEqual(
+      new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName(
+        'rule_1_employees',
+      ),
+    );
     expect(
       mockedEvaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
-    ).toEqual(new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName('rule_1_employees'));
+    ).toEqual(
+      new ConfigEvaluation(true, 'rule_id_gate', [], {}).setGroupName(
+        'rule_1_employees',
+      ),
+    );
     expect(
       mockedEvaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec),
     ).toEqual(new ConfigEvaluation(false, 'default', [], {}));
@@ -458,21 +466,25 @@ describe('Test condition evaluation', () => {
         { userID: 'jkw', custom: { level: 10 } },
         dynamicConfigSpec,
       ),
-    ).toEqual(expect.objectContaining({
-      rule_id: 'rule_id_config',
-      group_name: 'rule_1_employees_disabled',
-    }));
+    ).toEqual(
+      expect.objectContaining({
+        rule_id: 'rule_id_config',
+        group_name: 'rule_1_employees_disabled',
+      }),
+    );
     expect(
       // @ts-expect-error
       mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).json_value,
     ).toEqual({});
     expect(
       // @ts-expect-error
-      mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec)
-    ).toEqual(expect.objectContaining({
-      rule_id: 'rule_id_config_public',
-      group_name: 'group_name_config_public',
-    }));
+      mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec),
+    ).toEqual(
+      expect.objectContaining({
+        rule_id: 'rule_id_config_public',
+        group_name: 'group_name_config_public',
+      }),
+    );
   });
 });
 
@@ -565,7 +577,9 @@ describe('testing checkGate and getConfig', () => {
     );
     expect(result.value).toEqual(true);
     expect(result.rule_id).toEqual(exampleConfigSpecs.config.rules[0].id);
-    expect(result.group_name).toEqual(exampleConfigSpecs.config.rules[0].groupName);
+    expect(result.group_name).toEqual(
+      exampleConfigSpecs.config.rules[0].groupName,
+    );
     expect(result.json_value).toEqual(
       exampleConfigSpecs.config.rules[0].returnValue,
     );
