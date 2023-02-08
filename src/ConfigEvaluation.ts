@@ -51,11 +51,6 @@ export default class ConfigEvaluation {
     this.is_experiment_group = isExperimentGroup;
   }
 
-  public setGroupName(groupName: string = '') {
-    this.group_name = groupName;
-    return this;
-  }
-
   public static fetchFromServer() {
     return new ConfigEvaluation(
       false,
