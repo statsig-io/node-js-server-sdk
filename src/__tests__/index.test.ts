@@ -321,7 +321,7 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(statsig._instance._evaluator, 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', [
+          return new ConfigEvaluation(true, 'rule_id_pass', '', [
             { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
           ]);
         }
@@ -330,7 +330,7 @@ describe('Verify behavior of top level index functions', () => {
           return ConfigEvaluation.fetchFromServer();
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail');
+        return new ConfigEvaluation(false, 'rule_id_fail', '');
       });
 
     let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -369,14 +369,14 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(statsig._instance._evaluator, 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', []);
+          return new ConfigEvaluation(true, 'rule_id_pass', '', []);
         }
 
         if (gateName === 'gate_server') {
           return ConfigEvaluation.fetchFromServer();
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail', []);
+        return new ConfigEvaluation(false, 'rule_id_fail', '', []);
       });
 
     let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -432,13 +432,13 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
-    expect.assertions(6);
+    expect.assertions(10);
 
     await statsig.initialize(secretKey);
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', 'group_name_config', [], {
           string: '12345',
           number: 12345,
         });
@@ -461,11 +461,15 @@ describe('Verify behavior of top level index functions', () => {
     await statsig.getConfig(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(12345);
       expect(data.getValue('string')).toStrictEqual('12345');
+      expect(data.getGroupName()).toBe('group_name_config');
+      expect(data.getRuleID()).toBe('rule_id_config');
     });
 
     await statsig.getExperiment(user, configName).then((data) => {
       expect(data.getValue('number')).toStrictEqual(12345);
       expect(data.getValue('string')).toStrictEqual('12345');
+      expect(data.getGroupName()).toBe('group_name_config');
+      expect(data.getRuleID()).toBe('rule_id_config');
     });
 
     expect(spy).toHaveBeenCalledTimes(1); // Dedupe logic kicks in
@@ -480,7 +484,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
           string: '12345',
           number: 12345,
         });
@@ -505,7 +509,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(statsig._instance._evaluator, 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
           string: '12345',
           number: 12345,
         });
@@ -536,7 +540,7 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(statsig._instance._evaluator, 'getConfig')
         .mockImplementation((_, configName) => {
-          return new ConfigEvaluation(true, 'rule_id_config_' + ii, [], {
+          return new ConfigEvaluation(true, 'rule_id_config_' + ii, '', [], {
             string: '12345',
           });
         });
@@ -547,22 +551,24 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('that getConfig() and getExperiment() return an empty DynamicConfig when the config name does not exist', async () => {
-    expect.assertions(3);
+    expect.assertions(5);
 
     await statsig.initialize(secretKey);
 
     jest
-      .spyOn(statsig._instance._evaluator, 'getConfig')
-      .mockImplementation(() => {
-        return new ConfigEvaluation(false);
+      .spyOn(statsig._instance._evaluator.store, 'getInitReason')
+      .mockReturnValue(() => {
+        'Network'
       });
 
     const configName = 'non_existent_config';
-    let config = new DynamicConfig(configName);
+    let config = new DynamicConfig(configName, {}, '', 'code_default');
 
     const spy = jest.spyOn(statsig['_instance']['_logger'], 'log');
     await statsig.getConfig({ userID: '12345' }, configName).then((data) => {
       expect(data).toEqual(config);
+      expect(data.getRuleID()).toBe('');
+      expect(data.getGroupName()).toBe('code_default');
     });
 
     await statsig

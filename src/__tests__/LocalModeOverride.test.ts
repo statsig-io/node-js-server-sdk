@@ -93,8 +93,12 @@ describe('Test local mode with overrides', () => {
 
     statsig.overrideConfig('override_config', { test: 'abc' }, '1');
     u1config = await statsig.getConfig(userOne, 'override_config');
+    expect(u1config.getGroupName()).toBe('local_override')
+    expect(u1config.getRuleID()).toBe('override')
     expect(u1config.getValue()).toEqual({ test: 'abc' });
     u2config = await statsig.getConfig(userTwo, 'override_config');
+    expect(u1config.getGroupName()).toBe('local_override')
+    expect(u1config.getRuleID()).toBe('override')
     expect(u2config.getValue()).toEqual({});
 
     statsig.overrideConfig('override_config', { test: 123 }, '2');

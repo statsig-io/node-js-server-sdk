@@ -20,6 +20,7 @@ const mock_gateSpec = {
   rules: [
     {
       name: 'employees',
+      groupName: 'group_name_gate',
       id: 'rule_id_gate',
       passPercentage: 100,
       conditions: [
@@ -44,6 +45,7 @@ const mock_halfPassGateSpec = {
   rules: [
     {
       name: 'employees',
+      groupName: 'group_name_pass_gate',
       id: 'test',
       passPercentage: 50,
       conditions: [
@@ -69,6 +71,7 @@ const mock_halfPassGateOnCustomIDSpec = {
   rules: [
     {
       name: 'employees',
+      groupName: 'group_name_half_pass',
       id: 'test',
       passPercentage: 50,
       conditions: [
@@ -95,6 +98,7 @@ const mock_disabledGateSpec = {
   rules: [
     {
       name: 'employees',
+      groupName: 'group_name_disabled_gate',
       id: 'rule_id_disabled_gate',
       passPercentage: 100,
       conditions: [
@@ -121,6 +125,7 @@ const mock_dynamicConfigSpec = {
   rules: [
     {
       name: 'can see teams',
+      groupName: 'group_name_config',
       passPercentage: 100,
       id: 'rule_id_config',
       conditions: [
@@ -145,6 +150,7 @@ const mock_dynamicConfigSpec = {
     {
       name: 'public',
       id: 'rule_id_config_public',
+      groupName: 'group_name_config_public',
       passPercentage: 100,
       conditions: [
         {

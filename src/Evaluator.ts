@@ -95,7 +95,11 @@ export default class Evaluator {
     const override = this.lookupGateOverride(user, gateName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
+        EvaluationDetails.make(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+          'LocalOverride',
+        ),
       );
     }
 
@@ -112,7 +116,11 @@ export default class Evaluator {
     const override = this.lookupConfigOverride(user, configName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
+        EvaluationDetails.make(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+          'LocalOverride',
+        ),
       );
     }
 
@@ -129,7 +137,11 @@ export default class Evaluator {
     const override = this.lookupLayerOverride(user, layerName);
     if (override) {
       return override.withEvaluationDetails(
-        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'LocalOverride'),
+        EvaluationDetails.make(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+          'LocalOverride',
+        ),
       );
     }
 
@@ -331,14 +343,26 @@ export default class Evaluator {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return new ConfigEvaluation(true, 'override', [], userOverride);
+        return new ConfigEvaluation(
+          true,
+          'override',
+          'local_override',
+          [],
+          userOverride,
+        );
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', [], allOverride);
+      return new ConfigEvaluation(
+        true,
+        'override',
+        'local_override',
+        [],
+        allOverride,
+      );
     }
     return null;
   }
@@ -386,8 +410,16 @@ export default class Evaluator {
 
   _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
-      return new ConfigEvaluation(false).withEvaluationDetails(
-        EvaluationDetails.make(this.store.getLastUpdateTime(), this.store.getInitialUpdateTime(), 'Unrecognized'),
+      return new ConfigEvaluation(
+        false,
+        '',
+        'code_default',
+      ).withEvaluationDetails(
+        EvaluationDetails.make(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+          'Unrecognized',
+        ),
       );
     }
 
@@ -405,6 +437,7 @@ export default class Evaluator {
     if (!config.enabled) {
       return new ConfigEvaluation(
         false,
+        'disabled',
         'disabled',
         [],
         config.defaultValue as Record<string, unknown>,
@@ -437,6 +470,7 @@ export default class Evaluator {
         const evaluation = new ConfigEvaluation(
           pass,
           ruleResult.rule_id,
+          ruleResult.group_name,
           secondary_exposures,
           pass
             ? ruleResult.json_value
@@ -451,6 +485,7 @@ export default class Evaluator {
 
     return new ConfigEvaluation(
       false,
+      'default',
       'default',
       secondary_exposures,
       config.defaultValue as Record<string, unknown>,
@@ -484,10 +519,10 @@ export default class Evaluator {
   _evalPassPercent(user: StatsigUser, rule: ConfigRule, config: ConfigSpec) {
     const hash = computeUserHash(
       config.salt +
-      '.' +
-      (rule.salt ?? rule.id) +
-      '.' +
-      (this._getUnitID(user, rule.idType) ?? ''),
+        '.' +
+        (rule.salt ?? rule.id) +
+        '.' +
+        (this._getUnitID(user, rule.idType) ?? ''),
     );
     return (
       Number(hash % BigInt(CONDITION_SEGMENT_COUNT)) < rule.passPercentage * 100
@@ -525,6 +560,7 @@ export default class Evaluator {
     const evaluation = new ConfigEvaluation(
       pass,
       rule.id,
+      rule.groupName,
       secondaryExposures,
       rule.returnValue as Record<string, unknown>,
     );

@@ -147,6 +147,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify getConfig and exposure logs', async () => {
     await statsig.initialize('secret-123');
     let config = await statsig.getConfig(statsigUser, 'test_config');
+    expect(config.getGroupName()).toBe('statsig emails');
+    expect(config.getRuleID()).toBe('4lInPNRUnjUzaWNkEWLFA9');
+
     expect(config.get('number', 0)).toEqual(7);
     expect(config.get('string', '')).toEqual('statsig');
     expect(config.get('boolean', true)).toEqual(false);
@@ -184,6 +187,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(experiment.get('sample_parameter', true)).toEqual(false);
     experiment = await statsig.getExperiment(randomUser, 'sample_experiment');
+    expect(experiment.getGroupName()).toBe('Test');
+    expect(experiment.getRuleID()).toBe('5yQbPNUpd8mNbkB0SZZeln');
+    
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
     statsig.shutdown();
