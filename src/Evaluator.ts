@@ -531,9 +531,11 @@ export default class Evaluator {
 
   _getUnitID(user: StatsigUser, idType: string) {
     if (typeof idType === 'string' && idType.toLowerCase() !== 'userid') {
-      return (
-        user?.customIDs?.[idType] ?? user?.customIDs?.[idType.toLowerCase()]
-      );
+      const unitID = user?.customIDs?.[idType];
+      if (unitID !== undefined) {
+        return unitID;
+      }
+      return getParameterCaseInsensitive(user?.customIDs, idType);
     }
     return user?.userID;
   }
@@ -910,10 +912,22 @@ function getFromUserAgent(user: StatsigUser, field: string) {
 }
 
 function getFromEnvironment(user: StatsigUser, field: string) {
-  return (
-    user?.statsigEnvironment?.[field] ??
-    user?.statsigEnvironment?.[field.toLowerCase()]
-  );
+  return getParameterCaseInsensitive(user?.statsigEnvironment, field);
+}
+
+function getParameterCaseInsensitive(
+  object: Record<string, unknown> | undefined | null,
+  key: string,
+): unknown | undefined {
+  if (object == null) {
+    return undefined;
+  }
+  const asLowercase = key.toLowerCase();
+  const keyMatch = Object.keys(object).find(k => k.toLowerCase() === asLowercase);
+  if (keyMatch === undefined) {
+    return undefined;
+  }
+  return object[keyMatch];
 }
 
 function numberCompare(
