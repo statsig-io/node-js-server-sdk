@@ -127,6 +127,9 @@ export default class SpecStore {
 
   public async init(): Promise<void> {
     const adapter = this.dataAdapter;
+    if (adapter) {
+      await adapter.initialize();
+    }
 
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
     // need to wait for _syncValues() to finish before returning.
@@ -134,7 +137,6 @@ export default class SpecStore {
       this._syncValues();
     } else {
       if (adapter) {
-        await adapter.initialize();
         await this._fetchConfigSpecsFromAdapter();
       }
       if (this.lastUpdateTime === 0) {
@@ -146,7 +148,7 @@ export default class SpecStore {
 
     const bootstrapIdLists = await adapter?.get(DataAdapterKey.IDLists);
     if (adapter && typeof bootstrapIdLists?.result === 'string') {
-      this.syncIdListsFromDataAdapter(adapter, bootstrapIdLists.result);
+      await this.syncIdListsFromDataAdapter(adapter, bootstrapIdLists.result);
     } else {
       await this.syncIdListsFromNetwork();
     }
