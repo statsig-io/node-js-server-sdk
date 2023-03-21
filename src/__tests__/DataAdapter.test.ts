@@ -1,13 +1,13 @@
 import * as statsigsdk from '../index';
 import exampleConfigSpecs from './jest.setup';
 import TestDataAdapter, { TestSyncingDataAdapter } from './TestDataAdapter';
-import {
-  GatesForIdListTest,
-} from './BootstrapWithDataAdapter.data';
+import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
 
 jest.mock('node-fetch', () => jest.fn());
 import fetch from 'node-fetch';
 import { DataAdapterKey } from '../interfaces/IDataAdapter';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import StatsigTestUtils from './StatsigTestUtils';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
@@ -107,7 +107,7 @@ describe('DataAdapter', () => {
 
   describe('when statsig is initialized', () => {
     beforeEach(() => {
-      statsig._instance = null;
+      StatsigInstanceUtils.setInstance(null);
     });
 
     afterEach(async () => {
@@ -230,11 +230,13 @@ describe('DataAdapter', () => {
 
     expect(gates).toEqual('test123');
   });
-  
+
   describe('when data adapter is used for syncing for rulesets', () => {
-    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets]);
+    const syncingDataAdapter = new TestSyncingDataAdapter([
+      DataAdapterKey.Rulesets,
+    ]);
     beforeEach(() => {
-      statsig._instance = null;
+      StatsigInstanceUtils.setInstance(null);
     });
 
     afterEach(async () => {
@@ -262,9 +264,10 @@ describe('DataAdapter', () => {
 
       await loadStore(syncingDataAdapter);
 
-      statsig._instance._evaluator.store.syncInterval = 1000;
-      statsig._instance._evaluator.store.syncTimer = null;
-      statsig._instance._evaluator.store.pollForUpdates();
+      const evaluator = StatsigTestUtils.getEvaluator();
+      evaluator.store.syncInterval = 1000;
+      evaluator.store.syncTimer = null;
+      evaluator.store.pollForUpdates();
       await new Promise((_) => setTimeout(_, 1100));
 
       // Check gates after syncing
@@ -305,19 +308,22 @@ describe('DataAdapter', () => {
 
       let value = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
       expect(value).toBe(true);
-  
+
       value = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
       expect(value).toBe(true);
-  
+
       value = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
       expect(value).toBe(false);
     });
   });
 
   describe('when data adapter is used for syncing for rulesets and id lists', () => {
-    const syncingDataAdapter = new TestSyncingDataAdapter([DataAdapterKey.Rulesets, DataAdapterKey.IDLists]);
+    const syncingDataAdapter = new TestSyncingDataAdapter([
+      DataAdapterKey.Rulesets,
+      DataAdapterKey.IDLists,
+    ]);
     beforeEach(() => {
-      statsig._instance = null;
+      StatsigInstanceUtils.setInstance(null);
     });
 
     afterEach(async () => {
@@ -333,12 +339,15 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      let value1 = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      let value1 = await statsig.checkGate(
+        { userID: 'a-user' },
+        'test_id_list',
+      );
       expect(value1).toBe(false);
-  
+
       value1 = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
       expect(value1).toBe(false);
-  
+
       value1 = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
       expect(value1).toBe(false);
 
@@ -363,22 +372,29 @@ describe('DataAdapter', () => {
         time,
       );
       syncingDataAdapter.set(DataAdapterKey.IDLists, '["user_id_list"]');
-      syncingDataAdapter.set(DataAdapterKey.IDLists + '::user_id_list', '+Z/hEKLio\n+M5m6a10x\n')
+      syncingDataAdapter.set(
+        DataAdapterKey.IDLists + '::user_id_list',
+        '+Z/hEKLio\n+M5m6a10x\n',
+      );
 
-      statsig._instance._evaluator.store.syncInterval = 1000;
-      statsig._instance._evaluator.store.idListSyncInterval = 1000;
-      statsig._instance._evaluator.store.syncTimer = null;
-      statsig._instance._evaluator.store.idListsSyncTimer = null;
-      statsig._instance._evaluator.store.pollForUpdates();
+      const evaluator = StatsigTestUtils.getEvaluator();
+      evaluator.store.syncInterval = 1000;
+      evaluator.store.idListSyncInterval = 1000;
+      evaluator.store.syncTimer = null;
+      evaluator.store.idListsSyncTimer = null;
+      evaluator.store.pollForUpdates();
       await new Promise((_) => setTimeout(_, 1100));
 
       // Check gates after syncing
-      let value2 = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
+      let value2 = await statsig.checkGate(
+        { userID: 'a-user' },
+        'test_id_list',
+      );
       expect(value2).toBe(true);
-  
+
       value2 = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
       expect(value2).toBe(true);
-  
+
       value2 = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
       expect(value2).toBe(false);
 

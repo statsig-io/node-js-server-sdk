@@ -1,4 +1,5 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -20,7 +21,7 @@ describe('Test local mode with overrides', () => {
     jest.restoreAllMocks();
     jest.resetModules();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
   });
 
   it('initalize resolves and all values are defualts', async () => {
@@ -93,12 +94,12 @@ describe('Test local mode with overrides', () => {
 
     statsig.overrideConfig('override_config', { test: 'abc' }, '1');
     u1config = await statsig.getConfig(userOne, 'override_config');
-    expect(u1config.getGroupName()).toBe('local_override')
-    expect(u1config.getRuleID()).toBe('override')
+    expect(u1config.getGroupName()).toBe('local_override');
+    expect(u1config.getRuleID()).toBe('override');
     expect(u1config.getValue()).toEqual({ test: 'abc' });
     u2config = await statsig.getConfig(userTwo, 'override_config');
-    expect(u1config.getGroupName()).toBe('local_override')
-    expect(u1config.getRuleID()).toBe('override')
+    expect(u1config.getGroupName()).toBe('local_override');
+    expect(u1config.getRuleID()).toBe('override');
     expect(u2config.getValue()).toEqual({});
 
     statsig.overrideConfig('override_config', { test: 123 }, '2');

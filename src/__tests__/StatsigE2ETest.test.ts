@@ -1,4 +1,5 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -80,7 +81,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     jest.restoreAllMocks();
     jest.resetModules();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     postedLogs = {
       events: [],
     };
@@ -189,7 +190,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     experiment = await statsig.getExperiment(randomUser, 'sample_experiment');
     expect(experiment.getGroupName()).toBe('Test');
     expect(experiment.getRuleID()).toBe('5yQbPNUpd8mNbkB0SZZeln');
-    
+
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
     statsig.shutdown();

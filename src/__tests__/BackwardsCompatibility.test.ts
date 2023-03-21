@@ -10,12 +10,13 @@ import Statsig, {
   IDataAdapter,
   AdapterResponse,
 } from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
-const clearStatsig = (statsig: any) => {
-  if (statsig._instance) {
-    statsig._instance = null;
+const clearStatsig = () => {
+  if (StatsigInstanceUtils.getInstance()) {
+    StatsigInstanceUtils.setInstance(null);
   }
 };
 
@@ -78,7 +79,7 @@ describe('Backward Compatibility', () => {
     ['import Statsig from...', Statsig],
     ['const statsig = require(...', require('../index')],
   ])('test functionality for %p', async (title, statsig) => {
-    clearStatsig(statsig);
+    clearStatsig();
     await statsig.initialize('secret-key');
 
     const gateResult = await statsig.checkGate(user, 'test_public');

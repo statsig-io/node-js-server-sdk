@@ -1,4 +1,5 @@
 import Statsig, { DynamicConfig, StatsigUser } from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -41,12 +42,14 @@ describe('On Default Value Fallback', () => {
       });
     });
 
-    // @ts-ignore
-    Statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key');
 
-    // @ts-ignore
-    Statsig._instance._options.loggingMaxBufferSize = 1;
+    let inst = StatsigInstanceUtils.getInstance();
+    if (inst != null) {
+      // @ts-ignore
+      inst._options.loggingMaxBufferSize = 1;
+    }
   });
 
   beforeEach(async () => {

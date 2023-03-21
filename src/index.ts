@@ -2,6 +2,7 @@ import DynamicConfig from './DynamicConfig';
 import { StatsigUninitializedError } from './Errors';
 import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
+import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
   RulesUpdatedCallback,
   StatsigEnvironment,
@@ -22,9 +23,7 @@ export {
   AdapterResponse,
 };
 
-const Statsig = {
-  _instance: null as StatsigServer | null,
-
+export const Statsig = {
   // These need to be exported, and we currently export a top level Statsig object
   // So in order to not make a breaking change, they must be exported as members of
   // that top level object
@@ -41,10 +40,12 @@ const Statsig = {
    * @throws Error if a Server Secret Key is not provided
    */
   initialize(secretKey: string, options: StatsigOptions = {}): Promise<void> {
-    const inst = Statsig._instance ?? new StatsigServer(secretKey, options);
+    const inst =
+      StatsigInstanceUtils.getInstance() ??
+      new StatsigServer(secretKey, options);
 
-    if (Statsig._instance == null) {
-      Statsig._instance = inst;
+    if (StatsigInstanceUtils.getInstance() == null) {
+      StatsigInstanceUtils.setInstance(inst);
     }
 
     return inst.initializeAsync();
@@ -323,7 +324,7 @@ const Statsig = {
    * Flushes all the events that are currently in the queue to Statsig.
    */
   flush(): Promise<void> {
-    const inst = Statsig._instance;
+    const inst = StatsigInstanceUtils.getInstance();
     if (inst == null) {
       return Promise.resolve();
     }
@@ -349,13 +350,14 @@ const Statsig = {
   },
 
   _enforceServer(): StatsigServer {
-    if (Statsig._instance == null) {
+    let instance = StatsigInstanceUtils.getInstance();
+    if (instance == null) {
       throw new StatsigUninitializedError();
     }
-    return Statsig._instance;
+    return instance;
   },
 };
 
-type Statsig = Omit<typeof Statsig, '_instance' | '_enforceServer'>;
+type Statsig = Omit<typeof Statsig, '_enforceServer'>;
 export default Statsig as Statsig;
-module.exports = Statsig as Statsig;
+module.exports = { default: Statsig as Statsig, ...Statsig };

@@ -1,5 +1,5 @@
 import Statsig, { StatsigUser } from '../index';
-import { StatsigOptions } from '../StatsigOptions';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -42,12 +42,11 @@ describe('ExposureLogging', () => {
 
     events = [];
 
-    // @ts-ignore
-    Statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key');
 
     // @ts-ignore
-    Statsig._instance._options.loggingMaxBufferSize = 1;
+    StatsigInstanceUtils.getInstance()._options.loggingMaxBufferSize = 1;
   });
 
   describe('standard use', () => {

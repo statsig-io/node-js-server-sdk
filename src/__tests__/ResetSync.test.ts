@@ -1,4 +1,6 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import StatsigTestUtils from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -51,17 +53,16 @@ describe('Verify sync intervals reset', () => {
     jest.resetModules();
     jest.useFakeTimers();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
   });
 
   test('Verify timers reset if rulesets stale', async () => {
     expect.assertions(6);
     await statsig.initialize(secretKey);
     let now = Date.now();
-    const spy = jest.spyOn(
-      statsig['_instance']['_evaluator']['store'],
-      'pollForUpdates',
-    );
+
+    const evaluator = StatsigTestUtils.getEvaluator();
+    const spy = jest.spyOn(evaluator['store'], 'pollForUpdates');
 
     let gate = await statsig.checkGate(
       { userID: '123', email: 'tore@packers.com' },

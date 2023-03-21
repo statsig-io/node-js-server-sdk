@@ -3,6 +3,7 @@
  */
 
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -84,7 +85,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     jest.restoreAllMocks();
     jest.resetModules();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     postedLogs = {
       events: [],
     };
@@ -263,14 +264,18 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     expect(postedLogs.events.length).toEqual(2);
     expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[0].metadata['gate']).toEqual('partial_rollout_gate');
+    expect(postedLogs.events[0].metadata['gate']).toEqual(
+      'partial_rollout_gate',
+    );
     expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
     expect(postedLogs.events[0].metadata['ruleID']).toEqual(
       '2DWuOvXQZWKvoaNm27dqcs',
     );
 
     expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[1].metadata['gate']).toEqual('partial_rollout_gate');
+    expect(postedLogs.events[1].metadata['gate']).toEqual(
+      'partial_rollout_gate',
+    );
     expect(postedLogs.events[1].metadata['gateValue']).toEqual('false');
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
       '2DWuOvXQZWKvoaNm27dqcs',

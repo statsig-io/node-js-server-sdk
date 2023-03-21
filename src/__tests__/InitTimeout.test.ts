@@ -1,4 +1,5 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -46,7 +47,7 @@ describe('Test local mode with overrides', () => {
     jest.resetModules();
     jest.restoreAllMocks();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
   });
 
   test('Verify initialize() returns early when the network request takes too long', async () => {
@@ -60,7 +61,8 @@ describe('Test local mode with overrides', () => {
     jest.advanceTimersByTime(200);
 
     await prom;
-    expect(statsig._instance['_ready']).toBeTruthy();
+    // @ts-ignore
+    expect(StatsigInstanceUtils.getInstance()['_ready']).toBe(true);
     expect(prom).resolves;
     expect(
       statsig.checkGate(
@@ -78,7 +80,8 @@ describe('Test local mode with overrides', () => {
     jest.spyOn(global.Date, 'now').mockImplementation(() => now + 1200);
     jest.advanceTimersByTime(1200);
     await prom;
-    expect(statsig._instance['_ready']).toBeTruthy();
+    // @ts-ignore
+    expect(StatsigInstanceUtils.getInstance()['_ready']).toBe(true);
     expect(
       statsig.checkGate(
         { userID: 'test_user_id', email: 'test@nfl.com' },

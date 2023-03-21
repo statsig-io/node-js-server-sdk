@@ -1,4 +1,5 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 let statsig = statsigsdk.default;
 
@@ -38,7 +39,7 @@ describe('Layer Exposure Logging', () => {
     jest.restoreAllMocks();
     jest.resetModules();
     logs = {};
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
   });
 
   it('does not log on invalid types', async () => {

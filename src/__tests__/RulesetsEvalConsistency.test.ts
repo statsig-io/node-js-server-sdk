@@ -1,6 +1,8 @@
 import safeFetch from '../utils/safeFetch';
 import Statsig from '../index';
 import Evaluator from '../Evaluator';
+import StatsigTestUtils from './StatsigTestUtils';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 const secret: string = process.env.test_api_key ?? '';
 const shouldSkip = typeof secret !== 'string' || secret.length == 0;
@@ -46,9 +48,9 @@ describe('RulesetsEvalConsistency', () => {
 
     expect.assertions(totalChecks);
 
-    (Statsig as any)._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize(secret, { api: api });
-    const evaluator: Evaluator = (Statsig as any)._instance._evaluator;
+    const evaluator: Evaluator = StatsigTestUtils.getEvaluator();
 
     for (const data of testData) {
       const user = data.user;

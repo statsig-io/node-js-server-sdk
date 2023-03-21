@@ -1,4 +1,6 @@
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import StatsigTestUtils from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -49,7 +51,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     jest.resetModules();
     jest.useFakeTimers();
 
-    statsig._instance = null;
+    StatsigInstanceUtils.setInstance(null);
     postedLogs = {
       events: [],
     };
@@ -59,7 +61,8 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect.assertions(2);
     await statsig.initialize('secret-123');
 
-    const spy = jest.spyOn(statsig['_instance']['_logger']['fetcher'], 'post');
+    const logger = StatsigTestUtils.getLogger();
+    const spy = jest.spyOn(logger['fetcher'], 'post');
 
     const on1 = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on1).toEqual(true);

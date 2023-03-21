@@ -4,6 +4,7 @@ const path = require('path');
 const fetch = require('node-fetch');
 
 import * as statsigsdk from '../index';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
@@ -27,7 +28,7 @@ if (secret) {
     beforeEach(() => {
       jest.restoreAllMocks();
       jest.resetModules();
-      statsig._instance = null;
+      StatsigInstanceUtils.setInstance(null);
     });
 
     [
