@@ -22,13 +22,13 @@ jobs:
         with:
           node-version: '16.x'
 
-      - name: Setup NodeJS Server
+      - name: Build Bridge
         run: |
-          cd kong/bridges/nodejs-server
-          SKIP_PREINSTALL=1 npm install
-          npm install git+https://${{ secrets.KONG_REPO_PAT }}@github.com/$GITHUB_REPOSITORY.git#$GITHUB_HEAD_REF --no-save
+          cd kong
+          npm install
+          FORCE_COLOR=true npm run kong -- build nodejs -v
         env:
-          kong_repo_pat: ${{ secrets.KONG_REPO_PAT }}
+          repo_pat: ${{ secrets.KONG_REPO_PAT }}
 
       - name: Run Tests
         run: |
