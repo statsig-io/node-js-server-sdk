@@ -812,7 +812,7 @@ describe('Verify behavior of top level index functions', () => {
 
     expect.assertions(2);
 
-    await Statsig.initialize(secretKey);
+    await Statsig.initialize(secretKey, { diableDiagnostics: true });
     Statsig.logEvent({ userID: '123' }, 'my_event1');
     Statsig.logEvent({ userID: '123' }, 'my_event2');
     Statsig.logEvent({ userID: '123' }, 'my_event3');

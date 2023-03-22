@@ -17,6 +17,7 @@ import {
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
+import Diagnostics from './Diagnostics';
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 2048;
@@ -53,6 +54,7 @@ export default class StatsigServer {
   private _evaluator: Evaluator;
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
+  private _init_diagnostics: Diagnostics;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
@@ -60,7 +62,8 @@ export default class StatsigServer {
     this._pendingInitPromise = null;
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
-    this._evaluator = new Evaluator(this._fetcher, this._options);
+    this._init_diagnostics = new Diagnostics("initialize");
+    this._evaluator = new Evaluator(this._fetcher, this._options, this._init_diagnostics);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
@@ -72,6 +75,7 @@ export default class StatsigServer {
   public initializeAsync(): Promise<void> {
     return this._errorBoundary.capture(
       () => {
+        this._init_diagnostics.mark("overall", "start")
         if (this._pendingInitPromise != null) {
           return this._pendingInitPromise;
         }
@@ -95,6 +99,8 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
+          this._init_diagnostics.mark("overall", "end")
+          this.logDiagnostics(this._init_diagnostics)
         });
         if (
           this._options.initTimeoutMs != null &&
@@ -113,7 +119,6 @@ export default class StatsigServer {
         } else {
           this._pendingInitPromise = initPromise;
         }
-
         return this._pendingInitPromise;
       },
       () => {
@@ -124,6 +129,13 @@ export default class StatsigServer {
     );
   }
 
+  private logDiagnostics(diagnostics: Diagnostics) {
+    if(this._options.diableDiagnostics){
+      return;
+    }
+    this._logger.logDiagnosticsEvent(diagnostics)
+    
+  } 
   /**
    * Check the value of a gate configured in the statsig console
    * @throws Error if initialize() was not called first

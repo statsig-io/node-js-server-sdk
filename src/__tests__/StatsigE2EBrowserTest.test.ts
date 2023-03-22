@@ -92,7 +92,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify checkGate and exposure logs', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
     expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
       INIT_RESPONSE,
     );
@@ -150,7 +150,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getConfig and exposure logs', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
     let config = await statsig.getConfig(statsigUser, 'test_config');
     expect(config.get('number', 0)).toEqual(7);
     expect(config.get('string', '')).toEqual('statsig');
@@ -182,7 +182,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getExperiment and exposure logs', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
     let experiment = await statsig.getExperiment(
       statsigUser,
       'sample_experiment',
@@ -211,7 +211,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify getLayer and exposure logs', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
 
     // should delegate to a bad config, which fetches from the server
     let layer = await statsig.getLayer(
@@ -230,7 +230,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify logEvent', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
     statsig.logEvent(statsigUser, 'add_to_cart', 'SKU_12345', {
       price: '9.99',
       item_name: 'diet_coke_48_pack',
@@ -249,7 +249,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   });
 
   test('Verify partial rollout', async () => {
-    await statsig.initialize('secret-123');
+    await statsig.initialize('secret-123', { diableDiagnostics: true });
     expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
       INIT_RESPONSE,
     );

@@ -7,6 +7,7 @@ const DEFAULT_ID_LISTS_SYNC_INTERVAL = 60 * 1000;
 const MIN_ID_LISTS_SYNC_INTERVAL = 30 * 1000;
 const DEFAULT_LOGGING_INTERVAL = 60 * 1000;
 const DEFAULT_MAX_LOGGING_BUFFER_SIZE = 1000;
+const DEFAULT_LOG_DIAGNOSTICS = false;
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
 
@@ -27,6 +28,7 @@ export type ExplicitStatsigOptions = {
   idListsSyncIntervalMs: number;
   loggingIntervalMs: number;
   loggingMaxBufferSize: number;
+  diableDiagnostics: boolean;
 };
 
 /**
@@ -66,6 +68,7 @@ export function OptionsWithDefaults(
       getNumber(opts, 'loggingMaxBufferSize', DEFAULT_MAX_LOGGING_BUFFER_SIZE),
       DEFAULT_MAX_LOGGING_BUFFER_SIZE,
     ),
+    diableDiagnostics: getBoolean(opts, "diableDiagnostics", DEFAULT_LOG_DIAGNOSTICS),
   };
 }
 

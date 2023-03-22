@@ -43,7 +43,7 @@ describe('Layer Exposure Logging', () => {
   });
 
   it('does not log on invalid types', async () => {
-    await statsig.initialize('secret-key');
+    await statsig.initialize('secret-key', { diableDiagnostics: true });
 
     const layer = await statsig.getLayer(user, 'unallocated_layer');
     layer.get('an_int', 'err');
@@ -54,7 +54,7 @@ describe('Layer Exposure Logging', () => {
 
   describe.each([['getValue'], ['get']])('with method "%s"', (method) => {
     it('logs layers without an allocated experiment correctly', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       let layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('an_int', 0);
@@ -76,7 +76,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs explicit and implicit parameters correctly', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       let layer = await statsig.getLayer(
         user,
@@ -114,7 +114,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs different object types correctly', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       let layer = await statsig.getLayer(
         user,
@@ -149,7 +149,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('logs the correct name and user values', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       let layer = await statsig.getLayer(
         { userID: 'dan', email: 'd@n.com' },
@@ -173,7 +173,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('does not log on get layer', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       await statsig.getLayer(user, 'unallocated_layer');
       statsig.shutdown();
@@ -182,7 +182,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('does not log when shutdown', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       const layer = await statsig.getLayer(user, 'unallocated_layer');
       statsig.shutdown();
@@ -193,7 +193,7 @@ describe('Layer Exposure Logging', () => {
     });
 
     it('does not log non existent keys', async () => {
-      await statsig.initialize('secret-key');
+      await statsig.initialize('secret-123', { diableDiagnostics: true });
 
       const layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('a_string', 'err');

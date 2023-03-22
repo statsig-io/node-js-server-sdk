@@ -1,5 +1,6 @@
 const { getStatsigMetadata, poll } = require('./utils/core');
 import ConfigEvaluation from './ConfigEvaluation';
+import Diagnostics from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent from './LogEvent';
@@ -10,6 +11,7 @@ import StatsigFetcher from './utils/StatsigFetcher';
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
 const LAYER_EXPOSURE_EVENT = 'layer_exposure';
 const GATE_EXPOSURE_EVENT = 'gate_exposure';
+const DIAGNOSTIC_EVENT = 'diagnostics';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 const DEFAULT_VALUE_WARNING = 'default_value_type_mismatch';
 
@@ -305,5 +307,12 @@ export default class LogEventProcessor {
       this.deduper.clear();
     }
     return true;
+  }
+
+  public logDiagnosticsEvent(
+    diagnostics: Diagnostics,
+    user: StatsigUser | null = null,
+  ) {
+    this.logStatsigInternal(user, DIAGNOSTIC_EVENT, diagnostics.serialize());
   }
 }

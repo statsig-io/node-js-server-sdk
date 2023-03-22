@@ -2,6 +2,7 @@ import forge from 'node-forge';
 
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
+import Diagnostics from './Diagnostics';
 import { EvaluationDetails } from './EvaluationDetails';
 import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions } from './StatsigOptions';
@@ -44,8 +45,12 @@ export default class Evaluator {
 
   private store: SpecStore;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
-    this.store = new SpecStore(fetcher, options);
+  public constructor(
+    fetcher: StatsigFetcher,
+    options: ExplicitStatsigOptions,
+    init_diagnostics: Diagnostics | null = null,
+  ) {
+    this.store = new SpecStore(fetcher, options, init_diagnostics);
     this.gateOverrides = {};
     this.configOverrides = {};
     this.layerOverrides = {};
@@ -923,7 +928,9 @@ function getParameterCaseInsensitive(
     return undefined;
   }
   const asLowercase = key.toLowerCase();
-  const keyMatch = Object.keys(object).find(k => k.toLowerCase() === asLowercase);
+  const keyMatch = Object.keys(object).find(
+    (k) => k.toLowerCase() === asLowercase,
+  );
   if (keyMatch === undefined) {
     return undefined;
   }
