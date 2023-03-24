@@ -1,7 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-// @ts-ignore
+jest.mock('node-fetch', () => jest.fn());
 const fetch = require('node-fetch');
+const fetchActual = jest.requireActual('node-fetch');
 
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
@@ -12,52 +11,33 @@ const statsig = statsigsdk.default;
 let clientKey = 'client-wlH3WMkysINMhMU8VrNBkbjrEr2JQrqgxKwDPOUosJK';
 let secret = process.env.test_api_key;
 if (!secret) {
-  try {
-    secret = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key',
-      ),
-      'utf8',
-    );
-  } catch {}
+  throw 'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.';
 }
 
-if (secret) {
-  describe('Verify e2e behavior consistency /initialize vs getClientInitializeResponse', () => {
-    beforeEach(() => {
-      jest.restoreAllMocks();
-      jest.resetModules();
-      StatsigInstanceUtils.setInstance(null);
-    });
+describe('Verify e2e behavior consistency /initialize vs getClientInitializeResponse', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.resetModules();
+    StatsigInstanceUtils.setInstance(null);
+  });
 
-    [
-      {
-        api: 'https://api.statsig.com/v1',
-        environment: null,
+  [
+    {
+      api: 'https://api.statsig.com/v1',
+      environment: null,
+    },
+    {
+      api: 'https://api.statsig.com/v1',
+      environment: {
+        tier: 'development',
       },
-      {
-        api: 'https://api.statsig.com/v1',
-        environment: {
-          tier: 'development',
-        },
-      },
-    ].map((config) =>
-      test(`server and SDK evaluates gates to the same results on ${config.api}`, async () => {
-        await _validateInitializeConsistency(config.api, config.environment);
-      }),
-    );
-  });
-} else {
-  describe('fail for non employees', () => {
-    test('Intended failing test. Proceed with pull request unless you are a Statsig employee.', () => {
-      console.log(
-        'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.',
-      );
-      expect(true).toBe(false);
-    });
-  });
-}
+    },
+  ].map((config) =>
+    test(`server and SDK evaluates gates to the same results on ${config.api}`, async () => {
+      await _validateInitializeConsistency(config.api, config.environment);
+    }),
+  );
+});
 
 async function _validateInitializeConsistency(api, environment) {
   expect.assertions(1);
@@ -142,3 +122,21 @@ async function _validateInitializeConsistency(api, environment) {
   delete sdkInitializeResponse.generator;
   expect(sdkInitializeResponse).toEqual(testData);
 }
+
+async function filterGatesWithNoRules(reponse: Response) {
+  const body = await reponse.json();
+  body['feature_gates'] = body['feature_gates'].filter(({ rules }) => {
+    return rules.length > 0;
+  });
+  return new fetchActual.default.Response(JSON.stringify(body));
+}
+
+fetch.mockImplementation(async (url: string, params) => {
+  const res = await fetchActual(url, params);
+
+  if (url.toString().includes('/v1/download_config_specs')) {
+    return filterGatesWithNoRules(res);
+  }
+
+  return res;
+});
