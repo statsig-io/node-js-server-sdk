@@ -1,10 +1,12 @@
 // @ts-ignore
 let nodeFetch: (...args) => Promise<Response> = null;
-try {
-  var webpackBypass = '';
-  nodeFetch = require(`node-fetch${webpackBypass}`);
-} catch (err) {
-  // Ignore
+// @ts-ignore
+if (typeof EdgeRuntime !== 'string') {
+  try {
+    nodeFetch = require('node-fetch');
+  } catch (err) {
+    // Ignore
+  }
 }
 
 // @ts-ignore
