@@ -3,7 +3,8 @@ let nodeFetch: (...args) => Promise<Response> = null;
 // @ts-ignore
 if (typeof EdgeRuntime !== 'string') {
   try {
-    nodeFetch = require('node-fetch');
+    // 5.4.1-beta.0 specific for compatibility with module-only bundling
+    nodeFetch = require('node-fetch').default;
   } catch (err) {
     // Ignore
   }
