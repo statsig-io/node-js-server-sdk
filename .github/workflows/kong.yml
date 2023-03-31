@@ -32,7 +32,7 @@ jobs:
         run: npm install
 
       - name: Setup Node SDK
-        run: npm run kong -- setup nodejs --no-env -v
+        run: npm run kong -- setup nodejs -v
 
       - name: Build Bridge
         run: npm run kong -- build nodejs -v
