@@ -1,5 +1,11 @@
 name: KONG
 
+env:
+  test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
+  test_client_key: ${{ secrets. KONG_CLIENT_SDK_KEY }}
+  repo_pat: ${{ secrets.KONG_FINE_GRAINED_REPO_PAT }}
+  FORCE_COLOR: true
+
 on:
   workflow_dispatch:
   schedule:
@@ -16,25 +22,20 @@ jobs:
     steps:
       - name: Get KONG
         run: |
-          git clone https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/kong.git
+          git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git .
 
       - uses: actions/setup-node@v1
         with:
           node-version: '16.x'
 
+      - name: Install Deps
+        run: npm install
+
+      - name: Setup Node SDK
+        run: npm run kong -- setup nodejs --no-env -v
+
       - name: Build Bridge
-        run: |
-          cd kong
-          npm install
-          FORCE_COLOR=true npm run kong -- build nodejs -v
-        env:
-          repo_pat: ${{ secrets.KONG_REPO_PAT }}
+        run: npm run kong -- build nodejs -v
 
       - name: Run Tests
-        run: |
-          cd kong
-          npm install
-          FORCE_COLOR=true npm run kong -- test nodejs -w -r
-        env:
-          test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
-          test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+        run: npm run kong -- test nodejs -v -r
