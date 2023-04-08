@@ -25,10 +25,10 @@ export class EvaluationDetails {
     );
   }
 
-  static make(lastUpdateTime: number, initialUpdateTime: number, reason: EvaluationReason) {
+  static make(configSyncTime: number, initialUpdateTime: number, reason: EvaluationReason) {
     return new EvaluationDetails(
+      configSyncTime,
       initialUpdateTime,
-      lastUpdateTime,
       reason,
     );
   }
