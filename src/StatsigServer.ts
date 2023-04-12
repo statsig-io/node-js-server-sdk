@@ -63,7 +63,11 @@ export default class StatsigServer {
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
-    this._diagnostics = new Diagnostics("initialize", this._logger);
+    this._diagnostics = new Diagnostics({
+      context: "initialize", 
+      logger: this._logger, 
+      options: this._options
+    });
     this._evaluator = new Evaluator(this._fetcher, this._options, this._diagnostics);
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
