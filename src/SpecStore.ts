@@ -272,8 +272,8 @@ export default class SpecStore {
     if(!this.initialized){
       this.diagnostics?.mark('initialize', key, action, step, value);
     } else {
-      // follow up PR will add more diagnostics
-      // this.diagnostics?.mark('config_sync', key, action, step, value);
+      // Apply sampling here
+      this.diagnostics?.mark('config_sync', key, action, step, value);
     }
   }
 
