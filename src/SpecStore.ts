@@ -44,6 +44,7 @@ export default class SpecStore {
       fetcher: StatsigFetcher, 
       options: ExplicitStatsigOptions, 
       diagnostics: Diagnostics | null = null, 
+      config_sync_diagnostics : Diagnostics | null = null
     ) {
     this.fetcher = fetcher;
     this.api = options.api;
