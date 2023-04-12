@@ -1,5 +1,4 @@
 import LogEventProcessor from "./LogEventProcessor";
-import { StatsigOptions } from "./StatsigOptions";
 
 interface Marker {
   key: string;
@@ -17,17 +16,10 @@ export default class Diagnostics {
   private logger: LogEventProcessor;
   private disabled: boolean = false;
 
-
-  constructor(args: {
-    context: contextType, 
-    logger: LogEventProcessor, 
-    markers?: Marker[],
-    options?: StatsigOptions,
-  }) {
-    this.context = args.context;
-    this.logger = args.logger;
-    this.markers = args.markers ?? [];
-    this.disabled = args.options?.disableDiagnostics ?? false;
+  constructor(context: contextType, logger: LogEventProcessor, markers: Marker[] = []) {
+    this.context = context;
+    this.logger = logger;
+    this.markers = markers;
   }
 
   mark(
@@ -51,6 +43,10 @@ export default class Diagnostics {
 
   setContext(context: contextType){
     this.context = context
+  }
+
+  disable(){
+    this.disabled = true;
   }
 
   serialize() {
