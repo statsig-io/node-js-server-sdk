@@ -253,9 +253,9 @@ describe('InitDiagnostics', () => {
     assertMarkerEqual(markers[0], 'overall', 'start');
     assertMarkerEqual(markers[1], 'bootstrap', 'start', 'load');
     assertMarkerEqual(markers[2], 'bootstrap', 'end', 'load');
-    // Skip downloadConfig() / getIDList()
+    // Skip getIDList()
     assertMarkerEqual(markers[markers.length - 1], 'overall', 'end');
-    expect(markers.length).toBe(4);
+    expect(markers.length).toBe(8);
   });
 
   it('test data adapter init', async () => {
