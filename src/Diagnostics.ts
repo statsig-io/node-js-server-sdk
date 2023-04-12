@@ -1,3 +1,5 @@
+import LogEventProcessor from "./LogEventProcessor";
+
 interface Marker {
   key: string;
   step: string | null;
@@ -9,9 +11,12 @@ interface Marker {
 export default class Diagnostics {
   context: string;
   markers: Marker[];
+  private logger: LogEventProcessor;
+  private disabled: boolean = false;
 
-  constructor(context: string, markers: Marker[] = []) {
+  constructor(context: string, logger: LogEventProcessor, markers: Marker[] = []) {
     this.context = context;
+    this.logger = logger;
     this.markers = markers;
   }
 
@@ -21,6 +26,9 @@ export default class Diagnostics {
     step?: string,
     value?: string | number | boolean,
   ) {
+    if(this.disabled){
+      return;
+    }
     const marker = {
       key: key,
       action: action,
@@ -31,10 +39,21 @@ export default class Diagnostics {
     this.markers.push(marker);
   }
 
+  disable(){
+    this.disabled = true;
+  }
+
   serialize() {
     return {
       context: this.context,
       markers: this.markers,
     };
   }
+
+  logDiagnostics() {
+    if(this.disabled){
+      return;
+    }
+    this.logger.logDiagnosticsEvent(this)
+  } 
 }

@@ -38,9 +38,15 @@ export default class SpecStore {
   private syncFailureCount: number = 0;
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
   private init_diagnostics: Diagnostics | null;
+  private config_sync_diagnostics: Diagnostics | null;
   private bootstrapValues: string | null;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions, init_diagnostics: Diagnostics | null = null) {
+    public constructor(
+      fetcher: StatsigFetcher, 
+      options: ExplicitStatsigOptions, 
+      init_diagnostics: Diagnostics | null = null, 
+      config_sync_diagnostics : Diagnostics | null = null
+    ) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
@@ -61,6 +67,7 @@ export default class SpecStore {
     this.dataAdapter = options.dataAdapter;
     this.initReason = 'Uninitialized';
     this.init_diagnostics = init_diagnostics;
+    this.config_sync_diagnostics = config_sync_diagnostics;
     this.bootstrapValues = options.bootstrapValues;
   }
 
@@ -268,7 +275,9 @@ export default class SpecStore {
       if (shouldSyncFromAdapter) {
         await this._fetchConfigSpecsFromAdapter();
       } else {
+        this.config_sync_diagnostics?.mark('config_sync', 'start', 'networ_request');
         await this._fetchConfigSpecsFromServer();
+        this.config_sync_diagnostics?.mark('config_sync', 'start', 'networ_request');
       }
       this.syncFailureCount = 0;
     } catch (e) {
