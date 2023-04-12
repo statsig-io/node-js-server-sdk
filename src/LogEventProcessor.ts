@@ -1,6 +1,6 @@
 const { getStatsigMetadata, poll } = require('./utils/core');
 import ConfigEvaluation from './ConfigEvaluation';
-import Diagnostics from './Diagnostics';
+import Diagnostics, { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent from './LogEvent';
@@ -310,9 +310,12 @@ export default class LogEventProcessor {
   }
 
   public logDiagnosticsEvent(
-    diagnostics: Diagnostics,
+    diagnostics: {
+      context: string,
+      markers: Marker[]
+    },
     user: StatsigUser | null = null,
   ) {
-    this.logStatsigInternal(user, DIAGNOSTIC_EVENT, diagnostics.serialize());
+    this.logStatsigInternal(user, DIAGNOSTIC_EVENT, diagnostics);
   }
 }
