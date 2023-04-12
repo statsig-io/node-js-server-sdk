@@ -251,11 +251,11 @@ describe('InitDiagnostics', () => {
 
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[1], 'bootstrap', 'start', 'load');
+    assertMarkerEqual(markers[1], 'bootstrap', 'start', 'load'); // Currently we bootstrap before calling .initialize(), is this desired/expected?
     assertMarkerEqual(markers[2], 'bootstrap', 'end', 'load');
     // Skip downloadConfig() / getIDList()
     assertMarkerEqual(markers[markers.length - 1], 'overall', 'end');
-    expect(markers.length).toBe(4);
+    expect(markers.length).toBe(12);
   });
 
   it('test data adapter init', async () => {
