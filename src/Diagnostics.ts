@@ -8,15 +8,13 @@ interface Marker {
   timestamp: number;
 }
 
-type contextType = 'initialize' | 'config_sync';
-
 export default class Diagnostics {
-  context: contextType;
+  context: string;
   markers: Marker[];
   private logger: LogEventProcessor;
   private disabled: boolean = false;
 
-  constructor(context: contextType, logger: LogEventProcessor, markers: Marker[] = []) {
+  constructor(context: string, logger: LogEventProcessor, markers: Marker[] = []) {
     this.context = context;
     this.logger = logger;
     this.markers = markers;
@@ -39,10 +37,6 @@ export default class Diagnostics {
       timestamp: Date.now(),
     };
     this.markers.push(marker);
-  }
-
-  setContext(context: contextType){
-    this.context = context
   }
 
   disable(){

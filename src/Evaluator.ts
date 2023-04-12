@@ -48,9 +48,10 @@ export default class Evaluator {
   public constructor(
     fetcher: StatsigFetcher,
     options: ExplicitStatsigOptions,
-    diagnostics: Diagnostics | null = null,
+    init_diagnostics: Diagnostics | null = null,
+    config_sync_diagnostics : Diagnostics | null = null,
   ) {
-    this.store = new SpecStore(fetcher, options, diagnostics);
+    this.store = new SpecStore(fetcher, options, init_diagnostics, config_sync_diagnostics);
     this.gateOverrides = {};
     this.configOverrides = {};
     this.layerOverrides = {};
