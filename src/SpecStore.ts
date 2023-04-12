@@ -128,6 +128,7 @@ export default class SpecStore {
           }
           this.setInitialUpdateTime();
           this.handleDiagnostics("bootstrap", "end", "load");
+          this.initialized = true;
         } catch (e) {
           console.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
