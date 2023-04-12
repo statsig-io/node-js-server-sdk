@@ -55,7 +55,6 @@ export default class StatsigServer {
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
   private _init_diagnostics: Diagnostics;
-  private _config_sync_diagnostics: Diagnostics;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
@@ -63,10 +62,9 @@ export default class StatsigServer {
     this._pendingInitPromise = null;
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
+    this._init_diagnostics = new Diagnostics("initialize");
+    this._evaluator = new Evaluator(this._fetcher, this._options, this._init_diagnostics);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
-    this._init_diagnostics = new Diagnostics("initialize", this._logger);
-    this._config_sync_diagnostics = new Diagnostics("configSync", this._logger);
-    this._evaluator = new Evaluator(this._fetcher, this._options, this._init_diagnostics, this._config_sync_diagnostics);
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
@@ -102,8 +100,7 @@ export default class StatsigServer {
           this._ready = true;
           this._pendingInitPromise = null;
           this._init_diagnostics.mark("overall", "end")
-          this._init_diagnostics.logDiagnostics();
-          this._init_diagnostics.disable()
+          this.logDiagnostics(this._init_diagnostics)
         });
         if (
           this._options.initTimeoutMs != null &&
@@ -132,6 +129,13 @@ export default class StatsigServer {
     );
   }
 
+  private logDiagnostics(diagnostics: Diagnostics) {
+    if(this._options.disableDiagnostics){
+      return;
+    }
+    this._logger.logDiagnosticsEvent(diagnostics)
+    
+  } 
   /**
    * Check the value of a gate configured in the statsig console
    * @throws Error if initialize() was not called first
