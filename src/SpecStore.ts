@@ -37,14 +37,14 @@ export default class SpecStore {
   private dataAdapter: IDataAdapter | null;
   private syncFailureCount: number = 0;
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
-  private init_diagnostics: Diagnostics | null;
+  private diagnostics: Diagnostics | null;
   private config_sync_diagnostics: Diagnostics | null;
   private bootstrapValues: string | null;
 
     public constructor(
       fetcher: StatsigFetcher, 
       options: ExplicitStatsigOptions, 
-      init_diagnostics: Diagnostics | null = null, 
+      diagnostics: Diagnostics | null = null, 
       config_sync_diagnostics : Diagnostics | null = null
     ) {
     this.fetcher = fetcher;
@@ -66,7 +66,7 @@ export default class SpecStore {
     this.idListsSyncTimer = null;
     this.dataAdapter = options.dataAdapter;
     this.initReason = 'Uninitialized';
-    this.init_diagnostics = init_diagnostics;
+    this.diagnostics = diagnostics;
     this.config_sync_diagnostics = config_sync_diagnostics;
     this.bootstrapValues = options.bootstrapValues;
   }
@@ -124,14 +124,14 @@ export default class SpecStore {
         );
       } else {
         try {
-          this.init_diagnostics?.mark("bootstrap", "start", "load")
+          this.diagnostics?.mark("bootstrap", "start", "load")
           specsJSON = JSON.parse(this.bootstrapValues);
           if (this._process(specsJSON)) {
             this.initReason = 'Bootstrap';
           }
           this.setInitialUpdateTime();
           this.initialized = true;
-          this.init_diagnostics?.mark("bootstrap", "end", "load")
+          this.diagnostics?.mark("bootstrap", "end", "load")
         } catch (e) {
           console.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
@@ -151,9 +151,9 @@ export default class SpecStore {
       this._syncValues();
     } else {
       if (adapter) {
-        this.init_diagnostics?.mark("data_adapter", "start", "load")
+        this.diagnostics?.mark("data_adapter", "start", "load")
         await this._fetchConfigSpecsFromAdapter();
-        this.init_diagnostics?.mark("data_adapter", "end", "load")
+        this.diagnostics?.mark("data_adapter", "end", "load")
       }
       if (this.lastUpdateTime === 0) {
         await this._syncValues(true);
@@ -194,7 +194,7 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    this.init_diagnostics?.mark("download_config_specs", "start", "network_request")
+    this.diagnostics?.mark("download_config_specs", "start", "network_request");
     let response: Response | null = null;
     try {
       response = await this.fetcher.post(
@@ -207,10 +207,10 @@ export default class SpecStore {
     } catch (e){
       throw e;
     } finally {
-      this.init_diagnostics?.mark("download_config_specs", "end", "network_request", response?.status ?? "request error"); // Need a better way of getting status code
+      this.diagnostics?.mark("download_config_specs", "end", "network_request", response?.status ?? "request error"); // Need a better way of getting status code
     }
     
-    this.init_diagnostics?.mark("download_config_specs", "start", "process");
+    this.diagnostics?.mark("download_config_specs", "start", "process");
     const specsString = await response.text();
     const processResult = this._process(JSON.parse(specsString));
     if (!processResult) {
@@ -224,7 +224,7 @@ export default class SpecStore {
       this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
-    this.init_diagnostics?.mark("download_config_specs", "end", "process", this.initReason === "Network");
+    this.diagnostics?.mark("download_config_specs", "end", "process", this.initReason === "Network");
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
@@ -275,9 +275,7 @@ export default class SpecStore {
       if (shouldSyncFromAdapter) {
         await this._fetchConfigSpecsFromAdapter();
       } else {
-        this.config_sync_diagnostics?.mark('config_sync', 'start', 'networ_request');
         await this._fetchConfigSpecsFromServer();
-        this.config_sync_diagnostics?.mark('config_sync', 'start', 'networ_request');
       }
       this.syncFailureCount = 0;
     } catch (e) {
@@ -433,18 +431,18 @@ export default class SpecStore {
 
   private async syncIdListsFromNetwork(): Promise<void> {
     try {
-      this.init_diagnostics?.mark("get_id_lists", "start", "network_request")
+      this.diagnostics?.mark("get_id_lists", "start", "network_request")
       const response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
 
-      this.init_diagnostics?.mark("get_id_lists", "end", "network_request", response.status)
+      this.diagnostics?.mark("get_id_lists", "end", "network_request", response.status)
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
       if (!lookup) {
         return;
       }
-      this.init_diagnostics?.mark("get_id_lists", "start", "process", Object.entries(lookup).length)
+      this.diagnostics?.mark("get_id_lists", "start", "process", Object.entries(lookup).length)
       let promises = [];
 
       for (const [name, item] of Object.entries(lookup)) {
@@ -522,9 +520,9 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-      this.init_diagnostics?.mark("get_id_lists", "end", "process", true)
+      this.diagnostics?.mark("get_id_lists", "end", "process", true)
     } catch (e) { 
-      this.init_diagnostics?.mark("get_id_lists", "end", "process", false)
+      this.diagnostics?.mark("get_id_lists", "end", "process", false)
      }
   }
 

@@ -54,8 +54,7 @@ export default class StatsigServer {
   private _evaluator: Evaluator;
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
-  private _init_diagnostics: Diagnostics;
-  private _config_sync_diagnostics: Diagnostics;
+  private _diagnostics: Diagnostics;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
@@ -64,9 +63,8 @@ export default class StatsigServer {
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
-    this._init_diagnostics = new Diagnostics("initialize", this._logger);
-    this._config_sync_diagnostics = new Diagnostics("configSync", this._logger);
-    this._evaluator = new Evaluator(this._fetcher, this._options, this._init_diagnostics, this._config_sync_diagnostics);
+    this._diagnostics = new Diagnostics("initialize", this._logger);
+    this._evaluator = new Evaluator(this._fetcher, this._options, this._diagnostics);
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
@@ -77,7 +75,7 @@ export default class StatsigServer {
   public initializeAsync(): Promise<void> {
     return this._errorBoundary.capture(
       () => {
-        this._init_diagnostics.mark("overall", "start")
+        this._diagnostics.mark("overall", "start")
         if (this._pendingInitPromise != null) {
           return this._pendingInitPromise;
         }
@@ -101,9 +99,9 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
-          this._init_diagnostics.mark("overall", "end")
-          this._init_diagnostics.logDiagnostics();
-          this._init_diagnostics.disable()
+          this._diagnostics.mark("overall", "end");
+          this._diagnostics.logDiagnostics();
+          this._diagnostics.setContext("config_sync");
         });
         if (
           this._options.initTimeoutMs != null &&
