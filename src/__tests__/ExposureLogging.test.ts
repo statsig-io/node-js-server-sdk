@@ -43,7 +43,7 @@ describe('ExposureLogging', () => {
     events = [];
 
     StatsigInstanceUtils.setInstance(null);
-    await Statsig.initialize('secret-key', { diableDiagnostics: true });
+    await Statsig.initialize('secret-key', { disableDiagnostics: true });
 
     // @ts-ignore
     StatsigInstanceUtils.getInstance()._options.loggingMaxBufferSize = 1;

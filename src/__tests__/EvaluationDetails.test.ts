@@ -53,7 +53,7 @@ describe('Evaluation Details', () => {
     });
 
     events = [];
-    server = new StatsigServer('secret-key', { diableDiagnostics: true });
+    server = new StatsigServer('secret-key', { disableDiagnostics: true });
 
     await server.initializeAsync();
   });
@@ -62,7 +62,7 @@ describe('Evaluation Details', () => {
     returnConfigSpecsResponse = false;
     const uninitializedServer = new StatsigServer('secret-key', {
       bootstrapValues: '{ "Invalid Boostrap": "JSON" }',
-      diableDiagnostics: true,
+      disableDiagnostics: true,
     });
 
     await uninitializedServer.initializeAsync();
@@ -135,7 +135,7 @@ describe('Evaluation Details', () => {
     returnConfigSpecsResponse = false;
     const bootstrapServer = new StatsigServer('secret-key', {
       bootstrapValues: CONFIG_SPEC_RESPONSE,
-      diableDiagnostics: true,
+      disableDiagnostics: true,
     });
     await bootstrapServer.initializeAsync();
 
@@ -166,7 +166,7 @@ describe('Evaluation Details', () => {
         initialize: () => Promise.resolve(),
         shutdown: () => Promise.resolve(),
       },
-      diableDiagnostics: true,
+      disableDiagnostics: true,
     });
     await dataStoreServer.initializeAsync();
 

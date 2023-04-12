@@ -80,7 +80,7 @@ describe('Backward Compatibility', () => {
     ['const statsig = require(...', require('../index')],
   ])('test functionality for %p', async (title, statsig) => {
     clearStatsig();
-    await statsig.initialize('secret-key', {diableDiagnostics: true});
+    await statsig.initialize('secret-key', {disableDiagnostics: true});
 
     const gateResult = await statsig.checkGate(user, 'test_public');
     expect(gateResult).toBe(true);

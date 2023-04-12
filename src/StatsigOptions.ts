@@ -28,7 +28,7 @@ export type ExplicitStatsigOptions = {
   idListsSyncIntervalMs: number;
   loggingIntervalMs: number;
   loggingMaxBufferSize: number;
-  diableDiagnostics: boolean;
+  disableDiagnostics: boolean;
 };
 
 /**
@@ -68,7 +68,7 @@ export function OptionsWithDefaults(
       getNumber(opts, 'loggingMaxBufferSize', DEFAULT_MAX_LOGGING_BUFFER_SIZE),
       DEFAULT_MAX_LOGGING_BUFFER_SIZE,
     ),
-    diableDiagnostics: getBoolean(opts, "diableDiagnostics", DEFAULT_LOG_DIAGNOSTICS),
+    disableDiagnostics: getBoolean(opts, "disableDiagnostics", DEFAULT_LOG_DIAGNOSTICS),
   };
 }
 

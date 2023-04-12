@@ -130,7 +130,7 @@ export default class StatsigServer {
   }
 
   private logDiagnostics(diagnostics: Diagnostics) {
-    if(this._options.diableDiagnostics){
+    if(this._options.disableDiagnostics){
       return;
     }
     this._logger.logDiagnosticsEvent(diagnostics)
