@@ -10,14 +10,13 @@ interface Marker {
 }
 
 type contextType = 'initialize' | 'config_sync';
-type keysType = 'download_config_specs' | 'bootstrap' | 'get_id_lists' | 'data_adapter' | 'overall';
-type actionType = 'start' | 'end';
 
 export default class Diagnostics {
   context: contextType;
   markers: Marker[];
   private logger: LogEventProcessor;
   private disabled: boolean = false;
+
 
   constructor(args: {
     context: contextType, 
@@ -32,8 +31,8 @@ export default class Diagnostics {
   }
 
   mark(
-    key: keysType,
-    action: actionType,
+    key: string,
+    action: string,
     step?: string,
     value?: string | number | boolean,
   ) {
