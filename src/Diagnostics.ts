@@ -5,9 +5,9 @@ import { ExhaustSwitchError } from "./utils/core";
 export interface Marker {
   key: KeyType;
   action: ActionType;
-  step: string | null;
-  value: string | number | boolean | null;
-  timestamp: number;
+  step?: string;
+  value?: string | number | boolean | null;
+  timestamp?: number;
 }
 
 export type contextType = 'initialize' | 'config_sync';
@@ -49,8 +49,8 @@ export default class Diagnostics {
     const marker: Marker = {
       key,
       action,
-      step: step ?? null,
-      value: value ?? null,
+      step,
+      value,
       timestamp: Date.now(), 
     }
     switch (context){
