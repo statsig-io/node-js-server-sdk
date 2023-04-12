@@ -64,6 +64,7 @@ export default class StatsigServer {
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
     this._logger = new LogEventProcessor(this._fetcher, this._options);
     this._diagnostics = new Diagnostics({
+      context: "initialize", 
       logger: this._logger, 
       options: this._options
     });
@@ -78,7 +79,7 @@ export default class StatsigServer {
   public initializeAsync(): Promise<void> {
     return this._errorBoundary.capture(
       () => {
-        this._diagnostics.mark('initialize', "overall", "start")
+        this._diagnostics.mark("overall", "start")
         if (this._pendingInitPromise != null) {
           return this._pendingInitPromise;
         }
@@ -102,8 +103,9 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
-          this._diagnostics.mark('initialize', "overall", "end");
-          this._diagnostics.logDiagnostics('initialize');
+          this._diagnostics.mark("overall", "end");
+          this._diagnostics.logDiagnostics();
+          this._diagnostics.setContext("config_sync");
         });
         if (
           this._options.initTimeoutMs != null &&
