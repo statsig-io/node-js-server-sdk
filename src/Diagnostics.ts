@@ -17,7 +17,7 @@ export type KeyType =
   | 'get_id_lists'
   | 'data_adapter'
   | 'overall';
-export type ActionType = 'start' | 'end' | 'timeout';
+export type ActionType = 'start' | 'end';
 
 type DiagnosticsMarkers = {
   intialize: Marker[];
@@ -29,11 +29,12 @@ export default class Diagnostics {
   markers: DiagnosticsMarkers;
   private disable: boolean;
   private logger: LogEventProcessor;
+  private options: StatsigOptions;
 
   constructor(args: {
     logger: LogEventProcessor;
-    markers?: DiagnosticsMarkers;
     options?: StatsigOptions;
+    markers?: DiagnosticsMarkers;
   }) {
     this.logger = args.logger;
     this.markers = args.markers ?? {
@@ -42,6 +43,7 @@ export default class Diagnostics {
       eventLogging: [],
     };
     this.disable = args.options?.disableDiagnostics ?? false;
+    this.options = args.options ?? {};
   }
 
   mark(
@@ -93,6 +95,7 @@ export default class Diagnostics {
         this.logger.logDiagnosticsEvent({
           context,
           markers: this.markers.intialize,
+          initTimeoutMs: this.options.initTimeoutMs,
         });
         this.markers.intialize = [];
         break;

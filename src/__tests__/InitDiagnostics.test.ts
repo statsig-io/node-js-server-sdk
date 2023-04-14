@@ -134,7 +134,7 @@ describe('InitDiagnostics', () => {
     );
     assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 0); // do we want to log "process" if id list is empty??
     assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[9], 'overall', 'end');
+    assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(10);
   });
 
@@ -180,7 +180,7 @@ describe('InitDiagnostics', () => {
     );
     assertMarkerEqual(markers[5], 'get_id_lists', 'start', 'process', 0); // do we want to log "process" if id list is empty??
     assertMarkerEqual(markers[6], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[7], 'overall', 'end');
+    assertMarkerEqual(markers[7], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(8);
   });
 
@@ -219,7 +219,7 @@ describe('InitDiagnostics', () => {
     );
     assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 1); // do we want to log "process" if id list is empty??
     assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[9], 'overall', 'end');
+    assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(10);
   });
 
@@ -254,7 +254,7 @@ describe('InitDiagnostics', () => {
     assertMarkerEqual(markers[1], 'bootstrap', 'start', 'load');
     assertMarkerEqual(markers[2], 'bootstrap', 'end', 'load');
     // Skip downloadConfig() / getIDList()
-    assertMarkerEqual(markers[markers.length - 1], 'overall', 'end');
+    assertMarkerEqual(markers[markers.length - 1], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(12);
   });
 
@@ -303,7 +303,7 @@ describe('InitDiagnostics', () => {
     assertMarkerEqual(markers[0], 'overall', 'start');
     assertMarkerEqual(markers[1], 'data_adapter', 'start', 'load');
     assertMarkerEqual(markers[2], 'data_adapter', 'end', 'load');
-    assertMarkerEqual(markers[3], 'overall', 'end');
+    assertMarkerEqual(markers[3], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(4);
   });
 });

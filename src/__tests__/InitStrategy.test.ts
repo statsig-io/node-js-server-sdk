@@ -118,7 +118,7 @@ describe('InitStrategy', () => {
     );
     assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 1); // do we want to log "process" if id list is empty??
     assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[9], 'overall', 'end');
+    assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(10);
 
     expect(idlistCalled).toBe(true);
@@ -149,7 +149,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end');
+    assertMarkerEqual(markers[5], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(6);
 
     expect(idlistCalled).toBe(false);
@@ -184,7 +184,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end');
+    assertMarkerEqual(markers[5], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(6);
     jest.runOnlyPendingTimers();
 

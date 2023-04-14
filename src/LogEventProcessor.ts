@@ -313,6 +313,7 @@ export default class LogEventProcessor {
     diagnostics: {
       context: string,
       markers: Marker[]
+      initTimeoutMs?: number,
     },
     user: StatsigUser | null = null,
   ) {

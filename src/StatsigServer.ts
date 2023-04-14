@@ -102,7 +102,7 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
-          this._diagnostics.mark('initialize', "overall", "end");
+          this._diagnostics.mark('initialize', "overall", "end", undefined, 'success');
           this._diagnostics.logDiagnostics('initialize');
         });
         if (
@@ -113,7 +113,7 @@ export default class StatsigServer {
             initPromise,
             new Promise((resolve) => {
               setTimeout(() => {
-                this._diagnostics.mark('initialize', "overall", "timeout", undefined, this._options.initTimeoutMs);
+                this._diagnostics.mark('initialize', "overall", "end", undefined, 'timeout');
                 this._diagnostics.logDiagnostics('initialize');
                 this._ready = true;
                 this._pendingInitPromise = null;
