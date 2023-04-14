@@ -1,5 +1,5 @@
 import { ConfigSpec } from './ConfigSpec';
-import Diagnostics from './Diagnostics';
+import Diagnostics, { ActionType, KeyType } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
@@ -37,11 +37,15 @@ export default class SpecStore {
   private dataAdapter: IDataAdapter | null;
   private syncFailureCount: number = 0;
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
-  private init_diagnostics: Diagnostics | null;
+  private diagnostics: Diagnostics;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions, init_diagnostics: Diagnostics | null = null) {
+    public constructor(
+      fetcher: StatsigFetcher, 
+      options: ExplicitStatsigOptions, 
+      diagnostics: Diagnostics, 
+    ) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
@@ -61,7 +65,7 @@ export default class SpecStore {
     this.idListsSyncTimer = null;
     this.dataAdapter = options.dataAdapter;
     this.initReason = 'Uninitialized';
-    this.init_diagnostics = init_diagnostics;
+    this.diagnostics = diagnostics;
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
   }
@@ -119,14 +123,13 @@ export default class SpecStore {
         );
       } else {
         try {
-          this.init_diagnostics?.mark("bootstrap", "start", "load")
+          this.handleDiagnostics("bootstrap", "start", "load");
           specsJSON = JSON.parse(this.bootstrapValues);
           if (this._process(specsJSON)) {
             this.initReason = 'Bootstrap';
           }
           this.setInitialUpdateTime();
-          this.initialized = true;
-          this.init_diagnostics?.mark("bootstrap", "end", "load")
+          this.handleDiagnostics("bootstrap", "end", "load");
         } catch (e) {
           console.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
@@ -142,13 +145,13 @@ export default class SpecStore {
 
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
     // need to wait for _syncValues() to finish before returning.
-    if (this.initialized) {
+    if (this.initReason === 'Bootstrap') {
       this._syncValues();
     } else {
       if (adapter) {
-        this.init_diagnostics?.mark("data_adapter", "start", "load")
+        this.handleDiagnostics("data_adapter", "start", "load");
         await this._fetchConfigSpecsFromAdapter();
-        this.init_diagnostics?.mark("data_adapter", "end", "load")
+        this.handleDiagnostics("data_adapter", "end", "load");
       }
       if (this.lastUpdateTime === 0) {
         await this._syncValues(true);
@@ -199,7 +202,7 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    this.init_diagnostics?.mark("download_config_specs", "start", "network_request")
+    this.handleDiagnostics('download_config_specs', 'start', 'network_request');
     let response: Response | null = null;
     try {
       response = await this.fetcher.post(
@@ -212,10 +215,10 @@ export default class SpecStore {
     } catch (e){
       throw e;
     } finally {
-      this.init_diagnostics?.mark("download_config_specs", "end", "network_request", response?.status ?? "request error"); // Need a better way of getting status code
+      this.handleDiagnostics('download_config_specs', 'end', 'network_request', response?.status ?? "request error");
     }
     
-    this.init_diagnostics?.mark("download_config_specs", "start", "process");
+    this.handleDiagnostics( "download_config_specs", "start", "process");
     const specsString = await response.text();
     const processResult = this._process(JSON.parse(specsString));
     if (!processResult) {
@@ -229,7 +232,7 @@ export default class SpecStore {
       this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
-    this.init_diagnostics?.mark("download_config_specs", "end", "process", this.initReason === "Network");
+    this.handleDiagnostics("download_config_specs", "end", "process", this.initReason === "Network");
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
@@ -269,6 +272,17 @@ export default class SpecStore {
       this.idListsSyncTimer = poll(async () => {
         await this._syncIdLists();
       }, this.idListSyncInterval);
+    }
+  }
+
+  private handleDiagnostics(
+    key: KeyType,
+    action: ActionType,
+    step?: string,
+    value?: string | number | boolean,
+  ){
+    if(!this.initialized){
+      this.diagnostics.mark('initialize', key, action, step, value);
     }
   }
 
@@ -440,18 +454,17 @@ export default class SpecStore {
 
   private async syncIdListsFromNetwork(): Promise<void> {
     try {
-      this.init_diagnostics?.mark("get_id_lists", "start", "network_request")
+      this.handleDiagnostics("get_id_lists", "start", "network_request");
       const response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
-
-      this.init_diagnostics?.mark("get_id_lists", "end", "network_request", response.status)
+      this.handleDiagnostics("get_id_lists", "end", "network_request", response.status);
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
       if (!lookup) {
         return;
       }
-      this.init_diagnostics?.mark("get_id_lists", "start", "process", Object.entries(lookup).length)
+      this.handleDiagnostics("get_id_lists", "start", "process", Object.entries(lookup).length);
       let promises = [];
 
       for (const [name, item] of Object.entries(lookup)) {
@@ -529,9 +542,9 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-      this.init_diagnostics?.mark("get_id_lists", "end", "process", true)
+      this.handleDiagnostics("get_id_lists", "end", "process", true);
     } catch (e) { 
-      this.init_diagnostics?.mark("get_id_lists", "end", "process", false)
+      this.handleDiagnostics("get_id_lists", "end", "process", false);
      }
   }
 

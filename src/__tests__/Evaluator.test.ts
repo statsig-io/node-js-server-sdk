@@ -1,7 +1,9 @@
 import ConfigEvaluation from '../ConfigEvaluation';
 import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
+import Diagnostics from '../Diagnostics';
 const exampleConfigSpecs = require('./jest.setup');
 import Evaluator from '../Evaluator';
+import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
@@ -521,14 +523,22 @@ fetch.mockImplementation((url) => {
 
 describe('testing checkGate and getConfig', () => {
   let evaluator: Evaluator;
+  const options = OptionsWithDefaults({});
+  const logger = new LogEventProcessor(
+    new StatsigFetcher('secret-asdf1234', options),
+    options,
+  );
+  const diagnostics = new Diagnostics({ logger });
 
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
     const network = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
+
     evaluator = new Evaluator(
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
+      diagnostics,
     );
 
     let now = Date.now();

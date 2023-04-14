@@ -2,6 +2,8 @@ import SpecStore from '../SpecStore';
 import { ConfigSpec } from '../ConfigSpec';
 import StatsigFetcher from '../utils/StatsigFetcher';
 import { OptionsWithDefaults } from '../StatsigOptions';
+import Diagnostics from '../Diagnostics';
+import LogEventProcessor from '../LogEventProcessor';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -67,6 +69,11 @@ fetch.mockImplementation((url, params) => {
 
 describe('Verify behavior of SpecStore', () => {
   let store;
+  const options = OptionsWithDefaults({});
+  const logger = new LogEventProcessor(
+    new StatsigFetcher('secret-asdf1234', options),
+    options,
+  );
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
@@ -75,12 +82,14 @@ describe('Verify behavior of SpecStore', () => {
       rulesetsSyncIntervalMs: 1000,
       idListsSyncIntervalMs: 1000,
     });
+    const diagnostics = new Diagnostics({ logger });
+
 
     // Get around the limit;
     options.rulesetsSyncIntervalMs = 1000;
     options.idListsSyncIntervalMs = 1000;
 
-    store = new SpecStore(net, options);
+    store = new SpecStore(net, options, diagnostics);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });

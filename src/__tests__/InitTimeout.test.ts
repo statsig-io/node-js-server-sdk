@@ -18,8 +18,19 @@ const jsonResponse = {
   has_updates: true,
 };
 
+let events: {
+  eventName: string;
+  metadata: { gate?: string; config?: string; isManualExposure?: string };
+}[] = [];
+
 // @ts-ignore
-fetch.mockImplementation((url) => {
+fetch.mockImplementation((url, params) => {
+  if (url.includes('log_event')) {
+    events = events.concat(JSON.parse(params.body)['events']);
+    return Promise.resolve({
+      ok: true,
+    });
+  }
   if (url.includes('download_config_specs')) {
     return new Promise((res) => {
       setTimeout(
@@ -42,6 +53,8 @@ describe('Test local mode with overrides', () => {
   jest.useFakeTimers();
 
   beforeEach(() => {
+    events = [];
+
     let now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
     jest.resetModules();
@@ -70,6 +83,13 @@ describe('Test local mode with overrides', () => {
         'nfl_gate',
       ),
     ).resolves.toBe(false);
+
+    statsig.shutdown();
+    expect(events).toHaveLength(2); // 1 for init, 1 for gate check
+    const markers = events.find(e => e.eventName === 'statsig::diagnostics')?.['metadata']['markers'];
+    expect(markers).toHaveLength(3);
+    expect(markers[2]['action']).toBe('timeout');
+    expect(markers[2]['value']).toBe(250);
   });
 
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {

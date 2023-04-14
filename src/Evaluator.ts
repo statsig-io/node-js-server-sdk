@@ -50,9 +50,9 @@ export default class Evaluator {
   public constructor(
     fetcher: StatsigFetcher,
     options: ExplicitStatsigOptions,
-    init_diagnostics: Diagnostics | null = null,
+    diagnostics: Diagnostics,
   ) {
-    this.store = new SpecStore(fetcher, options, init_diagnostics);
+    this.store = new SpecStore(fetcher, options, diagnostics);
     this.initStrategyForIP3Country = options.initStrategyForIP3Country;  
     this.gateOverrides = {};
     this.configOverrides = {};
