@@ -6,6 +6,7 @@ import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
   RulesUpdatedCallback,
   StatsigEnvironment,
+  InitStrategy,
   StatsigOptions,
 } from './StatsigOptions';
 import StatsigServer, { LogEventObject } from './StatsigServer';
@@ -19,8 +20,10 @@ export {
   StatsigUser,
   StatsigOptions,
   StatsigEnvironment,
+  InitStrategy,
   IDataAdapter,
   AdapterResponse,
+  StatsigServer,
 };
 
 export const Statsig = {

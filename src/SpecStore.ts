@@ -3,7 +3,7 @@ import Diagnostics from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
-import { ExplicitStatsigOptions } from './StatsigOptions';
+import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
@@ -39,6 +39,7 @@ export default class SpecStore {
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
   private init_diagnostics: Diagnostics | null;
   private bootstrapValues: string | null;
+  private initStrategyForIDLists: InitStrategy;
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions, init_diagnostics: Diagnostics | null = null) {
     this.fetcher = fetcher;
@@ -62,6 +63,7 @@ export default class SpecStore {
     this.initReason = 'Uninitialized';
     this.init_diagnostics = init_diagnostics;
     this.bootstrapValues = options.bootstrapValues;
+    this.initStrategyForIDLists = options.initStrategyForIDLists;
   }
 
   public getInitReason() {
@@ -154,16 +156,26 @@ export default class SpecStore {
 
       this.setInitialUpdateTime();
     }
+    if (this.initStrategyForIDLists === 'lazy') {
+      setTimeout(async () => {
+        await this._initIDLists();
+      }, 0);
+    } else if (this.initStrategyForIDLists !== 'none') {
+      await this._initIDLists();
+    }
 
+    this.pollForUpdates();
+    this.initialized = true;
+  }
+
+  private async _initIDLists(): Promise<void> {
+    const adapter = this.dataAdapter;
     const bootstrapIdLists = await adapter?.get(DataAdapterKey.IDLists);
     if (adapter && typeof bootstrapIdLists?.result === 'string') {
       await this.syncIdListsFromDataAdapter(adapter, bootstrapIdLists.result);
     } else {
       await this.syncIdListsFromNetwork();
     }
-
-    this.pollForUpdates();
-    this.initialized = true;
   }
 
   public resetSyncTimerIfExited(): Error | null {
@@ -293,6 +305,10 @@ export default class SpecStore {
   }
 
   private async _syncIdLists(): Promise<void> {
+    if (this.initStrategyForIDLists === 'none') {
+      return;
+    }
+  
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter = adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
     const adapterIdLists = await adapter?.get(DataAdapterKey.IDLists);

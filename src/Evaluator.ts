@@ -5,7 +5,7 @@ import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import Diagnostics from './Diagnostics';
 import { EvaluationDetails } from './EvaluationDetails';
 import SpecStore from './SpecStore';
-import { ExplicitStatsigOptions } from './StatsigOptions';
+import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
@@ -45,12 +45,15 @@ export default class Evaluator {
 
   private store: SpecStore;
 
+  private initStrategyForIP3Country: InitStrategy;
+
   public constructor(
     fetcher: StatsigFetcher,
     options: ExplicitStatsigOptions,
     init_diagnostics: Diagnostics | null = null,
   ) {
     this.store = new SpecStore(fetcher, options, init_diagnostics);
+    this.initStrategyForIP3Country = options.initStrategyForIP3Country;  
     this.gateOverrides = {};
     this.configOverrides = {};
     this.layerOverrides = {};
@@ -59,7 +62,13 @@ export default class Evaluator {
   public async init(): Promise<void> {
     await this.store.init();
     try {
-      await ip3country.init();
+      if (this.initStrategyForIP3Country === 'lazy') {
+        setTimeout(async () => {
+          await ip3country.init();
+        }, 0);
+      } else if (this.initStrategyForIP3Country !== 'none') {
+        await ip3country.init();
+      }
     } catch (err) {
       // Ignore: this is optional
     }
