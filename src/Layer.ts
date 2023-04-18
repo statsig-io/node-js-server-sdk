@@ -7,7 +7,7 @@ type ExposeLayer = (layer: Layer, key: string) => void;
  */
 export default class Layer {
   public name: string;
-  private _value: Record<string, unknown>;
+  value: Record<string, unknown>;
   private _ruleID: string;
   private _logExposure: ExposeLayer | null;
 
@@ -25,7 +25,7 @@ export default class Layer {
     }
 
     this.name = layerName;
-    this._value = clone(value) ?? {};
+    this.value = clone(value) ?? {};
     this._ruleID = ruleID;
     this._logExposure = logExposure;
   }
@@ -38,7 +38,7 @@ export default class Layer {
     // @ts-ignore
     defaultValue = defaultValue ?? null;
 
-    const val = this._value[key];
+    const val = this.value[key];
 
     if (val == null) {
       return defaultValue;
@@ -79,11 +79,11 @@ export default class Layer {
       return defaultValue;
     }
 
-    if (this._value[key] != null) {
+    if (this.value[key] != null) {
       this._logExposure?.(this, key);
     }
 
-    return this._value[key] ?? defaultValue;
+    return this.value[key] ?? defaultValue;
   }
 
   getRuleID(): string {

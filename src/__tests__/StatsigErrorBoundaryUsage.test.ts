@@ -70,7 +70,7 @@ describe('Statsig ErrorBoundary Usage', () => {
     const result = await statsig.getLayer(user, 'a_layer');
     expect(result instanceof Layer).toBe(true);
     // @ts-ignore
-    expect(result._value).toEqual({});
+    expect(result.value).toEqual({});
     expect(requests).toEqual(oneLoggedError('_evaluator.getLayer'));
   });
 
