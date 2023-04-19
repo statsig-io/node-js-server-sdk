@@ -1,5 +1,7 @@
+import { metadata } from 'figlet';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import { MarkerMetadata } from '../Diagnostics';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -61,6 +63,7 @@ describe('InitStrategy', () => {
 
         return Promise.resolve({
           ok: true,
+          status: 200,
           text: () => Promise.resolve(wholeList.slice(startingIndex)),
           headers: {
             get: jest.fn((v) => {
@@ -108,18 +111,24 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
     // Skip download config specs
-    assertMarkerEqual(markers[5], 'get_id_lists', 'start', 'network_request');
+    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', {step: 'network_request'});
     assertMarkerEqual(
       markers[6],
-      'get_id_lists',
+      'get_id_list_sources',
       'end',
-      'network_request',
-      200,
+      {
+        step: 'network_request',
+        value: 200,
+      }
     );
-    assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 1); // do we want to log "process" if id list is empty??
-    assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
-    expect(markers.length).toBe(10);
+    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', {step: 'process'}); 
+    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', {step: 'process'});
+    assertMarkerEqual(markers[9], 'get_id_list', 'start', {step: 'network_request', metadata: {url: 'https://id_list_content/list_1'}});
+    assertMarkerEqual(markers[10], 'get_id_list', 'end', {step: 'network_request', value: 200, metadata: {url: 'https://id_list_content/list_1'}});
+    assertMarkerEqual(markers[11], 'get_id_list', 'start', {step: 'process'});
+    assertMarkerEqual(markers[12], 'get_id_list', 'end', {step: 'process', value: true});
+    assertMarkerEqual(markers[13], 'overall', 'end', {value: 'success'});
+    expect(markers.length).toBe(14);
 
     expect(idlistCalled).toBe(true);
   });
@@ -149,7 +158,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end', null, 'success');
+    assertMarkerEqual(markers[5], 'overall', 'end', {value: 'success'});
     expect(markers.length).toBe(6);
 
     expect(idlistCalled).toBe(false);
@@ -184,7 +193,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end', null, 'success');
+    assertMarkerEqual(markers[5], 'overall', 'end', {value: 'success'});
     expect(markers.length).toBe(6);
     jest.runOnlyPendingTimers();
 
@@ -200,12 +209,17 @@ function assertMarkerEqual(
   marker: any,
   key: string,
   action: string,
-  step: any = null,
-  value: any = null,
+  optionalArgs?: {
+    step?: any,
+    value?: any,
+    metadata?: MarkerMetadata,
+  }
 ) {
+  const { step, value, metadata } = optionalArgs || {};
   expect(marker['key']).toBe(key);
   expect(marker['action']).toBe(action);
-  expect(marker['step']).toBe(step);
-  expect(marker['value']).toBe(value);
+  expect(marker['step']).toBe(step || null);
+  expect(marker['value']).toBe(value || null);
   expect(marker['timestamp'] instanceof Number);
+  expect(marker['metadata']).toStrictEqual(metadata);
 }

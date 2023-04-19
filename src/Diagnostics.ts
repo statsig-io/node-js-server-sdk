@@ -5,18 +5,25 @@ import { ExhaustSwitchError } from './utils/core';
 export interface Marker {
   key: KeyType;
   action: ActionType;
-  step: string | null;
+  step: StepType | null;
   value: string | number | boolean | null;
   timestamp: number;
+  metadata?: MarkerMetadata;
+}
+
+export interface MarkerMetadata {
+  url?: string;
 }
 
 export type ContextType = 'initialize' | 'config_sync' | 'event_logging';
 export type KeyType =
   | 'download_config_specs'
   | 'bootstrap'
-  | 'get_id_lists'
+  | 'get_id_list'
+  | 'get_id_list_sources'
   | 'data_adapter'
   | 'overall';
+export type StepType = 'process' | 'network_request';
 export type ActionType = 'start' | 'end';
 
 type DiagnosticsMarkers = {
@@ -50,8 +57,9 @@ export default class Diagnostics {
     context: ContextType,
     key: KeyType,
     action: ActionType,
-    step?: string,
+    step?: StepType,
     value?: string | number | boolean,
+    metadata?: Record<string, unknown>,
   ) {
     if (this.disable) {
       return;
@@ -63,7 +71,12 @@ export default class Diagnostics {
       step: step ?? null,
       value: value ?? null,
       timestamp: Date.now(),
+      metadata: metadata
     };
+    this.addMarker(context, marker);
+  }
+
+  addMarker(context: ContextType, marker: Marker){
     switch (context) {
       case 'config_sync':
         this.markers.configSync.push(marker);

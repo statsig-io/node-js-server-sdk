@@ -66,6 +66,7 @@ describe('InitDiagnostics', () => {
         );
         return Promise.resolve({
           ok: true,
+          status: 200,
           text: () => Promise.resolve(wholeList.slice(startingIndex)),
           headers: {
             get: jest.fn((v) => {
@@ -124,16 +125,16 @@ describe('InitDiagnostics', () => {
       'process',
       true,
     );
-    assertMarkerEqual(markers[5], 'get_id_lists', 'start', 'network_request');
+    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', 'network_request');
     assertMarkerEqual(
       markers[6],
-      'get_id_lists',
+      'get_id_list_sources',
       'end',
       'network_request',
       200,
     );
-    assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 0); // do we want to log "process" if id list is empty??
-    assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
+    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', 'process');
+    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', 'process');
     assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(10);
   });
@@ -170,16 +171,16 @@ describe('InitDiagnostics', () => {
       'network_request',
       'request error',
     );
-    assertMarkerEqual(markers[3], 'get_id_lists', 'start', 'network_request');
+    assertMarkerEqual(markers[3], 'get_id_list_sources', 'start', 'network_request');
     assertMarkerEqual(
       markers[4],
-      'get_id_lists',
+      'get_id_list_sources',
       'end',
       'network_request',
       200,
     );
-    assertMarkerEqual(markers[5], 'get_id_lists', 'start', 'process', 0); // do we want to log "process" if id list is empty??
-    assertMarkerEqual(markers[6], 'get_id_lists', 'end', 'process', true);
+    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', 'process'); 
+    assertMarkerEqual(markers[6], 'get_id_list_sources', 'end', 'process');
     assertMarkerEqual(markers[7], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(8);
   });
@@ -209,18 +210,22 @@ describe('InitDiagnostics', () => {
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
     // Skip download config specs
-    assertMarkerEqual(markers[5], 'get_id_lists', 'start', 'network_request');
+    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', 'network_request');
     assertMarkerEqual(
       markers[6],
-      'get_id_lists',
+      'get_id_list_sources',
       'end',
       'network_request',
       200,
     );
-    assertMarkerEqual(markers[7], 'get_id_lists', 'start', 'process', 1); // do we want to log "process" if id list is empty??
-    assertMarkerEqual(markers[8], 'get_id_lists', 'end', 'process', true);
-    assertMarkerEqual(markers[9], 'overall', 'end', null, 'success');
-    expect(markers.length).toBe(10);
+    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', 'process'); 
+    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', 'process');
+    assertMarkerEqual(markers[9], 'get_id_list', 'start', 'network_request');
+    assertMarkerEqual(markers[10], 'get_id_list', 'end', 'network_request', 200);
+    assertMarkerEqual(markers[11], 'get_id_list', 'start', 'process');
+    assertMarkerEqual(markers[12], 'get_id_list', 'end', 'process', true);
+    assertMarkerEqual(markers[13], 'overall', 'end', null, 'success');
+    expect(markers.length).toBe(14);
   });
 
   it('test bootstrap config specs init', async () => {
@@ -251,9 +256,9 @@ describe('InitDiagnostics', () => {
 
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[1], 'bootstrap', 'start', 'load');
-    assertMarkerEqual(markers[2], 'bootstrap', 'end', 'load');
-    // Skip downloadConfig() / getIDList()
+    assertMarkerEqual(markers[1], 'bootstrap', 'start', 'process');
+    assertMarkerEqual(markers[2], 'bootstrap', 'end', 'process');
+    // Skip downloadConfig / get_id_list_sources
     assertMarkerEqual(markers[markers.length - 1], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(12);
   });
@@ -301,8 +306,8 @@ describe('InitDiagnostics', () => {
 
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[1], 'data_adapter', 'start', 'load');
-    assertMarkerEqual(markers[2], 'data_adapter', 'end', 'load');
+    assertMarkerEqual(markers[1], 'data_adapter', 'start', 'process');
+    assertMarkerEqual(markers[2], 'data_adapter', 'end', 'process');
     assertMarkerEqual(markers[3], 'overall', 'end', null, 'success');
     expect(markers.length).toBe(4);
   });

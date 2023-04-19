@@ -1,5 +1,5 @@
 import { ConfigSpec } from './ConfigSpec';
-import Diagnostics, { ActionType, KeyType } from './Diagnostics';
+import Diagnostics, { ActionType, KeyType, StepType } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
@@ -41,11 +41,11 @@ export default class SpecStore {
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
 
-    public constructor(
-      fetcher: StatsigFetcher, 
-      options: ExplicitStatsigOptions, 
-      diagnostics: Diagnostics, 
-    ) {
+  public constructor(
+    fetcher: StatsigFetcher,
+    options: ExplicitStatsigOptions,
+    diagnostics: Diagnostics,
+  ) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
@@ -123,13 +123,13 @@ export default class SpecStore {
         );
       } else {
         try {
-          this.handleDiagnostics("bootstrap", "start", "load");
+          this.handleDiagnostics('bootstrap', 'start', { step: 'process' });
           specsJSON = JSON.parse(this.bootstrapValues);
           if (this._process(specsJSON)) {
             this.initReason = 'Bootstrap';
           }
           this.setInitialUpdateTime();
-          this.handleDiagnostics("bootstrap", "end", "load");
+          this.handleDiagnostics('bootstrap', 'end', { step: 'process' });
         } catch (e) {
           console.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
@@ -149,9 +149,9 @@ export default class SpecStore {
       this._syncValues();
     } else {
       if (adapter) {
-        this.handleDiagnostics("data_adapter", "start", "load");
+        this.handleDiagnostics('data_adapter', 'start', { step: 'process' });
         await this._fetchConfigSpecsFromAdapter();
-        this.handleDiagnostics("data_adapter", "end", "load");
+        this.handleDiagnostics('data_adapter', 'end', { step: 'process' });
       }
       if (this.lastUpdateTime === 0) {
         await this._syncValues(true);
@@ -190,8 +190,9 @@ export default class SpecStore {
     }
     this.clearTimers();
     this.pollForUpdates();
-    const message = `Force reset sync timer. Last update time: ${this.lastDownloadConfigSpecsSyncTime
-      }, now: ${Date.now()}`;
+    const message = `Force reset sync timer. Last update time: ${
+      this.lastDownloadConfigSpecsSyncTime
+    }, now: ${Date.now()}`;
     this._fetchConfigSpecsFromServer();
     return new Error(message);
   }
@@ -202,23 +203,27 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    this.handleDiagnostics('download_config_specs', 'start', 'network_request');
+    this.handleDiagnostics('download_config_specs', 'start', {
+      step: 'network_request',
+    });
     let response: Response | null = null;
     try {
-      response = await this.fetcher.post(
-        this.api + '/download_config_specs',
-        {
-          statsigMetadata: getStatsigMetadata(),
-          sinceTime: this.lastUpdateTime,
-        },
-      );
-    } catch (e){
+      response = await this.fetcher.post(this.api + '/download_config_specs', {
+        statsigMetadata: getStatsigMetadata(),
+        sinceTime: this.lastUpdateTime,
+      });
+    } catch (e) {
       throw e;
     } finally {
-      this.handleDiagnostics('download_config_specs', 'end', 'network_request', response?.status ?? "request error");
+      this.handleDiagnostics('download_config_specs', 'end', {
+        step: 'network_request',
+        value: response?.status ?? 'request error',
+      });
     }
-    
-    this.handleDiagnostics( "download_config_specs", "start", "process");
+
+    this.handleDiagnostics('download_config_specs', 'start', {
+      step: 'process',
+    });
     const specsString = await response.text();
     const processResult = this._process(JSON.parse(specsString));
     if (!processResult) {
@@ -232,7 +237,10 @@ export default class SpecStore {
       this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
-    this.handleDiagnostics("download_config_specs", "end", "process", this.initReason === "Network");
+    this.handleDiagnostics('download_config_specs', 'end', {
+      step: 'process',
+      value: this.initReason === 'Network',
+    });
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<void> {
@@ -278,17 +286,22 @@ export default class SpecStore {
   private handleDiagnostics(
     key: KeyType,
     action: ActionType,
-    step?: string,
-    value?: string | number | boolean,
-  ){
-    if(!this.initialized){
-      this.diagnostics.mark('initialize', key, action, step, value);
+    optionalArgs?: {
+      step?: StepType;
+      value?: string | number | boolean;
+      metadata?: Record<string, string | number | boolean>;
+    },
+  ) {
+    const { step, value, metadata } = optionalArgs ?? {};
+    if (!this.initialized) {
+      this.diagnostics.mark('initialize', key, action, step, value, metadata);
     }
   }
 
   private async _syncValues(isColdStart: boolean = false): Promise<void> {
     const adapter = this.dataAdapter;
-    const shouldSyncFromAdapter = adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
+    const shouldSyncFromAdapter =
+      adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
 
     try {
       if (shouldSyncFromAdapter) {
@@ -309,7 +322,10 @@ export default class SpecStore {
           SYNC_OUTDATED_MAX
         ) {
           console.warn(
-            `statsigSDK::sync> Syncing the server SDK with ${shouldSyncFromAdapter ? "the data adapter" : "statsig"} has failed for  ${this.syncFailureCount * this.syncInterval
+            `statsigSDK::sync> Syncing the server SDK with ${
+              shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
+            } has failed for  ${
+              this.syncFailureCount * this.syncInterval
             }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
           );
           this.syncFailureCount = 0;
@@ -322,9 +338,10 @@ export default class SpecStore {
     if (this.initStrategyForIDLists === 'none') {
       return;
     }
-  
+
     const adapter = this.dataAdapter;
-    const shouldSyncFromAdapter = adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
+    const shouldSyncFromAdapter =
+      adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
     const adapterIdLists = await adapter?.get(DataAdapterKey.IDLists);
     if (shouldSyncFromAdapter && typeof adapterIdLists?.result === 'string') {
       await this.syncIdListsFromDataAdapter(adapter, adapterIdLists.result);
@@ -454,17 +471,23 @@ export default class SpecStore {
 
   private async syncIdListsFromNetwork(): Promise<void> {
     try {
-      this.handleDiagnostics("get_id_lists", "start", "network_request");
+      this.handleDiagnostics('get_id_list_sources', 'start', {
+        step: 'network_request',
+      });
       const response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
-      this.handleDiagnostics("get_id_lists", "end", "network_request", response.status);
+      this.handleDiagnostics('get_id_list_sources', 'end', {
+        step: 'network_request',
+        value: response.status,
+      });
+      this.handleDiagnostics('get_id_list_sources', 'start', { step: 'process' });
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
+      this.handleDiagnostics('get_id_list_sources', 'end', { step: 'process' });
       if (!lookup) {
         return;
       }
-      this.handleDiagnostics("get_id_lists", "start", "process", Object.entries(lookup).length);
       let promises = [];
 
       for (const [name, item] of Object.entries(lookup)) {
@@ -501,35 +524,7 @@ export default class SpecStore {
         if (fileSize <= readSize) {
           continue;
         }
-        const p = safeFetch(url, {
-          method: 'GET',
-          headers: {
-            Range: `bytes=${readSize}-`,
-          },
-        })
-          // @ts-ignore
-          .then((res: Response) => {
-            const contentLength = res.headers.get('content-length');
-            if (contentLength == null) {
-              throw new Error('Content-Length for the id list is invalid.');
-            }
-            const length = parseInt(contentLength);
-            if (typeof length === 'number') {
-              this.store.idLists[name].readBytes += length;
-            } else {
-              delete this.store.idLists[name];
-              throw new Error('Content-Length for the id list is invalid.');
-            }
-            return res.text();
-          })
-          .then((data: string) => {
-            IDListUtil.updateIdList(this.store.idLists, name, data);
-          })
-          .catch((e) => {
-            console.warn(e);
-          });
-
-        promises.push(p);
+        promises.push(this.genFetchIDList(name, url, readSize));
       }
 
       IDListUtil.removeOldIdLists(this.store.idLists, lookup);
@@ -542,10 +537,54 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-      this.handleDiagnostics("get_id_lists", "end", "process", true);
-    } catch (e) { 
-      this.handleDiagnostics("get_id_lists", "end", "process", false);
-     }
+    } catch (e) {}
+  }
+
+  private async genFetchIDList(
+    name: string,
+    url: string,
+    readSize: number,
+  ): Promise<void> {
+    try {
+      this.handleDiagnostics('get_id_list', 'start', {
+        step: 'network_request',
+        metadata: { url: url },
+      });
+      const res = await safeFetch(url, {
+        method: 'GET',
+        headers: {
+          Range: `bytes=${readSize}-`,
+        },
+      });
+      this.handleDiagnostics('get_id_list', 'end', {
+        step: 'network_request',
+        value: res.status,
+        metadata: { url: url },
+      });
+      this.handleDiagnostics('get_id_list', 'start', { step: 'process' });
+      const contentLength = res.headers.get('content-length');
+      if (contentLength == null) {
+        throw new Error('Content-Length for the id list is invalid.');
+      }
+      const length = parseInt(contentLength);
+      if (typeof length === 'number') {
+        this.store.idLists[name].readBytes += length;
+      } else {
+        delete this.store.idLists[name];
+        throw new Error('Content-Length for the id list is invalid.');
+      }
+      IDListUtil.updateIdList(this.store.idLists, name, await res.text());
+      this.handleDiagnostics('get_id_list', 'end', {
+        step: 'process',
+        value: true,
+      });
+    } catch (e) {
+      console.warn(e);
+      this.handleDiagnostics('get_id_list', 'end', {
+        step: 'process',
+        value: false,
+      });
+    }
   }
 
   public shutdown(): void {
