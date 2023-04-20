@@ -779,10 +779,26 @@ function shouldTrimParam(
   if (param == null) return false;
   if (typeof param === 'string') return param.length > size;
   if (typeof param === 'object') {
-    return JSON.stringify(param).length > size;
+    return approximateObjectSize(param) > size;
   }
   if (typeof param === 'number') return param.toString().length > size;
   return false;
+}
+
+function approximateObjectSize(x: object): number {
+  let size = 0;
+  const entries = Object.entries(x);
+  for (let i = 0; i < entries.length; i++) {
+    const key = entries[i][0];
+    const value = entries[i][1] as unknown;
+    if (typeof value === 'object' && value !== null) {
+      size += approximateObjectSize(value);
+    } else {
+      size += String(value).length;
+    }
+    size += key.length;
+  }
+  return size;
 }
 
 function normalizeUser(
