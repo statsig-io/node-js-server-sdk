@@ -862,10 +862,24 @@ export default class Evaluator {
   }
 }
 
+const hashLookupTable: Map<string, bigint> = new Map();
+
 function computeUserHash(userHash: string) {
+  const existingHash = hashLookupTable.get(userHash);
+  if (existingHash) {
+    return existingHash;
+  }
+
   var md = forge.md.sha256.create();
   md.update(userHash);
-  return BigInt(`0x${md.digest().toHex().substring(0, 16)}`);
+  const hash = BigInt(`0x${md.digest().toHex().substring(0, 16)}`);
+
+  if (hashLookupTable.size > 100000) {
+    hashLookupTable.clear();
+  }
+  
+  hashLookupTable.set(userHash, hash);
+  return hash;
 }
 
 function getHashedName(name: string) {
