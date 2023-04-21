@@ -84,7 +84,6 @@ describe('Verify behavior of SpecStore', () => {
     });
     const diagnostics = new Diagnostics({ logger });
 
-
     // Get around the limit;
     options.rulesetsSyncIntervalMs = 1000;
     options.idListsSyncIntervalMs = 1000;

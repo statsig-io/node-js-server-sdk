@@ -21,7 +21,6 @@ export type KeyType =
   | 'bootstrap'
   | 'get_id_list'
   | 'get_id_list_sources'
-  | 'data_adapter'
   | 'overall';
 export type StepType = 'process' | 'network_request';
 export type ActionType = 'start' | 'end';
@@ -71,12 +70,12 @@ export default class Diagnostics {
       step: step ?? null,
       value: value ?? null,
       timestamp: Date.now(),
-      metadata: metadata
+      metadata: metadata,
     };
     this.addMarker(context, marker);
   }
 
-  addMarker(context: ContextType, marker: Marker){
+  addMarker(context: ContextType, marker: Marker) {
     switch (context) {
       case 'config_sync':
         this.markers.configSync.push(marker);

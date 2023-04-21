@@ -77,7 +77,7 @@ export default class LogEventProcessor {
     }
   }
 
-  public async flush(fireAndForget: boolean = false): Promise<void> {
+  public async flush(fireAndForget = false): Promise<void> {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
@@ -125,7 +125,7 @@ export default class LogEventProcessor {
       return;
     }
 
-    let event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
     if (user != null) {
       event.setUser(user);
     }
@@ -311,12 +311,15 @@ export default class LogEventProcessor {
 
   public logDiagnosticsEvent(
     diagnostics: {
-      context: string,
-      markers: Marker[]
-      initTimeoutMs?: number,
+      context: string;
+      markers: Marker[];
+      initTimeoutMs?: number;
     },
     user: StatsigUser | null = null,
   ) {
+    if (diagnostics.markers.length === 0) {
+      return;
+    }
     this.logStatsigInternal(user, DIAGNOSTIC_EVENT, diagnostics);
   }
 }

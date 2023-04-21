@@ -43,9 +43,15 @@ describe('Diagnostics', () => {
       assertMarkersEmpty(diagnostics);
 
       diagnostics.mark(context, 'download_config_specs', 'start');
-      expect(diagnostics.markers.intialize).toHaveLength(context === 'initialize' ? 1 : 0);
-      expect(diagnostics.markers.configSync).toHaveLength(context === 'config_sync' ? 1 : 0);
-      expect(diagnostics.markers.eventLogging).toHaveLength(context === 'event_logging' ? 1 : 0);
+      expect(diagnostics.markers.intialize).toHaveLength(
+        context === 'initialize' ? 1 : 0,
+      );
+      expect(diagnostics.markers.configSync).toHaveLength(
+        context === 'config_sync' ? 1 : 0,
+      );
+      expect(diagnostics.markers.eventLogging).toHaveLength(
+        context === 'event_logging' ? 1 : 0,
+      );
     },
   );
 

@@ -97,7 +97,11 @@ describe('InitStrategy', () => {
       },
     };
 
-    await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1, initStrategyForIDLists: 'await', initStrategyForIP3Country: 'await' });
+    await Statsig.initialize('secret-key', {
+      loggingMaxBufferSize: 1,
+      initStrategyForIDLists: 'await',
+      initStrategyForIP3Country: 'await',
+    });
 
     Statsig.shutdown();
 
@@ -111,23 +115,38 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
     // Skip download config specs
-    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', {step: 'network_request'});
-    assertMarkerEqual(
-      markers[6],
-      'get_id_list_sources',
-      'end',
-      {
-        step: 'network_request',
-        value: 200,
-      }
-    );
-    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', {step: 'process'}); 
-    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', {step: 'process'});
-    assertMarkerEqual(markers[9], 'get_id_list', 'start', {step: 'network_request', metadata: {url: 'https://id_list_content/list_1'}});
-    assertMarkerEqual(markers[10], 'get_id_list', 'end', {step: 'network_request', value: 200, metadata: {url: 'https://id_list_content/list_1'}});
-    assertMarkerEqual(markers[11], 'get_id_list', 'start', {step: 'process'});
-    assertMarkerEqual(markers[12], 'get_id_list', 'end', {step: 'process', value: true});
-    assertMarkerEqual(markers[13], 'overall', 'end', {value: 'success'});
+    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', {
+      step: 'network_request',
+    });
+    assertMarkerEqual(markers[6], 'get_id_list_sources', 'end', {
+      step: 'network_request',
+      value: 200,
+    });
+    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', {
+      step: 'process',
+    });
+    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', {
+      step: 'process',
+    });
+    assertMarkerEqual(markers[9], 'get_id_list', 'start', {
+      step: 'network_request',
+      metadata: { url: 'https://id_list_content/list_1' },
+    });
+    assertMarkerEqual(markers[10], 'get_id_list', 'end', {
+      step: 'network_request',
+      value: 200,
+      metadata: { url: 'https://id_list_content/list_1' },
+    });
+    assertMarkerEqual(markers[11], 'get_id_list', 'start', {
+      step: 'process',
+      metadata: { url: 'https://id_list_content/list_1' },
+    });
+    assertMarkerEqual(markers[12], 'get_id_list', 'end', {
+      step: 'process',
+      value: true,
+      metadata: { url: 'https://id_list_content/list_1' },
+    });
+    assertMarkerEqual(markers[13], 'overall', 'end', { value: 'success' });
     expect(markers.length).toBe(14);
 
     expect(idlistCalled).toBe(true);
@@ -144,7 +163,11 @@ describe('InitStrategy', () => {
       },
     };
 
-    await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1, initStrategyForIDLists: 'none', initStrategyForIP3Country: 'none' });
+    await Statsig.initialize('secret-key', {
+      loggingMaxBufferSize: 1,
+      initStrategyForIDLists: 'none',
+      initStrategyForIP3Country: 'none',
+    });
 
     Statsig.shutdown();
 
@@ -158,7 +181,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end', {value: 'success'});
+    assertMarkerEqual(markers[5], 'overall', 'end', { value: 'success' });
     expect(markers.length).toBe(6);
 
     expect(idlistCalled).toBe(false);
@@ -177,7 +200,11 @@ describe('InitStrategy', () => {
       },
     };
 
-    await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1, initStrategyForIDLists: 'lazy', initStrategyForIP3Country: 'lazy' });
+    await Statsig.initialize('secret-key', {
+      loggingMaxBufferSize: 1,
+      initStrategyForIDLists: 'lazy',
+      initStrategyForIP3Country: 'lazy',
+    });
 
     Statsig.flush();
 
@@ -193,7 +220,7 @@ describe('InitStrategy', () => {
     const markers = metadata['markers'];
 
     assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[5], 'overall', 'end', {value: 'success'});
+    assertMarkerEqual(markers[5], 'overall', 'end', { value: 'success' });
     expect(markers.length).toBe(6);
     jest.runOnlyPendingTimers();
 
@@ -210,10 +237,10 @@ function assertMarkerEqual(
   key: string,
   action: string,
   optionalArgs?: {
-    step?: any,
-    value?: any,
-    metadata?: MarkerMetadata,
-  }
+    step?: any;
+    value?: any;
+    metadata?: MarkerMetadata;
+  },
 ) {
   const { step, value, metadata } = optionalArgs || {};
   expect(marker['key']).toBe(key);

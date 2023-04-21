@@ -53,7 +53,7 @@ export default class Evaluator {
     diagnostics: Diagnostics,
   ) {
     this.store = new SpecStore(fetcher, options, diagnostics);
-    this.initStrategyForIP3Country = options.initStrategyForIP3Country;  
+    this.initStrategyForIP3Country = options.initStrategyForIP3Country;
     this.gateOverrides = {};
     this.configOverrides = {};
     this.layerOverrides = {};
@@ -877,7 +877,7 @@ function computeUserHash(userHash: string) {
   if (hashLookupTable.size > 100000) {
     hashLookupTable.clear();
   }
-  
+
   hashLookupTable.set(userHash, hash);
   return hash;
 }

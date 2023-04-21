@@ -1,5 +1,10 @@
 import { ConfigSpec } from './ConfigSpec';
-import Diagnostics, { ActionType, KeyType, StepType } from './Diagnostics';
+import Diagnostics, {
+  ActionType,
+  ContextType,
+  KeyType,
+  StepType,
+} from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
@@ -123,13 +128,13 @@ export default class SpecStore {
         );
       } else {
         try {
-          this.handleDiagnostics('bootstrap', 'start', { step: 'process' });
+          this.addDiagnosticsMarker('bootstrap', 'start', { step: 'process' });
           specsJSON = JSON.parse(this.bootstrapValues);
           if (this._process(specsJSON)) {
             this.initReason = 'Bootstrap';
           }
           this.setInitialUpdateTime();
-          this.handleDiagnostics('bootstrap', 'end', { step: 'process' });
+          this.addDiagnosticsMarker('bootstrap', 'end', { step: 'process' });
         } catch (e) {
           console.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
@@ -149,9 +154,7 @@ export default class SpecStore {
       this._syncValues();
     } else {
       if (adapter) {
-        this.handleDiagnostics('data_adapter', 'start', { step: 'process' });
         await this._fetchConfigSpecsFromAdapter();
-        this.handleDiagnostics('data_adapter', 'end', { step: 'process' });
       }
       if (this.lastUpdateTime === 0) {
         await this._syncValues(true);
@@ -201,27 +204,47 @@ export default class SpecStore {
     return this.lastUpdateTime !== 0;
   }
 
+  private getResponseCodeFromError(e: unknown): number | undefined {
+    if (!(e instanceof Error)) {
+      return undefined;
+    }
+    const arr = e.message.split(' ');
+    const statusString = arr.length === 0 ? undefined : arr[arr.length - 1];
+    const status = parseInt(statusString ?? 'NaN');
+    return isNaN(status) ? undefined : status;
+  }
+
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    this.handleDiagnostics('download_config_specs', 'start', {
+    this.addDiagnosticsMarker('download_config_specs', 'start', {
       step: 'network_request',
     });
-    let response: Response | null = null;
+    let response: Response | undefined = undefined;
+    let error: Error | undefined = undefined;
     try {
       response = await this.fetcher.post(this.api + '/download_config_specs', {
         statsigMetadata: getStatsigMetadata(),
         sinceTime: this.lastUpdateTime,
       });
     } catch (e) {
-      throw e;
+      error = e as Error;
     } finally {
-      this.handleDiagnostics('download_config_specs', 'end', {
+      const status = response
+        ? response.status
+        : this.getResponseCodeFromError(error);
+      this.addDiagnosticsMarker('download_config_specs', 'end', {
         step: 'network_request',
-        value: response?.status ?? 'request error',
+        value: status ?? false,
       });
+      if (error) {
+        throw error;
+      }
+      if (!response) {
+        return;
+      }
     }
 
-    this.handleDiagnostics('download_config_specs', 'start', {
+    this.addDiagnosticsMarker('download_config_specs', 'start', {
       step: 'process',
     });
     const specsString = await response.text();
@@ -237,7 +260,7 @@ export default class SpecStore {
       this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
-    this.handleDiagnostics('download_config_specs', 'end', {
+    this.addDiagnosticsMarker('download_config_specs', 'end', {
       step: 'process',
       value: this.initReason === 'Network',
     });
@@ -283,7 +306,7 @@ export default class SpecStore {
     }
   }
 
-  private handleDiagnostics(
+  private addDiagnosticsMarker(
     key: KeyType,
     action: ActionType,
     optionalArgs?: {
@@ -293,8 +316,15 @@ export default class SpecStore {
     },
   ) {
     const { step, value, metadata } = optionalArgs ?? {};
-    if (!this.initialized) {
-      this.diagnostics.mark('initialize', key, action, step, value, metadata);
+    const context = this.initialized ? 'config_sync' : 'initialize';
+    this.diagnostics.mark(context, key, action, step, value, metadata);
+  }
+
+  private logDiagnostics(context: ContextType) {
+    if (this.initialized && context === 'config_sync') {
+      this.diagnostics?.logDiagnostics('config_sync');
+    } else if (this.initialized && context === 'initialize') {
+      this.diagnostics?.logDiagnostics('initialize');
     }
   }
 
@@ -331,6 +361,8 @@ export default class SpecStore {
           this.syncFailureCount = 0;
         }
       }
+    } finally {
+      this.logDiagnostics('config_sync');
     }
   }
 
@@ -348,6 +380,7 @@ export default class SpecStore {
     } else {
       await this.syncIdListsFromNetwork();
     }
+    this.logDiagnostics('config_sync');
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
@@ -470,21 +503,38 @@ export default class SpecStore {
   }
 
   private async syncIdListsFromNetwork(): Promise<void> {
+    this.addDiagnosticsMarker('get_id_list_sources', 'start', {
+      step: 'network_request',
+    });
+    let response = null;
     try {
-      this.handleDiagnostics('get_id_list_sources', 'start', {
-        step: 'network_request',
-      });
-      const response = await this.fetcher.post(this.api + '/get_id_lists', {
+      response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
-      this.handleDiagnostics('get_id_list_sources', 'end', {
+
+      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
         step: 'network_request',
         value: response.status,
       });
-      this.handleDiagnostics('get_id_list_sources', 'start', { step: 'process' });
+    } catch (e) {
+      const status = this.getResponseCodeFromError(e);
+      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
+        step: 'network_request',
+        value: status ?? false,
+      });
+      console.warn(e);
+      return;
+    }
+
+    try {
+      this.addDiagnosticsMarker('get_id_list_sources', 'start', {
+        step: 'process',
+      });
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
-      this.handleDiagnostics('get_id_list_sources', 'end', { step: 'process' });
+      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
+        step: 'process',
+      });
       if (!lookup) {
         return;
       }
@@ -546,7 +596,7 @@ export default class SpecStore {
     readSize: number,
   ): Promise<void> {
     try {
-      this.handleDiagnostics('get_id_list', 'start', {
+      this.addDiagnosticsMarker('get_id_list', 'start', {
         step: 'network_request',
         metadata: { url: url },
       });
@@ -556,12 +606,15 @@ export default class SpecStore {
           Range: `bytes=${readSize}-`,
         },
       });
-      this.handleDiagnostics('get_id_list', 'end', {
+      this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'network_request',
         value: res.status,
         metadata: { url: url },
       });
-      this.handleDiagnostics('get_id_list', 'start', { step: 'process' });
+      this.addDiagnosticsMarker('get_id_list', 'start', {
+        step: 'process',
+        metadata: { url: url },
+      });
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
         throw new Error('Content-Length for the id list is invalid.');
@@ -574,15 +627,17 @@ export default class SpecStore {
         throw new Error('Content-Length for the id list is invalid.');
       }
       IDListUtil.updateIdList(this.store.idLists, name, await res.text());
-      this.handleDiagnostics('get_id_list', 'end', {
+      this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'process',
         value: true,
+        metadata: { url: url },
       });
     } catch (e) {
       console.warn(e);
-      this.handleDiagnostics('get_id_list', 'end', {
+      this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'process',
         value: false,
+        metadata: { url: url },
       });
     }
   }
