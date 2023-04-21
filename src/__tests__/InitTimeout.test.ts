@@ -86,7 +86,7 @@ describe('Test local mode with overrides', () => {
 
     statsig.shutdown();
     expect(events).toHaveLength(2); // 1 for init, 1 for gate check
-    const event = events.find(e => e.eventName === 'statsig::diagnostics');
+    const event = events.find((e) => e.eventName === 'statsig::diagnostics');
     expect(event?.metadata['initTimeoutMs']).toBe(250);
 
     const markers = event?.metadata['markers'];

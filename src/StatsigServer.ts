@@ -67,7 +67,11 @@ export default class StatsigServer {
       logger: this._logger,
       options: this._options,
     });
-    this._evaluator = new Evaluator(this._fetcher, this._options, this._diagnostics);
+    this._evaluator = new Evaluator(
+      this._fetcher,
+      this._options,
+      this._diagnostics,
+    );
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
@@ -78,7 +82,7 @@ export default class StatsigServer {
   public initializeAsync(): Promise<void> {
     return this._errorBoundary.capture(
       () => {
-        this._diagnostics.mark('initialize', "overall", "start")
+        this._diagnostics.mark('initialize', 'overall', 'start');
         if (this._pendingInitPromise != null) {
           return this._pendingInitPromise;
         }
@@ -102,7 +106,13 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
-          this._diagnostics.mark('initialize', "overall", "end", undefined, 'success');
+          this._diagnostics.mark(
+            'initialize',
+            'overall',
+            'end',
+            undefined,
+            'success',
+          );
           this._diagnostics.logDiagnostics('initialize');
         });
         if (
@@ -113,7 +123,13 @@ export default class StatsigServer {
             initPromise,
             new Promise((resolve) => {
               setTimeout(() => {
-                this._diagnostics.mark('initialize', "overall", "end", undefined, 'timeout');
+                this._diagnostics.mark(
+                  'initialize',
+                  'overall',
+                  'end',
+                  undefined,
+                  'timeout',
+                );
                 this._diagnostics.logDiagnostics('initialize');
                 this._ready = true;
                 this._pendingInitPromise = null;

@@ -1,4 +1,8 @@
-import { AdapterResponse, IDataAdapter, DataAdapterKey } from '../interfaces/IDataAdapter';
+import {
+  AdapterResponse,
+  IDataAdapter,
+  DataAdapterKey,
+} from '../interfaces/IDataAdapter';
 
 export default class TestDataAdapter implements IDataAdapter {
   private store: Record<string, string> = {};

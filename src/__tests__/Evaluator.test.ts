@@ -481,19 +481,19 @@ describe('Test condition evaluation', () => {
     let res = mockedEvaluator._eval(
       { userID: 'jkw', custom: { level: 10 } },
       dynamicConfigSpec,
-    )
+    );
     expect(res.rule_id).toEqual('rule_id_config');
-    expect(res.group_name).toEqual('group_name_config')
-    
+    expect(res.group_name).toEqual('group_name_config');
+
     expect(
       // @ts-expect-error
       mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).json_value,
     ).toEqual({});
-    
+
     // @ts-expect-error
-    res = mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec)
+    res = mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec);
     expect(res.rule_id).toEqual('rule_id_config_public');
-    expect(res.group_name).toEqual('group_name_config_public')
+    expect(res.group_name).toEqual('group_name_config_public');
   });
 });
 

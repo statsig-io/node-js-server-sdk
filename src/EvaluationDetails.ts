@@ -18,18 +18,14 @@ export class EvaluationDetails {
   }
 
   static uninitialized() {
-    return new EvaluationDetails(
-      0,
-      0,
-      'Uninitialized',
-    );
+    return new EvaluationDetails(0, 0, 'Uninitialized');
   }
 
-  static make(configSyncTime: number, initialUpdateTime: number, reason: EvaluationReason) {
-    return new EvaluationDetails(
-      configSyncTime,
-      initialUpdateTime,
-      reason,
-    );
+  static make(
+    configSyncTime: number,
+    initialUpdateTime: number,
+    reason: EvaluationReason,
+  ) {
+    return new EvaluationDetails(configSyncTime, initialUpdateTime, reason);
   }
 }

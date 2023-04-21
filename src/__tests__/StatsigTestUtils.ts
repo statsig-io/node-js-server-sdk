@@ -15,16 +15,15 @@ export default abstract class StatsigTestUtils {
   }
 }
 
-
 export function assertMarkerEqual(
   marker: any,
   key: KeyType,
   action: ActionType,
   optionalArgs?: {
-    step?: StepType,
-    value?: any,
-    metadata?: MarkerMetadata,
-  }
+    step?: StepType;
+    value?: any;
+    metadata?: MarkerMetadata;
+  },
 ) {
   const { step, value, metadata } = optionalArgs || {};
   expect(marker['key']).toBe(key);

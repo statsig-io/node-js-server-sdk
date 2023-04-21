@@ -44,5 +44,5 @@ export interface IDataAdapter {
    * the data adapter for the given key
    * @param key - Key of stored item to poll from data adapter
    */
-   supportsPollingUpdatesFor?(key: DataAdapterKey): boolean;
+  supportsPollingUpdatesFor?(key: DataAdapterKey): boolean;
 }

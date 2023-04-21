@@ -43,9 +43,7 @@
       "isDeviceBased": false,
       "idType": "userID",
       "entity": "experiment",
-      "explicitParameters": [
-        "an_int"
-      ]
+      "explicitParameters": ["an_int"]
     }
   ],
   "layer_configs": [
@@ -126,10 +124,7 @@
         "a_double": 1.23,
         "a_long": 9223372036854776000,
         "a_string": "value",
-        "an_array": [
-          "a",
-          "b"
-        ],
+        "an_array": ["a", "b"],
         "an_object": {
           "key": "value"
         }

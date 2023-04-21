@@ -72,9 +72,23 @@ export function OptionsWithDefaults(
       getNumber(opts, 'loggingMaxBufferSize', DEFAULT_MAX_LOGGING_BUFFER_SIZE),
       DEFAULT_MAX_LOGGING_BUFFER_SIZE,
     ),
-    disableDiagnostics: getBoolean(opts, "disableDiagnostics", DEFAULT_LOG_DIAGNOSTICS),
-    initStrategyForIP3Country: getString(opts, 'initStrategyForIP3Country', 'await') as InitStrategy | null ??  'await',
-    initStrategyForIDLists: getString(opts, 'initStrategyForIDLists', 'await') as InitStrategy | null ??  'await',
+    disableDiagnostics: getBoolean(
+      opts,
+      'disableDiagnostics',
+      DEFAULT_LOG_DIAGNOSTICS,
+    ),
+    initStrategyForIP3Country:
+      (getString(
+        opts,
+        'initStrategyForIP3Country',
+        'await',
+      ) as InitStrategy | null) ?? 'await',
+    initStrategyForIDLists:
+      (getString(
+        opts,
+        'initStrategyForIDLists',
+        'await',
+      ) as InitStrategy | null) ?? 'await',
   };
 }
 
