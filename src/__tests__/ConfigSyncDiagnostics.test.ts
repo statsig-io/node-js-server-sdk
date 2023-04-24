@@ -1,10 +1,8 @@
+import { MAX_SAMPLING_RATE } from '../Diagnostics';
 import Statsig from '../index';
-import { DataAdapterKey } from '../interfaces/IDataAdapter';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
 import exampleConfigSpecs from './jest.setup';
 import StatsigTestUtils, { assertMarkerEqual } from './StatsigTestUtils';
-import { TestSyncingDataAdapter } from './TestDataAdapter';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -14,6 +12,12 @@ const jsonResponse = {
   dynamic_configs: [exampleConfigSpecs.config],
   layer_configs: [exampleConfigSpecs.allocated_layer],
   has_updates: true,
+  diagnostics: {
+    dcs: MAX_SAMPLING_RATE,
+    log: MAX_SAMPLING_RATE,
+    idlist: MAX_SAMPLING_RATE,
+    initialize: MAX_SAMPLING_RATE,
+  },
 };
 
 describe('ConfigSyncDiagnostics', () => {
@@ -90,38 +94,48 @@ describe('ConfigSyncDiagnostics', () => {
     StatsigInstanceUtils.setInstance(null);
   });
 
-  it('test config download', async () => {
-    await Statsig.initialize('secret-key', {
-      loggingMaxBufferSize: 1,
-      rulesetsSyncIntervalMs: 100,
-    });
-    await runSync('getConfigSpecs');
-    Statsig.shutdown();
-    events = events.filter((e) => e['metadata']['context'] !== 'initialize');
-    expect(events.length).toBe(1);
-    const event = events[0];
-    expect(event['eventName']).toBe('statsig::diagnostics');
+  it.each([true, false])(
+    'test config download, disableDiagnostics: %s',
+    async (disableDiagnostics) => {
+      await Statsig.initialize('secret-key', {
+        loggingMaxBufferSize: 1,
+        rulesetsSyncIntervalMs: 100,
+        disableDiagnostics: disableDiagnostics,
+      });
+      await runSync('getConfigSpecs');
+      Statsig.shutdown();
+      events = events.filter((e) => e['metadata']['context'] !== 'initialize');
 
-    const metadata = event['metadata'];
-    expect(metadata['context']).toBe('config_sync');
+      if (disableDiagnostics) {
+        expect(events.length).toBe(0);
+        return;
+      }
 
-    const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], 'download_config_specs', 'start', {
-      step: 'network_request',
-    });
-    assertMarkerEqual(markers[1], 'download_config_specs', 'end', {
-      step: 'network_request',
-      value: 200,
-    });
-    assertMarkerEqual(markers[2], 'download_config_specs', 'start', {
-      step: 'process',
-    });
-    assertMarkerEqual(markers[3], 'download_config_specs', 'end', {
-      step: 'process',
-      value: true,
-    });
-    expect(markers.length).toBe(4);
-  });
+      expect(events.length).toBe(1);
+      const event = events[0];
+      expect(event['eventName']).toBe('statsig::diagnostics');
+
+      const metadata = event['metadata'];
+      expect(metadata['context']).toBe('config_sync');
+
+      const markers = metadata['markers'];
+      assertMarkerEqual(markers[0], 'download_config_specs', 'start', {
+        step: 'network_request',
+      });
+      assertMarkerEqual(markers[1], 'download_config_specs', 'end', {
+        step: 'network_request',
+        value: 200,
+      });
+      assertMarkerEqual(markers[2], 'download_config_specs', 'start', {
+        step: 'process',
+      });
+      assertMarkerEqual(markers[3], 'download_config_specs', 'end', {
+        step: 'process',
+        value: true,
+      });
+      expect(markers.length).toBe(4);
+    },
+  );
 
   it('test config download failure', async () => {
     await Statsig.initialize('secret-key', {
@@ -189,93 +203,103 @@ describe('ConfigSyncDiagnostics', () => {
     expect(markers.length).toBe(2);
   });
 
-  it('test get_id_list download', async () => {
-    await Statsig.initialize('secret-key', {
-      loggingMaxBufferSize: 1,
-      idListsSyncIntervalMs: 100,
-    });
+  it.each([true, false])(
+    'test get_id_list download, disableDiagnostics: %s',
+    async (disableDiagnostics) => {
+      await Statsig.initialize('secret-key', {
+        loggingMaxBufferSize: 1,
+        idListsSyncIntervalMs: 100,
+        disableDiagnostics: disableDiagnostics,
+      });
 
-    getIDListJSON = {
-      list_1: {
-        name: 'list_1',
-        size: 15,
-        url: 'https://id_list_content/list_1',
-        fileID: 'file_id_1',
-        creationTime: 2,
-      },
-      list_2: {
-        name: 'list_2',
-        size: 20,
-        url: 'https://id_list_content/list_2',
-        fileID: 'file_id_2',
-        creationTime: 2,
-      },
-    };
+      getIDListJSON = {
+        list_1: {
+          name: 'list_1',
+          size: 15,
+          url: 'https://id_list_content/list_1',
+          fileID: 'file_id_1',
+          creationTime: 2,
+        },
+        list_2: {
+          name: 'list_2',
+          size: 20,
+          url: 'https://id_list_content/list_2',
+          fileID: 'file_id_2',
+          creationTime: 2,
+        },
+      };
 
-    await runSync('getIDList');
-    Statsig.shutdown();
-    events = events.filter((e) => e['metadata']['context'] !== 'initialize');
-    expect(events.length).toBe(1);
-    const event = events[0];
-    expect(event['eventName']).toBe('statsig::diagnostics');
+      await runSync('getIDList');
+      Statsig.shutdown();
+      events = events.filter((e) => e['metadata']['context'] !== 'initialize');
 
-    const metadata = event['metadata'];
-    expect(metadata['context']).toBe('config_sync');
+      if (disableDiagnostics) {
+        expect(events.length).toBe(0);
+        return;
+      }
 
-    const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], 'get_id_list_sources', 'start', {
-      step: 'network_request',
-    });
-    assertMarkerEqual(markers[1], 'get_id_list_sources', 'end', {
-      step: 'network_request',
-      value: 200,
-    });
+      expect(events.length).toBe(1);
+      const event = events[0];
+      expect(event['eventName']).toBe('statsig::diagnostics');
 
-    assertMarkerEqual(markers[2], 'get_id_list_sources', 'start', {
-      step: 'process',
-    });
-    assertMarkerEqual(markers[3], 'get_id_list_sources', 'end', {
-      step: 'process',
-    });
+      const metadata = event['metadata'];
+      expect(metadata['context']).toBe('config_sync');
 
-    assertMarkerEqual(markers[4], 'get_id_list', 'start', {
-      step: 'network_request',
-      metadata: { url: 'https://id_list_content/list_1' },
-    });
-    assertMarkerEqual(markers[5], 'get_id_list', 'start', {
-      step: 'network_request',
-      metadata: { url: 'https://id_list_content/list_2' },
-    });
-    assertMarkerEqual(markers[6], 'get_id_list', 'end', {
-      step: 'network_request',
-      metadata: { url: 'https://id_list_content/list_1' },
-    });
-    assertMarkerEqual(markers[7], 'get_id_list', 'start', {
-      step: 'process',
-      metadata: { url: 'https://id_list_content/list_1' },
-    });
-    assertMarkerEqual(markers[8], 'get_id_list', 'end', {
-      step: 'network_request',
-      metadata: { url: 'https://id_list_content/list_2' },
-    });
-    assertMarkerEqual(markers[9], 'get_id_list', 'start', {
-      step: 'process',
-      metadata: { url: 'https://id_list_content/list_2' },
-    });
+      const markers = metadata['markers'];
+      assertMarkerEqual(markers[0], 'get_id_list_sources', 'start', {
+        step: 'network_request',
+      });
+      assertMarkerEqual(markers[1], 'get_id_list_sources', 'end', {
+        step: 'network_request',
+        value: 200,
+      });
 
-    assertMarkerEqual(markers[10], 'get_id_list', 'end', {
-      step: 'process',
-      value: true,
-      metadata: { url: 'https://id_list_content/list_1' },
-    });
-    assertMarkerEqual(markers[11], 'get_id_list', 'end', {
-      step: 'process',
-      value: true,
-      metadata: { url: 'https://id_list_content/list_2' },
-    });
+      assertMarkerEqual(markers[2], 'get_id_list_sources', 'start', {
+        step: 'process',
+      });
+      assertMarkerEqual(markers[3], 'get_id_list_sources', 'end', {
+        step: 'process',
+      });
 
-    expect(markers.length).toBe(12);
-  });
+      assertMarkerEqual(markers[4], 'get_id_list', 'start', {
+        step: 'network_request',
+        metadata: { url: 'https://id_list_content/list_1' },
+      });
+      assertMarkerEqual(markers[5], 'get_id_list', 'start', {
+        step: 'network_request',
+        metadata: { url: 'https://id_list_content/list_2' },
+      });
+      assertMarkerEqual(markers[6], 'get_id_list', 'end', {
+        step: 'network_request',
+        metadata: { url: 'https://id_list_content/list_1' },
+      });
+      assertMarkerEqual(markers[7], 'get_id_list', 'start', {
+        step: 'process',
+        metadata: { url: 'https://id_list_content/list_1' },
+      });
+      assertMarkerEqual(markers[8], 'get_id_list', 'end', {
+        step: 'network_request',
+        metadata: { url: 'https://id_list_content/list_2' },
+      });
+      assertMarkerEqual(markers[9], 'get_id_list', 'start', {
+        step: 'process',
+        metadata: { url: 'https://id_list_content/list_2' },
+      });
+
+      assertMarkerEqual(markers[10], 'get_id_list', 'end', {
+        step: 'process',
+        value: true,
+        metadata: { url: 'https://id_list_content/list_1' },
+      });
+      assertMarkerEqual(markers[11], 'get_id_list', 'end', {
+        step: 'process',
+        value: true,
+        metadata: { url: 'https://id_list_content/list_2' },
+      });
+
+      expect(markers.length).toBe(12);
+    },
+  );
 });
 
 // @ts-ignore

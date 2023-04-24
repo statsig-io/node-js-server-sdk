@@ -90,51 +90,62 @@ describe('InitDiagnostics', () => {
     StatsigInstanceUtils.setInstance(null);
   });
 
-  it('test network init success', async () => {
-    await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1 });
+  it.each([true, false])(
+    'test network init success',
+    async (disableDiagnostics) => {
+      await Statsig.initialize('secret-key', {
+        loggingMaxBufferSize: 1,
+        disableDiagnostics,
+      });
 
-    Statsig.shutdown();
+      Statsig.shutdown();
 
-    expect(events.length).toBe(1);
-    const event = events[0];
-    expect(event['eventName']).toBe('statsig::diagnostics');
+      if (disableDiagnostics) {
+        expect(events.length).toBe(0);
+        return;
+      }
 
-    const metadata = event['metadata'];
-    expect(metadata).not.toBeNull();
-    expect(metadata['context']).toBe('initialize');
+      expect(events.length).toBe(1);
+      const event = events[0];
+      expect(event['eventName']).toBe('statsig::diagnostics');
 
-    const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], 'overall', 'start');
-    assertMarkerEqual(markers[1], 'download_config_specs', 'start', {
-      step: 'network_request',
-    });
-    assertMarkerEqual(markers[2], 'download_config_specs', 'end', {
-      step: 'network_request',
-      value: 200,
-    });
-    assertMarkerEqual(markers[3], 'download_config_specs', 'start', {
-      step: 'process',
-    });
-    assertMarkerEqual(markers[4], 'download_config_specs', 'end', {
-      step: 'process',
-      value: true,
-    });
-    assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', {
-      step: 'network_request',
-    });
-    assertMarkerEqual(markers[6], 'get_id_list_sources', 'end', {
-      step: 'network_request',
-      value: 200,
-    });
-    assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', {
-      step: 'process',
-    });
-    assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', {
-      step: 'process',
-    });
-    assertMarkerEqual(markers[9], 'overall', 'end', { value: 'success' });
-    expect(markers.length).toBe(10);
-  });
+      const metadata = event['metadata'];
+      expect(metadata).not.toBeNull();
+      expect(metadata['context']).toBe('initialize');
+
+      const markers = metadata['markers'];
+      assertMarkerEqual(markers[0], 'overall', 'start');
+      assertMarkerEqual(markers[1], 'download_config_specs', 'start', {
+        step: 'network_request',
+      });
+      assertMarkerEqual(markers[2], 'download_config_specs', 'end', {
+        step: 'network_request',
+        value: 200,
+      });
+      assertMarkerEqual(markers[3], 'download_config_specs', 'start', {
+        step: 'process',
+      });
+      assertMarkerEqual(markers[4], 'download_config_specs', 'end', {
+        step: 'process',
+        value: true,
+      });
+      assertMarkerEqual(markers[5], 'get_id_list_sources', 'start', {
+        step: 'network_request',
+      });
+      assertMarkerEqual(markers[6], 'get_id_list_sources', 'end', {
+        step: 'network_request',
+        value: 200,
+      });
+      assertMarkerEqual(markers[7], 'get_id_list_sources', 'start', {
+        step: 'process',
+      });
+      assertMarkerEqual(markers[8], 'get_id_list_sources', 'end', {
+        step: 'process',
+      });
+      assertMarkerEqual(markers[9], 'overall', 'end', { value: 'success' });
+      expect(markers.length).toBe(10);
+    },
+  );
 
   it('test network init failure', async () => {
     downloadConfigSpecsResponse = {

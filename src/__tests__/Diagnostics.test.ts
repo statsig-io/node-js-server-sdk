@@ -1,4 +1,4 @@
-import Diagnostics, { ContextType } from '../Diagnostics';
+import Diagnostics, { ContextType, KeyType } from '../Diagnostics';
 import LogEventProcessor from '../LogEventProcessor';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
@@ -43,13 +43,13 @@ describe('Diagnostics', () => {
       assertMarkersEmpty(diagnostics);
 
       diagnostics.mark(context, 'download_config_specs', 'start');
-      expect(diagnostics.markers.intialize).toHaveLength(
+      expect(diagnostics.markers.initialize).toHaveLength(
         context === 'initialize' ? 1 : 0,
       );
-      expect(diagnostics.markers.configSync).toHaveLength(
+      expect(diagnostics.markers.config_sync).toHaveLength(
         context === 'config_sync' ? 1 : 0,
       );
-      expect(diagnostics.markers.eventLogging).toHaveLength(
+      expect(diagnostics.markers.event_logging).toHaveLength(
         context === 'event_logging' ? 1 : 0,
       );
     },
@@ -85,10 +85,31 @@ describe('Diagnostics', () => {
     assertLogDiagnostics('config_sync', 2);
     assertLogDiagnostics('event_logging', 3);
   });
+
+  const types = ['initialize', 'id_list', 'config_spec'] as const;
+  const samplingRates = {
+    dcs: 5000,
+    log: 5000,
+    idlist: 5000,
+    initialize: 5000,
+  };
+  it.each(types)('test sampling rate for %s', async (type) => {
+    const context: ContextType =
+      type === 'initialize' ? 'initialize' : 'config_sync';
+    for (let i = 0; i < 1000; i++) {
+      diagnostics.mark(context, 'download_config_specs', 'start');
+      diagnostics.logDiagnostics(context, {
+        type: type,
+        samplingRates,
+      });
+    }
+    expect(events.length).toBeGreaterThan(400);
+    expect(events.length).toBeLessThan(600);
+  });
 });
 
 function assertMarkersEmpty(diagnostics: Diagnostics) {
-  expect(diagnostics.markers.intialize).toHaveLength(0);
-  expect(diagnostics.markers.configSync).toHaveLength(0);
-  expect(diagnostics.markers.eventLogging).toHaveLength(0);
+  expect(diagnostics.markers.initialize).toHaveLength(0);
+  expect(diagnostics.markers.config_sync).toHaveLength(0);
+  expect(diagnostics.markers.event_logging).toHaveLength(0);
 }

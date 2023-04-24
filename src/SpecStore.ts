@@ -3,13 +3,14 @@ import Diagnostics, {
   ActionType,
   ContextType,
   KeyType,
+  MAX_SAMPLING_RATE,
   StepType,
 } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
-import { poll } from './utils/core';
+import { ExhaustSwitchError, poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -24,6 +25,15 @@ export type ConfigStore = {
   layers: Record<string, ConfigSpec>;
   experimentToLayer: Record<string, string>;
 };
+
+export type DiagnosticsSamplingRate = {
+  dcs: number;
+  log: number;
+  idlist: number;
+  initialize: number;
+};
+
+export type SDKConstants = DiagnosticsSamplingRate;
 
 export default class SpecStore {
   private initReason: EvaluationReason;
@@ -45,6 +55,12 @@ export default class SpecStore {
   private diagnostics: Diagnostics;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
+  private samplingRates: SDKConstants = {
+    dcs: 0,
+    log: 0,
+    idlist: 0,
+    initialize: MAX_SAMPLING_RATE,
+  };
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -320,11 +336,20 @@ export default class SpecStore {
     this.diagnostics.mark(context, key, action, step, value, metadata);
   }
 
-  private logDiagnostics(context: ContextType) {
+  private logDiagnostics(
+    context: ContextType,
+    type: 'id_list' | 'config_spec',
+  ) {
     if (this.initialized && context === 'config_sync') {
-      this.diagnostics?.logDiagnostics('config_sync');
+      this.diagnostics.logDiagnostics('config_sync', {
+        type,
+        samplingRates: this.samplingRates,
+      });
     } else if (this.initialized && context === 'initialize') {
-      this.diagnostics?.logDiagnostics('initialize');
+      this.diagnostics.logDiagnostics('initialize', {
+        type: 'initialize',
+        samplingRates: this.samplingRates,
+      });
     }
   }
 
@@ -362,7 +387,7 @@ export default class SpecStore {
         }
       }
     } finally {
-      this.logDiagnostics('config_sync');
+      this.logDiagnostics('config_sync', 'config_spec');
     }
   }
 
@@ -380,7 +405,34 @@ export default class SpecStore {
     } else {
       await this.syncIdListsFromNetwork();
     }
-    this.logDiagnostics('config_sync');
+    this.logDiagnostics('config_sync', 'id_list');
+  }
+
+  private updateSamplingRates(obj: any) {
+    if (!obj || typeof obj !== 'object') {
+      return;
+    }
+    this.safeSet(this.samplingRates, 'dcs', obj['dcs']);
+    this.safeSet(this.samplingRates, 'idlist', obj['idlist']);
+    this.safeSet(this.samplingRates, 'initialize', obj['initialize']);
+    this.safeSet(this.samplingRates, 'log', obj['log']);
+  }
+
+  private safeSet(
+    samplingRates: DiagnosticsSamplingRate,
+    key: keyof DiagnosticsSamplingRate,
+    value: unknown,
+  ) {
+    if (typeof value !== 'number') {
+      return;
+    }
+    if (value < 0) {
+      samplingRates[key] = 0;
+    } else if (value > MAX_SAMPLING_RATE) {
+      samplingRates[key] = MAX_SAMPLING_RATE;
+    } else {
+      samplingRates[key] = value;
+    }
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
@@ -396,6 +448,9 @@ export default class SpecStore {
     const configArray = specsJSON?.dynamic_configs;
     const layersArray = specsJSON?.layer_configs;
     const layerToExperimentMap = specsJSON?.layers;
+    const samplingRates = specsJSON?.diagnostics;
+
+    this.updateSamplingRates(samplingRates);
 
     if (
       !Array.isArray(gateArray) ||
