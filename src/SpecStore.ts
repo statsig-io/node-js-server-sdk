@@ -642,7 +642,12 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
+        step: 'process',
+        value: false,
+      });
+    }
   }
 
   private async genFetchIDList(
