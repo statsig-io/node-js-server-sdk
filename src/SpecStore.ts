@@ -655,12 +655,15 @@ export default class SpecStore {
     url: string,
     readSize: number,
   ): Promise<void> {
+    this.addDiagnosticsMarker('get_id_list', 'start', {
+      step: 'network_request',
+      metadata: { url: url },
+    });
+
+    let res: Response | undefined = undefined;
+    let error;
     try {
-      this.addDiagnosticsMarker('get_id_list', 'start', {
-        step: 'network_request',
-        metadata: { url: url },
-      });
-      const res = await safeFetch(url, {
+      res = await safeFetch(url, {
         method: 'GET',
         headers: {
           Range: `bytes=${readSize}-`,
@@ -671,10 +674,26 @@ export default class SpecStore {
         value: res.status,
         metadata: { url: url },
       });
-      this.addDiagnosticsMarker('get_id_list', 'start', {
-        step: 'process',
-        metadata: { url: url },
+    } catch (e) {
+      console.warn(e);
+      error = e;
+    } finally {
+      this.addDiagnosticsMarker('get_id_list', 'end', {
+        step: 'network_request',
+        value: this.getResponseCodeFromError(error) ?? false,
       });
+    }
+
+    if (!res || error) {
+      return;
+    }
+
+    this.addDiagnosticsMarker('get_id_list', 'start', {
+      step: 'process',
+      metadata: { url: url },
+    });
+
+    try {
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
         throw new Error('Content-Length for the id list is invalid.');
@@ -687,16 +706,13 @@ export default class SpecStore {
         throw new Error('Content-Length for the id list is invalid.');
       }
       IDListUtil.updateIdList(this.store.idLists, name, await res.text());
-      this.addDiagnosticsMarker('get_id_list', 'end', {
-        step: 'process',
-        value: true,
-        metadata: { url: url },
-      });
     } catch (e) {
       console.warn(e);
+      error = e;
+    } finally {
       this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'process',
-        value: false,
+        value: error ? false : true,
         metadata: { url: url },
       });
     }
