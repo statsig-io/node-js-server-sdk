@@ -39,6 +39,7 @@ export default class SpecStore {
   private initReason: EvaluationReason;
 
   private api: string;
+  private apiForDownloadConfigSpecs: string | null;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
   private initialUpdateTime: number;
   private lastUpdateTime: number;
@@ -69,6 +70,7 @@ export default class SpecStore {
   ) {
     this.fetcher = fetcher;
     this.api = options.api;
+    this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
     this.lastUpdateTime = 0;
     this.initialUpdateTime = 0;
@@ -238,7 +240,9 @@ export default class SpecStore {
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
     try {
-      response = await this.fetcher.post(this.api + '/download_config_specs', {
+      const url = (this.apiForDownloadConfigSpecs ?? this.api) +
+        '/download_config_specs';
+      response = await this.fetcher.post(url, {
         statsigMetadata: getStatsigMetadata(),
         sinceTime: this.lastUpdateTime,
       });

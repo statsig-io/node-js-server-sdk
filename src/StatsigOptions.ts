@@ -20,6 +20,7 @@ export type InitStrategy = 'await' | 'lazy' | 'none';
 
 export type ExplicitStatsigOptions = {
   api: string;
+  apiForDownloadConfigSpecs: string | null;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
@@ -44,7 +45,12 @@ export function OptionsWithDefaults(
   opts: StatsigOptions,
 ): ExplicitStatsigOptions {
   return {
-    api: getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
+    api: normalizeUrl(
+      getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API
+    ) as string,
+    apiForDownloadConfigSpecs: normalizeUrl(
+      getString(opts, 'apiForDownloadConfigSpecs', null)
+    ),
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)
@@ -146,4 +152,8 @@ function getNumber(
     return defaultValue;
   }
   return obj;
+}
+
+function normalizeUrl(url: string | null): string | null {
+  return url && url.endsWith('/') ? url.slice(0, -1) : url;
 }
