@@ -15,6 +15,9 @@ const DIAGNOSTIC_EVENT = 'diagnostics';
 const INTERNAL_EVENT_PREFIX = 'statsig::';
 const DEFAULT_VALUE_WARNING = 'default_value_type_mismatch';
 
+export const DEFAULT_RETRIES = 5;
+export const DEFAULT_BACKOFF = 10000;
+
 const deduperInterval = 60 * 1000;
 
 const ignoredMetadataKeys = new Set([
@@ -77,7 +80,7 @@ export default class LogEventProcessor {
     }
   }
 
-  public async flush(fireAndForget = false, retries: number = 5, backoff: number = 10000): Promise<void> {
+  public async flush(fireAndForget = false, retries: number = DEFAULT_RETRIES, backoff: number = DEFAULT_BACKOFF): Promise<void> {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }

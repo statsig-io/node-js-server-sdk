@@ -8,7 +8,7 @@ import {
 import Evaluator from './Evaluator';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
-import LogEventProcessor from './LogEventProcessor';
+import LogEventProcessor, { DEFAULT_BACKOFF, DEFAULT_RETRIES } from './LogEventProcessor';
 import {
   ExplicitStatsigOptions,
   OptionsWithDefaults,
@@ -416,7 +416,7 @@ export default class StatsigServer {
     });
   }
 
-  public async flush(retries: number = 5, backoff: number = 10000): Promise<void> {
+  public async flush(retries: number = DEFAULT_RETRIES, backoff: number = DEFAULT_BACKOFF): Promise<void> {
     return this._errorBoundary.capture(
       () => {
         if (this._logger == null) {
