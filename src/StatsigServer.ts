@@ -416,14 +416,14 @@ export default class StatsigServer {
     });
   }
 
-  public async flush(): Promise<void> {
+  public async flush(retries: number = 5, backoff: number = 10000): Promise<void> {
     return this._errorBoundary.capture(
       () => {
         if (this._logger == null) {
           return Promise.resolve();
         }
 
-        return this._logger.flush();
+        return this._logger.flush(retries === 0, retries, backoff);
       },
       () => Promise.resolve(),
     );

@@ -77,7 +77,7 @@ export default class LogEventProcessor {
     }
   }
 
-  public async flush(fireAndForget = false): Promise<void> {
+  public async flush(fireAndForget = false, retries: number = 5, backoff: number = 10000): Promise<void> {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
@@ -88,7 +88,7 @@ export default class LogEventProcessor {
       events: oldQueue,
     };
     return this.fetcher
-      .post(this.options.api + '/log_event', body, fireAndForget ? 0 : 5, 10000)
+      .post(this.options.api + '/log_event', body, fireAndForget ? 0 : retries, backoff)
       .then(() => {
         return Promise.resolve();
       })
