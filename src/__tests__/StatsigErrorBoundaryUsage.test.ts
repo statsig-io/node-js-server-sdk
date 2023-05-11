@@ -84,17 +84,17 @@ describe('Statsig ErrorBoundary Usage', () => {
 
   it('recovers from error with logEvent', () => {
     statsig.logEvent(user, 'an_event');
-    expect(requests).toEqual(oneLoggedError('_logger.log'));
+    expect(requests).toEqual(oneLoggedError('_logProcessor.log'));
   });
 
   it('recovers from error with logEventObject', () => {
     statsig.logEventObject({ user, eventName: 'an_event' });
-    expect(requests).toEqual(oneLoggedError('_logger.log'));
+    expect(requests).toEqual(oneLoggedError('_logProcessor.log'));
   });
 
   it('recovers from error with shutdown', () => {
     statsig.shutdown();
-    expect(requests).toEqual(oneLoggedError('_logger.shutdown'));
+    expect(requests).toEqual(oneLoggedError('_logProcessor.shutdown'));
   });
 
   it('recovers from error with overrideGate', () => {
@@ -109,7 +109,7 @@ describe('Statsig ErrorBoundary Usage', () => {
 
   it('recovers from error with overrideConfig', async () => {
     await statsig.flush();
-    expect(requests).toEqual(oneLoggedError('_logger.flush'));
+    expect(requests).toEqual(oneLoggedError('_logProcessor.flush'));
   });
 
   it('recovers from error with initialize', async () => {
