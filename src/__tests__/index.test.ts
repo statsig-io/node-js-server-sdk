@@ -350,11 +350,11 @@ describe('Verify behavior of top level index functions', () => {
     let gateName = 'gate_pass';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-    const gateExposure = new LogEvent('statsig::gate_exposure');
-    gateExposure.setUser({
+    const gateExposure = new LogEvent('statsig::gate_exposure', console);
+    gateExposure.setUser(console, {
       userID: '123',
     });
-    gateExposure.setMetadata({
+    gateExposure.setMetadata(console, {
       gate: gateName,
       gateValue: String(true),
       ruleID: 'rule_id_pass',
@@ -396,13 +396,13 @@ describe('Verify behavior of top level index functions', () => {
     let gateName = 'gate_fail';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-    const gateExposure = new LogEvent('statsig::gate_exposure');
-    gateExposure.setUser({
+    const gateExposure = new LogEvent('statsig::gate_exposure', console);
+    gateExposure.setUser(console, {
       userID: '123',
       // @ts-ignore
       statsigEnvironment: { tier: 'production' },
     });
-    gateExposure.setMetadata({
+    gateExposure.setMetadata(console, {
       gate: gateName,
       gateValue: String(false),
       ruleID: 'rule_id_fail',
@@ -467,11 +467,11 @@ describe('Verify behavior of top level index functions', () => {
     let configName = 'config_downloaded';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-    const configExposure = new LogEvent('statsig::config_exposure');
-    configExposure.setUser({
+    const configExposure = new LogEvent('statsig::config_exposure', console);
+    configExposure.setUser(console, {
       userID: '123',
     });
-    configExposure.setMetadata({
+    configExposure.setMetadata(console, {
       config: configName,
       ruleID: 'rule_id_config',
     });
@@ -635,9 +635,9 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
       Statsig.logEvent({ userID: '123' }, 'test', 0);
 
-      const logEvent = new LogEvent('test');
-      logEvent.setMetadata(null);
-      logEvent.setUser({ userID: '123' });
+      const logEvent = new LogEvent('test', console);
+      logEvent.setMetadata(console, null);
+      logEvent.setUser(console, { userID: '123' });
       logEvent.setValue(0);
       expect(spy).toBeCalledWith(logEvent);
       expect(logEvent.toObject().value).toEqual(0);
@@ -651,9 +651,9 @@ describe('Verify behavior of top level index functions', () => {
       const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
       Statsig.logEvent({ userID: '123' }, 'test', '');
 
-      const logEvent = new LogEvent('test');
-      logEvent.setMetadata(null);
-      logEvent.setUser({ userID: '123' });
+      const logEvent = new LogEvent('test', console);
+      logEvent.setMetadata(console, null);
+      logEvent.setUser(console, { userID: '123' });
       logEvent.setValue('');
       expect(spy).toBeCalledWith(logEvent);
       expect(logEvent.toObject().value).toEqual('');
@@ -670,11 +670,11 @@ describe('Verify behavior of top level index functions', () => {
         user: { userID: '123', privateAttributes: { secret: 'do not log' } },
       });
 
-      const logEvent = new LogEvent('event');
-      logEvent.setMetadata(null);
-      logEvent.setUser({ userID: '123' });
+      const logEvent = new LogEvent('event', console);
+      logEvent.setMetadata(console, null);
+      logEvent.setUser(console, { userID: '123' });
       logEvent.setValue(null);
-      logEvent.setTime(123);
+      logEvent.setTime(console, 123);
       expect(spy).toBeCalledWith(logEvent);
     });
   });
@@ -728,8 +728,8 @@ describe('Verify behavior of top level index functions', () => {
         extradata: str_1k,
       });
 
-      const trimmedEvent = new LogEvent(str_64.substring(0, 64));
-      trimmedEvent.setUser({
+      const trimmedEvent = new LogEvent(str_64.substring(0, 64), console);
+      trimmedEvent.setUser(console, {
         userID: str_64,
         email: 'jest@Statsig.com',
         custom: {
@@ -737,7 +737,7 @@ describe('Verify behavior of top level index functions', () => {
         },
       });
       trimmedEvent.setValue(str_64.substring(0, 64));
-      trimmedEvent.setMetadata({ statsig_error: 'Metadata length too large' });
+      trimmedEvent.setMetadata(console, { statsig_error: 'Metadata length too large' });
       expect(spy).toBeCalledWith(trimmedEvent);
     });
   });

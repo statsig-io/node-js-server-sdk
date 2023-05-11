@@ -12,7 +12,7 @@ describe('ErrorBoundary', () => {
   let requests: { url: RequestInfo; params: RequestInit }[] = [];
 
   beforeEach(() => {
-    boundary = new ErrorBoundary('secret-key');
+    boundary = new ErrorBoundary('secret-key', console);
     requests = [];
 
     const fetch = require('node-fetch');
@@ -64,7 +64,7 @@ describe('ErrorBoundary', () => {
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
 
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(JSON.parse(requests[0].params.body!.toString())).toEqual(
       expect.objectContaining({
         exception: 'URIError',
         info: err.stack,
@@ -79,7 +79,7 @@ describe('ErrorBoundary', () => {
     });
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(JSON.parse(requests[0].params.body!.toString())).toEqual(
       expect.objectContaining({
         exception: 'No Name',
         info: JSON.stringify(err),
@@ -109,7 +109,7 @@ describe('ErrorBoundary', () => {
       throw new Error();
     });
 
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(JSON.parse(requests[0].params.body!.toString())).toEqual(
       expect.objectContaining({
         statsigMetadata: getStatsigMetadata(),
       }),
