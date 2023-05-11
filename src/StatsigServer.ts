@@ -390,12 +390,12 @@ export default class StatsigServer {
       }
 
       let event = new LogEvent(eventName, this._logger);
-      event.setUser(user);
+      event.setUser(this._logger, user);
       event.setValue(value);
-      event.setMetadata(metadata);
+      event.setMetadata(this._logger, metadata);
 
       if (typeof time === 'number') {
-        event.setTime(time);
+        event.setTime(this._logger, time);
       }
 
       this._logProcessor.log(event);

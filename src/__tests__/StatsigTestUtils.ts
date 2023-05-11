@@ -11,7 +11,7 @@ export default abstract class StatsigTestUtils {
 
   static getLogger(): any {
     // @ts-ignore
-    return StatsigInstanceUtils.getInstance()?._logger ?? null;
+    return StatsigInstanceUtils.getInstance()?._logProcessor ?? null;
   }
 }
 

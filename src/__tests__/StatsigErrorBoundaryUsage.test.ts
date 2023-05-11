@@ -43,7 +43,7 @@ describe('Statsig ErrorBoundary Usage', () => {
       },
     };
     // @ts-ignore
-    statsig._logger = 1;
+    statsig._logProcessor = 1;
   });
 
   it('recovers from error and returns default gate value', async () => {

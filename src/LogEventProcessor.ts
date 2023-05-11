@@ -129,11 +129,11 @@ export default class LogEventProcessor {
 
     const event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName, this.logger);
     if (user != null) {
-      event.setUser(user);
+      event.setUser(this.logger, user);
     }
 
     if (metadata != null) {
-      event.setMetadata(metadata);
+      event.setMetadata(this.logger, metadata);
     }
 
     if (secondaryExposures != null) {

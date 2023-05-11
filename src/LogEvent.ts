@@ -10,21 +10,19 @@ export default class LogEvent {
   private value: string | number | null = null;
   private metadata: Record<string, unknown> | null = null;
   private secondaryExposures: Record<string, unknown>[] = [];
-  private logger: LoggerInterface;
 
   public constructor(eventName: string, logger: LoggerInterface) {
-    this.logger = logger;
     if (eventName == null || typeof eventName !== 'string') {
-      this.logger.error('statsigSDK> EventName needs to be a string.');
+      logger.error('statsigSDK> EventName needs to be a string.');
       eventName = 'invalid_event';
     }
     this.time = Date.now();
     this.eventName = eventName;
   }
 
-  public setUser(user: StatsigUser) {
+  public setUser(logger: LoggerInterface, user: StatsigUser) {
     if (user != null && typeof user !== 'object') {
-      this.logger.warn(
+      logger.warn(
         'statsigSDK> User is not set because it needs to be an object.',
       );
       return;
@@ -48,12 +46,12 @@ export default class LogEvent {
     }
   }
 
-  public setMetadata(metadata: Record<string, unknown> | null) {
+  public setMetadata(logger: LoggerInterface, metadata: Record<string, unknown> | null) {
     if (metadata == null) {
       return;
     }
     if (metadata != null && typeof metadata !== 'object') {
-      this.logger.warn(
+      logger.warn(
         'statsigSDK> Metadata is not set because it needs to be an object.',
       );
       return;
@@ -61,9 +59,9 @@ export default class LogEvent {
     this.metadata = clone(metadata);
   }
 
-  public setTime(time: number) {
+  public setTime(logger: LoggerInterface, time: number) {
     if (time != null && typeof time !== 'number') {
-      this.logger.warn(
+      logger.warn(
         'statsigSDK>Timestamp is not set because it needs to be a number.',
       );
       return;
@@ -77,6 +75,10 @@ export default class LogEvent {
 
   public validate(): boolean {
     return typeof this.eventName === 'string' && this.eventName.length > 0;
+  }
+
+  public toJSON(): Record<string, unknown> {
+    return this.toObject();
   }
 
   public toObject(): Record<string, unknown> {
