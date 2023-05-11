@@ -44,7 +44,7 @@ export type LogEventObject = {
 };
 
 /**
- * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer this._logger.  Also used for event logging to view in the statsig this._logger, or for analyzing experiment impacts using pulse.
+ * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer this._logger.  Also used for event logging to view in the Statsig console, or for analyzing experiment impacts using pulse.
  */
 export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
@@ -101,7 +101,7 @@ export default class StatsigServer {
         ) {
           return Promise.reject(
             new StatsigInvalidArgumentError(
-              'Invalid key provided.  You must use a Server Secret Key from the Statsig this._logger with the node-js-server-sdk',
+              'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
             ),
           );
         }
@@ -154,7 +154,7 @@ export default class StatsigServer {
   }
 
   /**
-   * Check the value of a gate configured in the statsig this._logger
+   * Check the value of a gate configured in the Statsig console
    * @throws Error if initialize() was not called first
    * @throws Error if the gateName is not provided or not a non-empty string
    */
