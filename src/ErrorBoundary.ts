@@ -6,6 +6,7 @@ import {
 } from './Errors';
 import { getSDKType, getSDKVersion, getStatsigMetadata } from './utils/core';
 import safeFetch from './utils/safeFetch';
+import type { LoggerInterface } from './StatsigOptions';
 
 export const ExceptionEndpoint = 'https://statsigapi.net/v1/sdk_exception';
 
@@ -13,9 +14,11 @@ export default class ErrorBoundary {
   private sdkKey: string;
   private statsigMetadata = getStatsigMetadata();
   private seen = new Set<string>();
+  private logger: LoggerInterface;
 
-  constructor(sdkKey: string) {
+  constructor(sdkKey: string, logger: LoggerInterface) {
     this.sdkKey = sdkKey;
+    this.logger = logger;
   }
 
   swallow<T>(task: () => T) {
@@ -51,7 +54,7 @@ export default class ErrorBoundary {
       throw error; // Don't catch these
     }
 
-    console.error('[Statsig] An unexpected exception occurred.', error);
+    this.logger.error('[Statsig] An unexpected exception occurred.', error as Error);
 
     this.logError(error);
 

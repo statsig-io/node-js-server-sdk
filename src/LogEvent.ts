@@ -1,3 +1,4 @@
+import type { LoggerInterface } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 
 import { clone } from './utils/core';
@@ -9,10 +10,12 @@ export default class LogEvent {
   private value: string | number | null = null;
   private metadata: Record<string, unknown> | null = null;
   private secondaryExposures: Record<string, unknown>[] = [];
+  private logger: LoggerInterface;
 
-  public constructor(eventName: string) {
+  public constructor(eventName: string, logger: LoggerInterface) {
+    this.logger = logger;
     if (eventName == null || typeof eventName !== 'string') {
-      console.error('statsigSDK> EventName needs to be a string.');
+      this.logger.error('statsigSDK> EventName needs to be a string.');
       eventName = 'invalid_event';
     }
     this.time = Date.now();
@@ -21,7 +24,7 @@ export default class LogEvent {
 
   public setUser(user: StatsigUser) {
     if (user != null && typeof user !== 'object') {
-      console.warn(
+      this.logger.warn(
         'statsigSDK> User is not set because it needs to be an object.',
       );
       return;
@@ -50,7 +53,7 @@ export default class LogEvent {
       return;
     }
     if (metadata != null && typeof metadata !== 'object') {
-      console.warn(
+      this.logger.warn(
         'statsigSDK> Metadata is not set because it needs to be an object.',
       );
       return;
@@ -60,7 +63,7 @@ export default class LogEvent {
 
   public setTime(time: number) {
     if (time != null && typeof time !== 'number') {
-      console.warn(
+      this.logger.warn(
         'statsigSDK>Timestamp is not set because it needs to be a number.',
       );
       return;

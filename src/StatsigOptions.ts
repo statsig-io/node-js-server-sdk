@@ -18,11 +18,17 @@ export type StatsigEnvironment = {
 
 export type InitStrategy = 'await' | 'lazy' | 'none';
 
+export type LoggerInterface = {
+  warn(msg: string | Error): void;
+  error(msg: string | Error, err?: Error): void;
+}
+
 export type ExplicitStatsigOptions = {
   api: string;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
+  logger: LoggerInterface;
   localMode: boolean;
   initTimeoutMs: number;
   dataAdapter: IDataAdapter | null;
@@ -54,6 +60,7 @@ export function OptionsWithDefaults(
       : null,
     localMode: getBoolean(opts, 'localMode', false),
     initTimeoutMs: getNumber(opts, 'initTimeoutMs', 0),
+    logger: opts.logger || console,
     dataAdapter: opts.dataAdapter ?? null,
     rulesetsSyncIntervalMs: Math.max(
       getNumber(opts, 'rulesetsSyncIntervalMs', DEFAULT_RULESETS_SYNC_INTERVAL),

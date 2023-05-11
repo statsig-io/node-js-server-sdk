@@ -4,7 +4,7 @@ import Diagnostics, { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent from './LogEvent';
-import { ExplicitStatsigOptions } from './StatsigOptions';
+import { ExplicitStatsigOptions, LoggerInterface } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import StatsigFetcher from './utils/StatsigFetcher';
 
@@ -27,6 +27,7 @@ const ignoredMetadataKeys = new Set([
 export default class LogEventProcessor {
   private options: ExplicitStatsigOptions;
   private fetcher: StatsigFetcher;
+  private logger: LoggerInterface;
 
   private queue: LogEvent[];
   private flushTimer: NodeJS.Timer | null;
@@ -38,6 +39,7 @@ export default class LogEventProcessor {
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.options = options;
     this.fetcher = fetcher;
+    this.logger = options.logger;
 
     this.queue = [];
     this.deduper = new Set();
@@ -125,7 +127,7 @@ export default class LogEventProcessor {
       return;
     }
 
-    const event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName, this.logger);
     if (user != null) {
       event.setUser(user);
     }

@@ -11,6 +11,7 @@ import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
 import {
   ExplicitStatsigOptions,
+  LoggerInterface,
   OptionsWithDefaults,
   StatsigOptions,
 } from './StatsigOptions';
@@ -43,28 +44,30 @@ export type LogEventObject = {
 };
 
 /**
- * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
+ * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer this._logger.  Also used for event logging to view in the statsig this._logger, or for analyzing experiment impacts using pulse.
  */
 export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
   private _ready: boolean = false;
   private _options: ExplicitStatsigOptions;
-  private _logger: LogEventProcessor;
+  private _logProcessor: LogEventProcessor;
   private _secretKey: string;
   private _evaluator: Evaluator;
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
   private _diagnostics: Diagnostics;
+  private _logger: LoggerInterface;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
     this._options = OptionsWithDefaults(options);
     this._pendingInitPromise = null;
+    this._logger = this._options.logger;
     this._ready = false;
     this._fetcher = new StatsigFetcher(this._secretKey, this._options);
-    this._logger = new LogEventProcessor(this._fetcher, this._options);
+    this._logProcessor = new LogEventProcessor(this._fetcher, this._options);
     this._diagnostics = new Diagnostics({
-      logger: this._logger,
+      logger: this._logProcessor,
       options: this._options,
     });
     this._evaluator = new Evaluator(
@@ -72,7 +75,7 @@ export default class StatsigServer {
       this._options,
       this._diagnostics,
     );
-    this._errorBoundary = new ErrorBoundary(secretKey);
+    this._errorBoundary = new ErrorBoundary(secretKey, this._logger);
   }
 
   /**
@@ -98,7 +101,7 @@ export default class StatsigServer {
         ) {
           return Promise.reject(
             new StatsigInvalidArgumentError(
-              'Invalid key provided.  You must use a Server Secret Key from the Statsig console with the node-js-server-sdk',
+              'Invalid key provided.  You must use a Server Secret Key from the Statsig this._logger with the node-js-server-sdk',
             ),
           );
         }
@@ -151,7 +154,7 @@ export default class StatsigServer {
   }
 
   /**
-   * Check the value of a gate configured in the statsig console
+   * Check the value of a gate configured in the statsig this._logger
    * @throws Error if initialize() was not called first
    * @throws Error if the gateName is not provided or not a non-empty string
    */
@@ -346,24 +349,24 @@ export default class StatsigServer {
       let metadata = eventObject.metadata ?? null;
       let time = eventObject.time ?? null;
 
-      if (!(this._ready === true && this._logger != null)) {
+      if (!(this._ready === true && this._logProcessor != null)) {
         throw new StatsigUninitializedError();
       }
       if (typeof eventName !== 'string' || eventName.length === 0) {
-        console.error(
+        this._logger.error(
           'statsigSDK::logEvent> Must provide a valid string for the eventName.',
         );
         return;
       }
       if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
         hasLoggedNoUserIdWarning = true;
-        console.warn(
+        this._logger.warn(
           'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
         );
       }
-      user = normalizeUser(user, this._options);
+      user = normalizeUser(this._logger, user, this._options);
       if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
-        console.warn(
+        this._logger.warn(
           'statsigSDK::logEvent> eventName is too long, trimming to ' +
             MAX_VALUE_SIZE +
             '.',
@@ -371,7 +374,7 @@ export default class StatsigServer {
         eventName = eventName.substring(0, MAX_VALUE_SIZE);
       }
       if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
-        console.warn(
+        this._logger.warn(
           'statsigSDK::logEvent> value is too long, trimming to ' +
             MAX_VALUE_SIZE +
             '.',
@@ -380,13 +383,13 @@ export default class StatsigServer {
       }
 
       if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
-        console.warn(
+        this._logger.warn(
           'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
         );
         metadata = { statsig_error: 'Metadata length too large' };
       }
 
-      let event = new LogEvent(eventName);
+      let event = new LogEvent(eventName, this._logger);
       event.setUser(user);
       event.setValue(value);
       event.setMetadata(metadata);
@@ -395,7 +398,7 @@ export default class StatsigServer {
         event.setTime(time);
       }
 
-      this._logger.log(event);
+      this._logProcessor.log(event);
     });
   }
 
@@ -404,13 +407,13 @@ export default class StatsigServer {
    * so the SDK can clean up internal state
    */
   public shutdown() {
-    if (this._logger == null) {
+    if (this._logProcessor == null) {
       return;
     }
 
     this._errorBoundary.swallow(() => {
       this._ready = false;
-      this._logger.shutdown();
+      this._logProcessor.shutdown();
       this._fetcher.shutdown();
       this._evaluator.shutdown();
     });
@@ -419,11 +422,11 @@ export default class StatsigServer {
   public async flush(): Promise<void> {
     return this._errorBoundary.capture(
       () => {
-        if (this._logger == null) {
+        if (this._logProcessor == null) {
           return Promise.resolve();
         }
 
-        return this._logger.flush();
+        return this._logProcessor.flush();
       },
       () => Promise.resolve(),
     );
@@ -439,7 +442,7 @@ export default class StatsigServer {
         }
         let normalizedUser = user;
         if (user.statsigEnvironment == null) {
-          normalizedUser = normalizeUser(user, this._options);
+          normalizedUser = normalizeUser(this._logger, user, this._options);
         }
         return this._evaluator.getClientInitializeResponse(normalizedUser);
       },
@@ -454,7 +457,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'boolean') {
-        console.warn(
+        this._logger.warn(
           'statsigSDK> Attempted to override a gate with a non boolean value',
         );
         return;
@@ -470,7 +473,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'object') {
-        console.warn(
+        this._logger.warn(
           'statsigSDK> Attempted to override a config with a non object value',
         );
         return;
@@ -486,7 +489,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'object') {
-        console.warn(
+        this._logger.warn(
           'statsigSDK> Attempted to override a layer with a non object value',
         );
         return;
@@ -513,7 +516,7 @@ export default class StatsigServer {
     evaluation: ConfigEvaluation,
     exposureCause: ExposureCause,
   ) {
-    this._logger.logGateExposure(
+    this._logProcessor.logGateExposure(
       user,
       gateName,
       evaluation,
@@ -570,7 +573,7 @@ export default class StatsigServer {
     evaluation: ConfigEvaluation,
     exposureCause: ExposureCause,
   ) {
-    this._logger.logConfigExposure(
+    this._logProcessor.logConfigExposure(
       user,
       configName,
       evaluation,
@@ -681,11 +684,11 @@ export default class StatsigServer {
     evaluation: ConfigEvaluation,
     exposureCause: ExposureCause,
   ) {
-    if (this._logger == null) {
+    if (this._logProcessor == null) {
       return;
     }
 
-    this._logger.logLayerExposure(
+    this._logProcessor.logLayerExposure(
       user,
       layerName,
       parameterName,
@@ -714,7 +717,7 @@ export default class StatsigServer {
         ),
       );
     } else {
-      result.normalizedUser = normalizeUser(user, this._options);
+      result.normalizedUser = normalizeUser(this._logger, user, this._options);
     }
 
     const resetError = this._evaluator.resetSyncTimerIfExited();
@@ -772,7 +775,7 @@ export default class StatsigServer {
     }
 
     return (config, parameter, defaultValueType, valueType) => {
-      this._logger.logConfigDefaultValueFallback(
+      this._logProcessor.logConfigDefaultValueFallback(
         user,
         `Parameter ${parameter} is a value of type ${valueType}.
       Returning requested defaultValue type ${defaultValueType}`,
@@ -818,10 +821,11 @@ function approximateObjectSize(x: object): number {
 }
 
 function normalizeUser(
+  logger: LoggerInterface,
   user: StatsigUser,
   options: ExplicitStatsigOptions,
 ): StatsigUser {
-  user = trimUserObjIfNeeded(user);
+  user = trimUserObjIfNeeded(logger, user);
   user = JSON.parse(JSON.stringify(user));
   if (options?.environment != null) {
     user['statsigEnvironment'] = options?.environment;
@@ -829,11 +833,11 @@ function normalizeUser(
   return user;
 }
 
-function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
+function trimUserObjIfNeeded(logger: LoggerInterface, user: StatsigUser): StatsigUser {
   if (user == null) return { customIDs: {} }; // Being defensive here
 
   if (user.userID != null && shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
-    console.warn(
+    logger.warn(
       'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
     );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
@@ -842,12 +846,12 @@ function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
   if (shouldTrimParam(user, MAX_USER_SIZE)) {
     user.custom = { statsig_error: 'User object length too large' };
     if (shouldTrimParam(user, MAX_USER_SIZE)) {
-      console.warn(
+      logger.warn(
         'statsigSDK> User object is too large, only keeping the user ID.',
       );
       user = { userID: user.userID, customIDs: user.customIDs ?? {} };
     } else {
-      console.warn(
+      logger.warn(
         'statsigSDK> User object is too large, dropping the custom property.',
       );
     }
