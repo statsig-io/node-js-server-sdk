@@ -659,15 +659,12 @@ export default class SpecStore {
     url: string,
     readSize: number,
   ): Promise<void> {
-    this.addDiagnosticsMarker('get_id_list', 'start', {
-      step: 'network_request',
-      metadata: { url: url },
-    });
-
-    let res: Response | undefined = undefined;
-    let error;
     try {
-      res = await safeFetch(url, {
+      this.addDiagnosticsMarker('get_id_list', 'start', {
+        step: 'network_request',
+        metadata: { url: url },
+      });
+      const res = await safeFetch(url, {
         method: 'GET',
         headers: {
           Range: `bytes=${readSize}-`,
@@ -678,26 +675,10 @@ export default class SpecStore {
         value: res.status,
         metadata: { url: url },
       });
-    } catch (e) {
-      console.warn(e);
-      error = e;
-    } finally {
-      this.addDiagnosticsMarker('get_id_list', 'end', {
-        step: 'network_request',
-        value: this.getResponseCodeFromError(error) ?? false,
+      this.addDiagnosticsMarker('get_id_list', 'start', {
+        step: 'process',
+        metadata: { url: url },
       });
-    }
-
-    if (!res || error) {
-      return;
-    }
-
-    this.addDiagnosticsMarker('get_id_list', 'start', {
-      step: 'process',
-      metadata: { url: url },
-    });
-
-    try {
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
         throw new Error('Content-Length for the id list is invalid.');
@@ -710,13 +691,16 @@ export default class SpecStore {
         throw new Error('Content-Length for the id list is invalid.');
       }
       IDListUtil.updateIdList(this.store.idLists, name, await res.text());
-    } catch (e) {
-      console.warn(e);
-      error = e;
-    } finally {
       this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'process',
-        value: error ? false : true,
+        value: true,
+        metadata: { url: url },
+      });
+    } catch (e) {
+      console.warn(e);
+      this.addDiagnosticsMarker('get_id_list', 'end', {
+        step: 'process',
+        value: false,
         metadata: { url: url },
       });
     }
