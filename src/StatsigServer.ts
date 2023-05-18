@@ -18,6 +18,7 @@ import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
 import Diagnostics from './Diagnostics';
+import OutputLogger from './OutputLogger';
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 2048;
@@ -55,6 +56,7 @@ export default class StatsigServer {
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
   private _diagnostics: Diagnostics;
+  private outputLogger = OutputLogger.getLogger();
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     this._secretKey = secretKey;
@@ -350,20 +352,20 @@ export default class StatsigServer {
         throw new StatsigUninitializedError();
       }
       if (typeof eventName !== 'string' || eventName.length === 0) {
-        console.error(
+        this.outputLogger.error(
           'statsigSDK::logEvent> Must provide a valid string for the eventName.',
         );
         return;
       }
       if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
         hasLoggedNoUserIdWarning = true;
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
         );
       }
       user = normalizeUser(user, this._options);
       if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK::logEvent> eventName is too long, trimming to ' +
             MAX_VALUE_SIZE +
             '.',
@@ -371,7 +373,7 @@ export default class StatsigServer {
         eventName = eventName.substring(0, MAX_VALUE_SIZE);
       }
       if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK::logEvent> value is too long, trimming to ' +
             MAX_VALUE_SIZE +
             '.',
@@ -380,7 +382,7 @@ export default class StatsigServer {
       }
 
       if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
         );
         metadata = { statsig_error: 'Metadata length too large' };
@@ -454,7 +456,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'boolean') {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK> Attempted to override a gate with a non boolean value',
         );
         return;
@@ -470,7 +472,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'object') {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK> Attempted to override a config with a non object value',
         );
         return;
@@ -486,7 +488,7 @@ export default class StatsigServer {
   ) {
     this._errorBoundary.swallow(() => {
       if (typeof value !== 'object') {
-        console.warn(
+        this.outputLogger.warn(
           'statsigSDK> Attempted to override a layer with a non object value',
         );
         return;
@@ -833,7 +835,7 @@ function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
   if (user == null) return { customIDs: {} }; // Being defensive here
 
   if (user.userID != null && shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
-    console.warn(
+    OutputLogger.getLogger().warn(
       'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
     );
     user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
@@ -842,12 +844,12 @@ function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
   if (shouldTrimParam(user, MAX_USER_SIZE)) {
     user.custom = { statsig_error: 'User object length too large' };
     if (shouldTrimParam(user, MAX_USER_SIZE)) {
-      console.warn(
+      OutputLogger.getLogger().warn(
         'statsigSDK> User object is too large, only keeping the user ID.',
       );
       user = { userID: user.userID, customIDs: user.customIDs ?? {} };
     } else {
-      console.warn(
+      OutputLogger.getLogger().warn(
         'statsigSDK> User object is too large, dropping the custom property.',
       );
     }

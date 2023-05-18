@@ -9,8 +9,9 @@ import Diagnostics, {
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
-import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
-import { ExhaustSwitchError, poll } from './utils/core';
+import OutputLogger from './OutputLogger';
+import { ExplicitStatsigOptions, InitStrategy, LoggerInterface } from './StatsigOptions';
+import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -62,6 +63,7 @@ export default class SpecStore {
     idlist: 0,
     initialize: MAX_SAMPLING_RATE,
   };
+  private outputLogger = OutputLogger.getLogger();
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -141,7 +143,7 @@ export default class SpecStore {
     var specsJSON = null;
     if (this.bootstrapValues != null) {
       if (this.dataAdapter != null) {
-        console.error(
+        this.outputLogger.error(
           'statsigSDK::initialize> Conflict between bootstrap and adapter. Defaulting to adapter.',
         );
       } else {
@@ -154,7 +156,7 @@ export default class SpecStore {
           this.setInitialUpdateTime();
           this.addDiagnosticsMarker('bootstrap', 'end', { step: 'process' });
         } catch (e) {
-          console.error(
+          this.outputLogger.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
           );
         }
@@ -373,14 +375,14 @@ export default class SpecStore {
       this.syncFailureCount++;
       if (!(e instanceof StatsigLocalModeNetworkError)) {
         if (isColdStart) {
-          console.error(
+          this.outputLogger.error(
             'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
           );
         } else if (
           this.syncFailureCount * this.syncInterval >
           SYNC_OUTDATED_MAX
         ) {
-          console.warn(
+          this.outputLogger.warn(
             `statsigSDK::sync> Syncing the server SDK with ${
               shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
             } has failed for  ${
@@ -581,7 +583,7 @@ export default class SpecStore {
         step: 'network_request',
         value: status ?? false,
       });
-      console.warn(e);
+      this.outputLogger.warn(e as Error);
       return;
     }
 
@@ -692,7 +694,7 @@ export default class SpecStore {
         metadata: { url: url },
       });
     } catch (e) {
-      console.warn(e);
+      this.outputLogger.warn(e as Error);
       this.addDiagnosticsMarker('get_id_list', 'end', {
         step: 'process',
         value: false,

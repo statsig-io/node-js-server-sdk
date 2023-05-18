@@ -4,6 +4,7 @@ import {
   StatsigTooManyRequestsError,
   StatsigUninitializedError,
 } from './Errors';
+import OutputLogger from './OutputLogger';
 import { getSDKType, getSDKVersion, getStatsigMetadata } from './utils/core';
 import safeFetch from './utils/safeFetch';
 
@@ -13,6 +14,7 @@ export default class ErrorBoundary {
   private sdkKey: string;
   private statsigMetadata = getStatsigMetadata();
   private seen = new Set<string>();
+  private outputLogger = OutputLogger.getLogger();
 
   constructor(sdkKey: string) {
     this.sdkKey = sdkKey;
@@ -51,7 +53,7 @@ export default class ErrorBoundary {
       throw error; // Don't catch these
     }
 
-    console.error('[Statsig] An unexpected exception occurred.', error);
+    this.outputLogger.error('[Statsig] An unexpected exception occurred.', error as Error);
 
     this.logError(error);
 

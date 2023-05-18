@@ -2,6 +2,7 @@ import DynamicConfig from './DynamicConfig';
 import { StatsigUninitializedError } from './Errors';
 import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
+import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
   RulesUpdatedCallback,
@@ -43,6 +44,10 @@ export const Statsig = {
    * @throws Error if a Server Secret Key is not provided
    */
   initialize(secretKey: string, options: StatsigOptions = {}): Promise<void> {
+    if (options.logger) {
+      OutputLogger.setLogger(options.logger);
+    }
+
     const inst =
       StatsigInstanceUtils.getInstance() ??
       new StatsigServer(secretKey, options);
@@ -275,6 +280,7 @@ export const Statsig = {
    */
   shutdown(): void {
     this._enforceServer().shutdown();
+    OutputLogger.resetLogger();
   },
 
   /**
