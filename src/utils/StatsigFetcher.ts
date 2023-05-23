@@ -2,7 +2,7 @@ import {
   StatsigLocalModeNetworkError,
   StatsigTooManyRequestsError,
 } from '../Errors';
-import { ExplicitStatsigOptions } from '../StatsigOptions';
+import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import safeFetch from './safeFetch';
@@ -39,7 +39,7 @@ export default class StatsigFetcher {
     url: string,
     body: Record<string, unknown>,
     retries: number = 0,
-    backoff: number = 1000,
+    backoff: number | RetryBackoffFunc = 1000,
   ): Promise<Response> {
     if (this.localMode) {
       return Promise.reject(new StatsigLocalModeNetworkError());
@@ -58,6 +58,8 @@ export default class StatsigFetcher {
       this.leakyBucket[url] = counter + 1;
     }
 
+    const backoffAdjusted = typeof backoff === 'number' ? backoff * 10 : backoff(retries);
+
     const params = {
       method: 'POST',
       body: JSON.stringify(body),
@@ -73,7 +75,7 @@ export default class StatsigFetcher {
     return safeFetch(url, params)
       .then((res) => {
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
-          return this._retry(url, body, retries, backoff);
+          return this._retry(url, body, retries - 1, backoffAdjusted);
         } else if (!res.ok) {
           return Promise.reject(
             new Error(
@@ -85,7 +87,7 @@ export default class StatsigFetcher {
       })
       .catch((e) => {
         if (retries > 0) {
-          return this._retry(url, body, retries, backoff);
+          return this._retry(url, body, retries - 1, backoffAdjusted);
         }
         return Promise.reject(e);
       })
@@ -117,7 +119,7 @@ export default class StatsigFetcher {
       this.pendingTimers.push(
         setTimeout(() => {
           this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
-          this.post(url, body, retries - 1, backoff * 10)
+          this.post(url, body, retries, backoff)
             .then(resolve)
             .catch(reject);
         }, backoff).unref(),

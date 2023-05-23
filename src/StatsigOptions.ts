@@ -8,8 +8,11 @@ const MIN_ID_LISTS_SYNC_INTERVAL = 30 * 1000;
 const DEFAULT_LOGGING_INTERVAL = 60 * 1000;
 const DEFAULT_MAX_LOGGING_BUFFER_SIZE = 1000;
 const DEFAULT_LOG_DIAGNOSTICS = false;
+const DEFAULT_POST_LOGS_RETRY_LIMIT = 5;
+const DEFAULT_POST_LOGS_RETRY_BACKOFF = 10000;
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
+export type RetryBackoffFunc = (retriesRemaining: number) => number;
 
 export type StatsigEnvironment = {
   tier?: 'production' | 'staging' | 'development' | string;
@@ -40,6 +43,8 @@ export type ExplicitStatsigOptions = {
   disableDiagnostics: boolean;
   initStrategyForIP3Country: InitStrategy;
   initStrategyForIDLists: InitStrategy;
+  postLogsRetryLimit: number;
+  postLogsRetryBackoff: RetryBackoffFunc | number;
 };
 
 /**
@@ -52,10 +57,10 @@ export function OptionsWithDefaults(
 ): ExplicitStatsigOptions {
   return {
     api: normalizeUrl(
-      getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API
+      getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
     ) as string,
     apiForDownloadConfigSpecs: normalizeUrl(
-      getString(opts, 'apiForDownloadConfigSpecs', null)
+      getString(opts, 'apiForDownloadConfigSpecs', null),
     ),
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
@@ -102,6 +107,13 @@ export function OptionsWithDefaults(
         'initStrategyForIDLists',
         'await',
       ) as InitStrategy | null) ?? 'await',
+    postLogsRetryLimit: getNumber(
+      opts,
+      'postLogsRetryLimit',
+      DEFAULT_POST_LOGS_RETRY_LIMIT,
+    ),
+    postLogsRetryBackoff:
+      opts.postLogsRetryBackoff ?? DEFAULT_POST_LOGS_RETRY_BACKOFF,
   };
 }
 
