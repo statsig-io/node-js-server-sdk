@@ -40,6 +40,7 @@ export default class StatsigFetcher {
     body: Record<string, unknown>,
     retries: number = 0,
     backoff: number | RetryBackoffFunc = 1000,
+    isRetrying = false,
   ): Promise<Response> {
     if (this.localMode) {
       return Promise.reject(new StatsigLocalModeNetworkError());
@@ -58,7 +59,12 @@ export default class StatsigFetcher {
       this.leakyBucket[url] = counter + 1;
     }
 
-    const backoffAdjusted = typeof backoff === 'number' ? backoff * 10 : backoff(retries);
+    const applyBackoffMultiplier = (backoff: number) =>
+      isRetrying ? backoff * 10 : backoff;
+    const backoffAdjusted =
+      typeof backoff === 'number'
+        ? applyBackoffMultiplier(backoff)
+        : backoff(retries);
 
     const params = {
       method: 'POST',
@@ -119,7 +125,7 @@ export default class StatsigFetcher {
       this.pendingTimers.push(
         setTimeout(() => {
           this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
-          this.post(url, body, retries, backoff)
+          this.post(url, body, retries, backoff, true)
             .then(resolve)
             .catch(reject);
         }, backoff).unref(),
