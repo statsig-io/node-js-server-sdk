@@ -9,7 +9,7 @@ const DEFAULT_LOGGING_INTERVAL = 60 * 1000;
 const DEFAULT_MAX_LOGGING_BUFFER_SIZE = 1000;
 const DEFAULT_LOG_DIAGNOSTICS = false;
 const DEFAULT_POST_LOGS_RETRY_LIMIT = 5;
-const DEFAULT_POST_LOGS_RETRY_BACKOFF = 10000;
+const DEFAULT_POST_LOGS_RETRY_BACKOFF = 1000;
 
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
 export type RetryBackoffFunc = (retriesRemaining: number) => number;
