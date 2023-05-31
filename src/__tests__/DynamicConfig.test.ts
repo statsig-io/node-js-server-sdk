@@ -51,7 +51,7 @@ describe('Verify behavior of DynamicConfig', () => {
       test: 123,
     });
     expect(testConfig.getRuleID()).toStrictEqual('default');
-    expect(testConfig.getGroupName()).toStrictEqual('');
+    expect(testConfig.getGroupName()).toStrictEqual(null);
   });
 
   test('Test get key not found', () => {

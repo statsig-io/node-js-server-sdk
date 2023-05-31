@@ -581,13 +581,13 @@ describe('Verify behavior of top level index functions', () => {
       });
 
     const configName = 'non_existent_config';
-    let config = new DynamicConfig(configName, {}, '', 'code_default');
+    let config = new DynamicConfig(configName, {}, '');
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     await Statsig.getConfig({ userID: '12345' }, configName).then((data) => {
       expect(data).toEqual(config);
       expect(data.getRuleID()).toBe('');
-      expect(data.getGroupName()).toBe('code_default');
+      expect(data.getGroupName()).toBe(null);
     });
 
     await Statsig.getExperiment({ userID: '12345' }, configName).then(

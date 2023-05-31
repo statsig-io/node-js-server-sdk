@@ -14,7 +14,7 @@ export default class DynamicConfig {
   public name: string;
   public value: Record<string, unknown>;
   private _ruleID: string;
-  private _groupName: string;
+  private _groupName: string | null;
   private _secondaryExposures: Record<string, unknown>[];
   private _onDefaultValueFallback: OnDefaultValueFallback | null = null;
 
@@ -22,7 +22,7 @@ export default class DynamicConfig {
     configName: string,
     value: Record<string, unknown> = {},
     ruleID: string = '',
-    groupName: string = '',
+    groupName: string | null = null,
     secondaryExposures: Record<string, unknown>[] = [],
     onDefaultValueFallback: OnDefaultValueFallback | null = null,
   ) {
@@ -96,7 +96,7 @@ export default class DynamicConfig {
     return this._ruleID;
   }
 
-  getGroupName(): string {
+  getGroupName(): string | null {
     return this._groupName;
   }
 

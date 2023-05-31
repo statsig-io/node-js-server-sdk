@@ -10,13 +10,13 @@ export default class ConfigEvaluation {
   public fetch_from_server: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
   public is_experiment_group: boolean;
-  public group_name: string;
+  public group_name: string | null;
   public evaluation_details: EvaluationDetails | undefined;
 
   constructor(
     value: boolean,
     rule_id = '',
-    group_name = '',
+    group_name: string | null = null,
     secondary_exposures: Record<string, string>[] = [],
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
@@ -55,7 +55,7 @@ export default class ConfigEvaluation {
     return new ConfigEvaluation(
       false,
       '',
-      '',
+      null,
       [],
       {},
       undefined,
