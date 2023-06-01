@@ -825,7 +825,523 @@
       ]
     }
   ],
-  "feature_gates": [],
+  "feature_gates": [
+    {
+      "name": "test_disabled_gate",
+      "type": "feature_gate",
+      "salt": "0249a8fa-a3b5-408d-a01e-9f4f36b03251",
+      "enabled": false,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "79zt1E5F5CIweYXV7HTStg",
+          "groupName": "Everyone",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "79zt1E5F5CIweYXV7HTStg",
+          "salt": "764eb1ab-8694-469a-85e3-beddf86b5dd9",
+          "isDeviceBased": false,
+          "idType": "userID"
+        }
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
+    },
+    {
+      "name": "test_many_rules",
+      "type": "feature_gate",
+      "salt": "58f09f38-ca17-4ae5-b949-91be1a378a78",
+      "enabled": true,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "6p3sV0WQgEu534LNrRXbz1",
+          "groupName": "Has Custom",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "Bar"
+              ],
+              "operator": "any",
+              "field": "Foo",
+              "additionalValues": {
+                "custom_field": "Foo"
+              },
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sV0WQgEu534LNrRXbz1",
+          "salt": "30cebbd2-5e1b-476d-99c4-b755a79972dd",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sV4gVbeN3FTREE7Osb5",
+          "groupName": "Has IP From NZ",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "101.100.159.200",
+                "101.110.112.111"
+              ],
+              "operator": "any",
+              "field": "ip",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sV4gVbeN3FTREE7Osb5",
+          "salt": "e3216a0a-98ae-406e-8433-669be091dcc5",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sV7B05P62iIXvQnFIN9",
+          "groupName": "Is Android",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "Android"
+              ],
+              "operator": "any",
+              "field": "os_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sV7B05P62iIXvQnFIN9",
+          "salt": "744fd668-92c9-4746-9f35-ba93de1463ab",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVaV50pp0Vy3n2DwZpd",
+          "groupName": "Is iOS",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "iOS"
+              ],
+              "operator": "any",
+              "field": "os_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVaV50pp0Vy3n2DwZpd",
+          "salt": "89819e67-eced-4cbc-84cd-eb6261a21312",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVef9UZHZyn9eeTog1h",
+          "groupName": "Is Statsig Email",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "@statsig.com"
+              ],
+              "operator": "str_contains_any",
+              "field": "email",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVef9UZHZyn9eeTog1h",
+          "salt": "0a2a34b1-bf4b-4a09-8bd8-685d053d848c",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVhzePA0Ybcf5r9fwDl",
+          "groupName": "Is Chrome",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "Chrome",
+                "Chrome Mobile"
+              ],
+              "operator": "any",
+              "field": "browser_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVhzePA0Ybcf5r9fwDl",
+          "salt": "b38525a4-8627-4020-94bc-70b99339707c",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVkTjKajWO1kWDp6Nfp",
+          "groupName": "Is Testing",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "environment_field",
+              "targetValue": [
+                "test",
+                "testing"
+              ],
+              "operator": "any",
+              "field": "tier",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVkTjKajWO1kWDp6Nfp",
+          "salt": "26a5350a-1525-4d81-a428-24dbaa1b14cb",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVodoEKCVqQqNPEY3Rt",
+          "groupName": "Is Beta Release",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": "1.1.1-beta",
+              "operator": "version_eq",
+              "field": "appVersion",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVodoEKCVqQqNPEY3Rt",
+          "salt": "786a9f80-ef95-4c8f-8eee-f7afd567eb19",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVrxtzkVU3FwF1UPktx",
+          "groupName": "Inside USA",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ip_based",
+              "targetValue": [
+                "US"
+              ],
+              "operator": "any",
+              "field": "country",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVrxtzkVU3FwF1UPktx",
+          "salt": "6fc3c5ca-cac3-49ec-a027-a5d97a175a08",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVuRytVeSGuCweaGB5B",
+          "groupName": "Fails 50 50 Check",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "fail_gate",
+              "targetValue": "test_50_50",
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVuRytVeSGuCweaGB5B",
+          "salt": "1428bdfe-82e5-44a0-b72e-6e692ca5242c",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVybDovxRjjInqqxRHF",
+          "groupName": "Is NZ and Chrome",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ip_based",
+              "targetValue": [
+                "NZ"
+              ],
+              "operator": "any",
+              "field": "country",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "Chrome",
+                "Chrome Mobile"
+              ],
+              "operator": "any",
+              "field": "browser_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVybDovxRjjInqqxRHF",
+          "salt": "adda164c-faf3-4462-909d-b8db338e52a9",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVBvIj5QPW8OeCGp8jJ",
+          "groupName": "50 50 Check with Custom",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "pass_gate",
+              "targetValue": "test_50_50",
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "user_field",
+              "targetValue": [
+                "true"
+              ],
+              "operator": "any",
+              "field": "newUser",
+              "additionalValues": {
+                "custom_field": "newUser"
+              },
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVBvIj5QPW8OeCGp8jJ",
+          "salt": "b8afd5ef-6fc0-49ea-85bf-afc0f273e7e1",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "segyVWn7njISSKgK7AbqK",
+          "groupName": "Passes a Nested Gate",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "pass_gate",
+              "targetValue": "test_nested_gate_condition",
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "segyVWn7njISSKgK7AbqK",
+          "salt": "8f429eb5-6037-4906-897d-74ac0de490aa",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "segyZgs1XCHvHQ7Wnrs2O",
+          "groupName": "Is Cool User",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "cool-user"
+              ],
+              "operator": "any",
+              "field": "userID",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "user_field",
+              "targetValue": [
+                "uncool-user"
+              ],
+              "operator": "none",
+              "field": "userID",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "segyZgs1XCHvHQ7Wnrs2O",
+          "salt": "8807cd7d-6315-4ee6-acd5-f808d2f8daf1",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "2Wax73lJG0It9vsswOKj54",
+          "groupName": "MEGA",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "ip_based",
+              "targetValue": [
+                "US"
+              ],
+              "operator": "any",
+              "field": "country",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "user_field",
+              "targetValue": [
+                "@gmail.com"
+              ],
+              "operator": "str_contains_any",
+              "field": "email",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "Firefox",
+                "Firefox Mobile"
+              ],
+              "operator": "any",
+              "field": "browser_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "ua_based",
+              "targetValue": [
+                "Mac OS X"
+              ],
+              "operator": "any",
+              "field": "os_name",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "user_field",
+              "targetValue": [
+                "en_GB"
+              ],
+              "operator": "none",
+              "field": "locale",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "user_field",
+              "targetValue": [
+                "1.1.1.1",
+                "2.2.2.2",
+                "1.2.3.4"
+              ],
+              "operator": "none",
+              "field": "ip",
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            },
+            {
+              "type": "unit_id",
+              "targetValue": [
+                "bad-employee"
+              ],
+              "operator": "none",
+              "field": "companyID",
+              "additionalValues": {
+                "custom_id": "companyID"
+              },
+              "isDeviceBased": false,
+              "idType": "companyID"
+            }
+          ],
+          "returnValue": true,
+          "id": "2Wax73lJG0It9vsswOKj54",
+          "salt": "ea6f39f7-2296-46cf-b788-2c4e58281c06",
+          "isDeviceBased": false,
+          "idType": "userID"
+        },
+        {
+          "name": "6p3sVEPNdG9OyXU5OWgoVN",
+          "groupName": "10 Percent Public",
+          "passPercentage": 10,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6p3sVEPNdG9OyXU5OWgoVN",
+          "salt": "f0b22477-6607-464b-8582-af77b98bf8d9",
+          "isDeviceBased": false,
+          "idType": "userID"
+        }
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "feature_gate"
+    }
+  ],
   "id_lists": {},
   "layers": {
     "layer_with_many_params": [

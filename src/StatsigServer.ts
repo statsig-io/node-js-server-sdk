@@ -1,4 +1,5 @@
 import ConfigEvaluation from './ConfigEvaluation';
+import Diagnostics from './Diagnostics';
 import DynamicConfig, { OnDefaultValueFallback } from './DynamicConfig';
 import ErrorBoundary from './ErrorBoundary';
 import {
@@ -6,19 +7,23 @@ import {
   StatsigUninitializedError,
 } from './Errors';
 import Evaluator from './Evaluator';
+import {
+  FeatureGate,
+  makeEmptyFeatureGate,
+  makeFeatureGate,
+} from './FeatureGate';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
+import OutputLogger from './OutputLogger';
 import {
   ExplicitStatsigOptions,
   OptionsWithDefaults,
   StatsigOptions,
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
-import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
-import Diagnostics from './Diagnostics';
-import OutputLogger from './OutputLogger';
+import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 2048;
@@ -159,32 +164,40 @@ export default class StatsigServer {
    */
   public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
     return this._errorBoundary.capture(
-      async () => {
-        const gate = await this.checkGateImpl(
-          user,
-          gateName,
-          ExposureLogging.Enabled,
-        );
-        return gate?.value === true;
-      },
+      () =>
+        this.getGateImpl(user, gateName, ExposureLogging.Enabled).then(
+          (gate) => gate.value,
+        ),
       () => Promise.resolve(false),
     );
   }
 
-  public checkGateWithExposureLoggingDisabled(
+  public getFeatureGate(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<FeatureGate> {
+    return this._errorBoundary.capture(
+      () => this.getGateImpl(user, gateName, ExposureLogging.Enabled),
+      () => Promise.resolve(makeEmptyFeatureGate(gateName)),
+    );
+  }
+
+  public async checkGateWithExposureLoggingDisabled(
     user: StatsigUser,
     gateName: string,
   ): Promise<boolean> {
+    return this.getFeatureGateWithExposureLoggingDisabled(user, gateName).then(
+      (gate) => gate.value,
+    );
+  }
+
+  public getFeatureGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<FeatureGate> {
     return this._errorBoundary.capture(
-      async () => {
-        const gate = await this.checkGateImpl(
-          user,
-          gateName,
-          ExposureLogging.Disabled,
-        );
-        return gate?.value === true;
-      },
-      () => Promise.resolve(false),
+      () => this.getGateImpl(user, gateName, ExposureLogging.Disabled),
+      () => Promise.resolve(makeEmptyFeatureGate(gateName)),
     );
   }
 
@@ -203,9 +216,7 @@ export default class StatsigServer {
     configName: string,
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getConfigImpl(user, configName, ExposureLogging.Enabled);
-      },
+      () => this.getConfigImpl(user, configName, ExposureLogging.Enabled),
       () => Promise.resolve(new DynamicConfig(configName)),
     );
   }
@@ -215,9 +226,7 @@ export default class StatsigServer {
     configName: string,
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getConfigImpl(user, configName, ExposureLogging.Disabled);
-      },
+      () => this.getConfigImpl(user, configName, ExposureLogging.Disabled),
       () => Promise.resolve(new DynamicConfig(configName)),
     );
   }
@@ -242,13 +251,7 @@ export default class StatsigServer {
     experimentName: string,
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getConfigImpl(
-          user,
-          experimentName,
-          ExposureLogging.Enabled,
-        );
-      },
+      () => this.getConfigImpl(user, experimentName, ExposureLogging.Enabled),
       () => Promise.resolve(new DynamicConfig(experimentName)),
     );
   }
@@ -258,13 +261,7 @@ export default class StatsigServer {
     experimentName: string,
   ): Promise<DynamicConfig> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getConfigImpl(
-          user,
-          experimentName,
-          ExposureLogging.Disabled,
-        );
-      },
+      () => this.getConfigImpl(user, experimentName, ExposureLogging.Disabled),
       () => Promise.resolve(new DynamicConfig(experimentName)),
     );
   }
@@ -286,9 +283,7 @@ export default class StatsigServer {
    */
   public getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getLayerImpl(user, layerName, ExposureLogging.Enabled);
-      },
+      () => this.getLayerImpl(user, layerName, ExposureLogging.Enabled),
       () => Promise.resolve(new Layer(layerName)),
     );
   }
@@ -298,9 +293,7 @@ export default class StatsigServer {
     layerName: string,
   ): Promise<Layer> {
     return this._errorBoundary.capture(
-      () => {
-        return this.getLayerImpl(user, layerName, ExposureLogging.Disabled);
-      },
+      () => this.getLayerImpl(user, layerName, ExposureLogging.Disabled),
       () => Promise.resolve(new Layer(layerName)),
     );
   }
@@ -330,14 +323,14 @@ export default class StatsigServer {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ) {
-    return this._errorBoundary.swallow(() => {
+    return this._errorBoundary.swallow(() =>
       this.logEventObject({
         eventName: eventName,
         user: user,
         value: value,
         metadata: metadata,
-      });
-    });
+      }),
+    );
   }
 
   public logEventObject(eventObject: LogEventObject) {
@@ -523,11 +516,11 @@ export default class StatsigServer {
     );
   }
 
-  private async checkGateImpl(
+  private async getGateImpl(
     inputUser: StatsigUser,
     gateName: string,
     exposureLogging: ExposureLogging,
-  ): Promise<{ value: boolean }> {
+  ): Promise<FeatureGate> {
     const { rejection, normalizedUser: user } = this._validateInputs(
       inputUser,
       gateName,
@@ -563,7 +556,14 @@ export default class StatsigServer {
       );
     }
 
-    return Promise.resolve({ value: evaluation.value });
+    return Promise.resolve(
+      makeFeatureGate(
+        gateName,
+        evaluation.rule_id,
+        evaluation.value === true,
+        evaluation.group_name,
+      ),
+    );
   }
 
   private logConfigExposureImpl(
