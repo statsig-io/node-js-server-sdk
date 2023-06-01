@@ -50,10 +50,18 @@ describe('ExposureLogging', () => {
   });
 
   describe('standard use', () => {
-    it('logs gate exposures', async () => {
+    it('logs check gate exposures', async () => {
       await Statsig.checkGate(user, 'a_gate');
       expect(events.length).toBe(1);
       expect(events[0].metadata.gate).toEqual('a_gate');
+      expect(events[0].metadata.isManualExposure).toBeUndefined();
+      expect(events[0].eventName).toEqual('statsig::gate_exposure');
+    });
+
+    it('logs get feature gate exposures', async () => {
+      await Statsig.getFeatureGate(user, 'b_gate');
+      expect(events.length).toBe(1);
+      expect(events[0].metadata.gate).toEqual('b_gate');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
       expect(events[0].eventName).toEqual('statsig::gate_exposure');
     });
@@ -85,8 +93,13 @@ describe('ExposureLogging', () => {
   });
 
   describe('exposure logging disabled', () => {
-    it('does not log gate exposures', async () => {
+    it('does not log check gate exposures', async () => {
       Statsig.checkGateWithExposureLoggingDisabled(user, 'a_gate');
+      expect(events.length).toBe(0);
+    });
+
+    it('does not log get gate exposures', async () => {
+      Statsig.getFeatureGateWithExposureLoggingDisabled(user, 'b_gate');
       expect(events.length).toBe(0);
     });
 

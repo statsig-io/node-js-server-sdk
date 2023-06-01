@@ -1,5 +1,6 @@
 import DynamicConfig from './DynamicConfig';
 import { StatsigUninitializedError } from './Errors';
+import { FeatureGate } from './FeatureGate';
 import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
 import OutputLogger from './OutputLogger';
@@ -73,6 +74,10 @@ export const Statsig = {
     return this._enforceServer().checkGate(user, gateName);
   },
 
+  getFeatureGate(user: StatsigUser, gateName: string): Promise<FeatureGate> {
+    return this._enforceServer().getFeatureGate(user, gateName);
+  },
+
   /**
    * Gets the boolean result of a gate, evaluated against the given user.
    * No exposure event will be logged.
@@ -88,6 +93,16 @@ export const Statsig = {
     gateName: string,
   ): Promise<boolean> {
     return this._enforceServer().checkGateWithExposureLoggingDisabled(
+      user,
+      gateName,
+    );
+  },
+
+  getFeatureGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<FeatureGate> {
+    return this._enforceServer().getFeatureGateWithExposureLoggingDisabled(
       user,
       gateName,
     );
