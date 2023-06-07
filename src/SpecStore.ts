@@ -10,7 +10,11 @@ import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
-import { ExplicitStatsigOptions, InitStrategy, LoggerInterface } from './StatsigOptions';
+import {
+  ExplicitStatsigOptions,
+  InitStrategy,
+  LoggerInterface,
+} from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
@@ -154,12 +158,16 @@ export default class SpecStore {
             this.initReason = 'Bootstrap';
           }
           this.setInitialUpdateTime();
-          this.addDiagnosticsMarker('bootstrap', 'end', { step: 'process' });
         } catch (e) {
           this.outputLogger.error(
             'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
           );
         }
+
+        this.addDiagnosticsMarker('bootstrap', 'end', {
+          step: 'process',
+          value: this.initReason === 'Bootstrap',
+        });
       }
     }
 
@@ -242,8 +250,8 @@ export default class SpecStore {
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
     try {
-      const url = (this.apiForDownloadConfigSpecs ?? this.api) +
-        '/download_config_specs';
+      const url =
+        (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
       response = await this.fetcher.post(url, {
         statsigMetadata: getStatsigMetadata(),
         sinceTime: this.lastUpdateTime,

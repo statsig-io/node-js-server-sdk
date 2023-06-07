@@ -280,7 +280,10 @@ describe('InitDiagnostics', () => {
     const markers = metadata['markers'];
     assertMarkerEqual(markers[0], 'overall', 'start');
     assertMarkerEqual(markers[1], 'bootstrap', 'start', { step: 'process' });
-    assertMarkerEqual(markers[2], 'bootstrap', 'end', { step: 'process' });
+    assertMarkerEqual(markers[2], 'bootstrap', 'end', {
+      step: 'process',
+      value: true,
+    });
     // Skip downloadConfig / get_id_list_sources
     assertMarkerEqual(markers[markers.length - 1], 'overall', 'end', {
       value: 'success',
