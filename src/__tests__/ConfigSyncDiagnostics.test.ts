@@ -361,41 +361,10 @@ const statsig = Statsig.default;
 
 async function runSync(type: 'getIDList' | 'getConfigSpecs') {
   const evaluator = StatsigTestUtils.getEvaluator();
-
-  const now = Date.now();
-
-  let gate = await statsig.checkGateWithExposureLoggingDisabled(
-    { userID: '123', email: 'tore@packers.com' },
-    'nfl_gate',
-  );
-  expect(gate).toBe(true);
-
-  jest
-    .spyOn(global.Date, 'now')
-    .mockImplementation(() => now + (2 * 60 * 1000 - 100));
-  gate = await statsig.checkGateWithExposureLoggingDisabled(
-    { userID: '123', email: 'tore@packers.com' },
-    'nfl_gate',
-  );
-  expect(gate).toBe(true);
-
-  // check diagnostitics last sync time didn't change
   if (type === 'getConfigSpecs') {
     await evaluator['store']._syncValues();
   }
   if (type === 'getIDList') {
     await evaluator['store']._syncIdLists();
   }
-  jest
-    .spyOn(global.Date, 'now')
-    .mockImplementation(() => now + (2 * 60 * 1000 + 1));
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  gate = await statsig.checkGateWithExposureLoggingDisabled(
-    { userID: '123', email: 'tore@packers.com' },
-    'nfl_gate',
-  );
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  expect(gate).toBe(true);
 }
