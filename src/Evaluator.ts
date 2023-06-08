@@ -8,8 +8,8 @@ import { StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
-import { sha256 } from 'js-sha256';
 
+const shajs = require('sha.js');
 const ip3country = require('ip3country');
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -853,9 +853,20 @@ function computeUserHash(userHash: string) {
     return existingHash;
   }
 
-  var sha = sha256.create();
-  sha.update(userHash);
-  const hash = BigInt(`0x${sha.hex().substring(0, 16)}`);
+  let hash: bigint;
+  const buffer = shajs('sha256').update(userHash).digest();
+  if (buffer.readBigUInt64BE) {
+    hash = buffer.readBigUInt64BE();
+  }
+
+  const ab = new ArrayBuffer(buffer.length);
+  const view = new Uint8Array(ab);
+  for (let ii = 0; ii < buffer.length; ii++) {
+    view[ii] = buffer[ii];
+  }
+
+  const dv = new DataView(ab);
+  hash = dv.getBigUint64(0, false);
 
   if (hashLookupTable.size > 100000) {
     hashLookupTable.clear();
@@ -866,9 +877,7 @@ function computeUserHash(userHash: string) {
 }
 
 function getHashedName(name: string) {
-  var sha = sha256.create();
-  sha.update(name);
-  return Buffer.from(sha.hex(), 'hex').toString('base64');
+  return shajs('sha256').update(name).digest('base64');
 }
 
 function hashUnitIDForIDList(unitID: string) {
