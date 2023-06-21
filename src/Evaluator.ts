@@ -179,17 +179,23 @@ export default class Evaluator {
     if (clientSDKKey != null && clientKeyToAppMap[clientSDKKey] != null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
     }
+    const filterTargetAppID = (spec: ConfigSpec) => {
+      if (
+        targetAppID != null &&
+        !(spec?.targetAppIDs ?? []).includes(targetAppID)
+      ) {
+        return false;
+      }
+      return true;
+    };
     const gates = Object.entries(this.store.getAllGates())
-      .map(([gate, spec]) => {
+      .filter(([_, spec]) => {
         if (spec?.entity === 'segment' || spec?.entity === 'holdout') {
-          return null;
+          return false;
         }
-        if (
-          targetAppID != null &&
-          !(spec?.targetAppIDs ?? []).includes(targetAppID)
-        ) {
-          return null;
-        }
+        return filterTargetAppID(spec);
+      })
+      .map(([gate, spec]) => {
         const res = this._eval(user, spec);
         return {
           name: getHashedName(gate),
@@ -197,22 +203,11 @@ export default class Evaluator {
           rule_id: res.rule_id,
           secondary_exposures: this._cleanExposures(res.secondary_exposures),
         };
-      })
-      .filter((item) => item != null) as {
-      name: any;
-      value: boolean;
-      rule_id: string;
-      secondary_exposures: Record<string, string>[];
-    }[];
+      });
 
     const configs = Object.entries(this.store.getAllConfigs())
+      .filter(([_, spec]) => filterTargetAppID(spec))
       .map(([config, spec]) => {
-        if (
-          targetAppID != null &&
-          !(spec?.targetAppIDs ?? []).includes(targetAppID)
-        ) {
-          return null;
-        }
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
@@ -242,17 +237,11 @@ export default class Evaluator {
         }
 
         return format;
-      })
-      .filter((item) => item != null) as InitializeResponse[];
+      });
 
     const layers = Object.entries(this.store.getAllLayers())
+      .filter(([_, spec]) => filterTargetAppID(spec))
       .map(([layer, spec]) => {
-        if (
-          targetAppID != null &&
-          !(spec?.targetAppIDs ?? []).includes(targetAppID)
-        ) {
-          return null;
-        }
         const res = this._eval(user, spec);
         let format = this._specToInitializeResponse(spec, res);
         format.explicit_parameters = spec.explicitParameters ?? [];
@@ -273,8 +262,7 @@ export default class Evaluator {
         );
 
         return format;
-      })
-      .filter((item) => item != null) as InitializeResponse[];
+      });
 
     const evaluatedKeys: Record<string, unknown> = {};
     if (user.userID) {

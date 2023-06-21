@@ -23,7 +23,7 @@ export class ConfigSpec {
     this.entity = specJSON.entity as string;
     this.explicitParameters = specJSON.explicitParameters as string[];
     if (specJSON.isActive !== null) {
-      this.isActive = specJSON.isActive as boolean;
+      this.isActive = specJSON.isActive === true;
     }
     this.hasSharedParams =
       specJSON.hasSharedParams != null

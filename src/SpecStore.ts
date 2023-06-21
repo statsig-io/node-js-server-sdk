@@ -515,8 +515,8 @@ export default class SpecStore {
     this.store.layers = updatedLayers;
     this.store.experimentToLayer = updatedExpToLayer;
     this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
-    this.clientSDKKeyToAppMap =
-      (specsJSON?.sdk_keys_to_app_ids as Record<string, string>) ?? {};
+    this.clientSDKKeyToAppMap = (specsJSON?.sdk_keys_to_app_ids ??
+      {}) as Record<string, string>;
     return true;
   }
 
