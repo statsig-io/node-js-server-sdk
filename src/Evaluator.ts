@@ -198,7 +198,12 @@ export default class Evaluator {
           secondary_exposures: this._cleanExposures(res.secondary_exposures),
         };
       })
-      .filter((item) => item != null);
+      .filter((item) => item != null) as {
+      name: any;
+      value: boolean;
+      rule_id: string;
+      secondary_exposures: Record<string, string>[];
+    }[];
 
     const configs = Object.entries(this.store.getAllConfigs())
       .map(([config, spec]) => {
@@ -238,7 +243,7 @@ export default class Evaluator {
 
         return format;
       })
-      .filter((item) => item != null);
+      .filter((item) => item != null) as InitializeResponse[];
 
     const layers = Object.entries(this.store.getAllLayers())
       .map(([layer, spec]) => {
@@ -269,7 +274,7 @@ export default class Evaluator {
 
         return format;
       })
-      .filter((item) => item != null);
+      .filter((item) => item != null) as InitializeResponse[];
 
     const evaluatedKeys: Record<string, unknown> = {};
     if (user.userID) {
