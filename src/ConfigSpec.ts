@@ -29,7 +29,7 @@ export class ConfigSpec {
       specJSON.hasSharedParams != null
         ? specJSON.hasSharedParams === true
         : false;
-    if (specJSON.targetAppIDs !== null) {
+    if (specJSON.targetAppIDs != null) {
       this.targetAppIDs = specJSON.targetAppIDs as string[];
     }
   }
