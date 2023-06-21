@@ -426,6 +426,7 @@ export default class StatsigServer {
 
   public getClientInitializeResponse(
     user: StatsigUser,
+    clientSDKKey?: string,
   ): Record<string, unknown> | null {
     return this._errorBoundary.capture(
       () => {
@@ -436,7 +437,10 @@ export default class StatsigServer {
         if (user.statsigEnvironment == null) {
           normalizedUser = normalizeUser(user, this._options);
         }
-        return this._evaluator.getClientInitializeResponse(normalizedUser);
+        return this._evaluator.getClientInitializeResponse(
+          normalizedUser,
+          clientSDKKey,
+        );
       },
       () => null,
     );

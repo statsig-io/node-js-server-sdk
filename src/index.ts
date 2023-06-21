@@ -302,11 +302,16 @@ export const Statsig = {
    * Returns the initialize values for the given user
    * Can be used to bootstrap a client SDK with up to date values
    * @param user the user to evaluate configurations for
+   * @param clientSDKKey the client SDK key to use for fetching configs
    */
   getClientInitializeResponse(
     user: StatsigUser,
+    clientSDKKey?: string,
   ): Record<string, unknown> | null {
-    return this._enforceServer().getClientInitializeResponse(user);
+    return this._enforceServer().getClientInitializeResponse(
+      user,
+      clientSDKKey,
+    );
   },
 
   /**
