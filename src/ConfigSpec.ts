@@ -10,6 +10,7 @@ export class ConfigSpec {
   public explicitParameters: string[] | null;
   public hasSharedParams: boolean;
   public isActive?: boolean;
+  public targetAppIDs?: string[];
 
   constructor(specJSON: Record<string, unknown>) {
     this.name = specJSON.name as string;
@@ -28,6 +29,9 @@ export class ConfigSpec {
       specJSON.hasSharedParams != null
         ? specJSON.hasSharedParams === true
         : false;
+    if (specJSON.targetAppIDs !== null) {
+      this.targetAppIDs = specJSON.targetAppIDs as string[];
+    }
   }
 
   parseRules(rulesJSON: unknown) {

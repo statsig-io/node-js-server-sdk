@@ -68,6 +68,7 @@ export default class SpecStore {
     initialize: MAX_SAMPLING_RATE,
   };
   private outputLogger = OutputLogger.getLogger();
+  private clientSDKKeyToAppMap: Record<string, string> = {};
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -97,6 +98,7 @@ export default class SpecStore {
     this.diagnostics = diagnostics;
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
+    this.clientSDKKeyToAppMap = {};
   }
 
   public getInitReason() {
@@ -141,6 +143,10 @@ export default class SpecStore {
 
   public getAllLayers(): Record<string, ConfigSpec> {
     return this.store.layers;
+  }
+
+  public getClientKeyToAppMap(): Record<string, string> {
+    return this.clientSDKKeyToAppMap;
   }
 
   public async init(): Promise<void> {
@@ -509,6 +515,8 @@ export default class SpecStore {
     this.store.layers = updatedLayers;
     this.store.experimentToLayer = updatedExpToLayer;
     this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
+    this.clientSDKKeyToAppMap =
+      (specsJSON?.sdk_keys_to_app_ids as Record<string, string>) ?? {};
     return true;
   }
 

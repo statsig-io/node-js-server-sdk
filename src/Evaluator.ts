@@ -169,13 +169,25 @@ export default class Evaluator {
 
   public getClientInitializeResponse(
     user: StatsigUser,
+    clientSDKKey?: string,
   ): Record<string, unknown> | null {
     if (!this.store.isServingChecks()) {
       return null;
     }
+    const clientKeyToAppMap = this.store.getClientKeyToAppMap();
+    let targetAppID: string | null = null;
+    if (clientSDKKey != null && clientKeyToAppMap[clientSDKKey] != null) {
+      targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
+    }
     const gates = Object.entries(this.store.getAllGates())
       .map(([gate, spec]) => {
         if (spec?.entity === 'segment' || spec?.entity === 'holdout') {
+          return null;
+        }
+        if (
+          targetAppID != null &&
+          !(spec?.targetAppIDs ?? []).includes(targetAppID)
+        ) {
           return null;
         }
         const res = this._eval(user, spec);
@@ -186,10 +198,16 @@ export default class Evaluator {
           secondary_exposures: this._cleanExposures(res.secondary_exposures),
         };
       })
-      .filter((item) => item !== null);
+      .filter((item) => item != null);
 
-    const configs = Object.entries(this.store.getAllConfigs()).map(
-      ([config, spec]) => {
+    const configs = Object.entries(this.store.getAllConfigs())
+      .map(([config, spec]) => {
+        if (
+          targetAppID != null &&
+          !(spec?.targetAppIDs ?? []).includes(targetAppID)
+        ) {
+          return null;
+        }
         const res = this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
@@ -219,11 +237,17 @@ export default class Evaluator {
         }
 
         return format;
-      },
-    );
+      })
+      .filter((item) => item != null);
 
-    const layers = Object.entries(this.store.getAllLayers()).map(
-      ([layer, spec]) => {
+    const layers = Object.entries(this.store.getAllLayers())
+      .map(([layer, spec]) => {
+        if (
+          targetAppID != null &&
+          !(spec?.targetAppIDs ?? []).includes(targetAppID)
+        ) {
+          return null;
+        }
         const res = this._eval(user, spec);
         let format = this._specToInitializeResponse(spec, res);
         format.explicit_parameters = spec.explicitParameters ?? [];
@@ -244,8 +268,8 @@ export default class Evaluator {
         );
 
         return format;
-      },
-    );
+      })
+      .filter((item) => item != null);
 
     const evaluatedKeys: Record<string, unknown> = {};
     if (user.userID) {
@@ -258,7 +282,7 @@ export default class Evaluator {
     return {
       feature_gates: Object.assign(
         {},
-        ...gates.map((item) => ({ [item!!.name]: item })),
+        ...gates.map((item) => ({ [item.name]: item })),
       ),
       dynamic_configs: Object.assign(
         {},
