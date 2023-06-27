@@ -1,10 +1,8 @@
 import { ConfigSpec } from './ConfigSpec';
 import Diagnostics, {
-  ActionType,
   ContextType,
-  KeyType,
+  Marker,
   MAX_SAMPLING_RATE,
-  StepType,
 } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
@@ -13,7 +11,6 @@ import OutputLogger from './OutputLogger';
 import {
   ExplicitStatsigOptions,
   InitStrategy,
-  LoggerInterface,
 } from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
@@ -58,7 +55,6 @@ export default class SpecStore {
   private dataAdapter: IDataAdapter | null;
   private syncFailureCount: number = 0;
   private lastDownloadConfigSpecsSyncTime: number = Date.now();
-  private diagnostics: Diagnostics;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
   private samplingRates: SDKConstants = {
@@ -73,7 +69,6 @@ export default class SpecStore {
   public constructor(
     fetcher: StatsigFetcher,
     options: ExplicitStatsigOptions,
-    diagnostics: Diagnostics,
   ) {
     this.fetcher = fetcher;
     this.api = options.api;
@@ -95,7 +90,6 @@ export default class SpecStore {
     this.idListsSyncTimer = null;
     this.dataAdapter = options.dataAdapter;
     this.initReason = 'Uninitialized';
-    this.diagnostics = diagnostics;
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
     this.clientSDKKeyToAppMap = {};
@@ -158,7 +152,7 @@ export default class SpecStore {
         );
       } else {
         try {
-          this.addDiagnosticsMarker('bootstrap', 'start', { step: 'process' });
+          Diagnostics.mark.bootstrap.process.start({});
           specsJSON = JSON.parse(this.bootstrapValues);
           if (this._process(specsJSON)) {
             this.initReason = 'Bootstrap';
@@ -170,9 +164,8 @@ export default class SpecStore {
           );
         }
 
-        this.addDiagnosticsMarker('bootstrap', 'end', {
-          step: 'process',
-          value: this.initReason === 'Bootstrap',
+        Diagnostics.mark.bootstrap.process.end({
+          success: this.initReason === 'Bootstrap',
         });
       }
     }
@@ -183,10 +176,8 @@ export default class SpecStore {
     }
 
     // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
-    // need to wait for _syncValues() to finish before returning.
-    if (this.initReason === 'Bootstrap') {
-      this._syncValues();
-    } else {
+    // need to immediately fetch the rulesets from the server.
+    if (this.initReason !== 'Bootstrap') {
       if (adapter) {
         await this._fetchConfigSpecsFromAdapter();
       }
@@ -250,9 +241,7 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    this.addDiagnosticsMarker('download_config_specs', 'start', {
-      step: 'network_request',
-    });
+    Diagnostics.mark.downloadConfigSpecs.networkRequest.start({});
     let response: Response | undefined = undefined;
     let error: Error | undefined = undefined;
     try {
@@ -266,23 +255,22 @@ export default class SpecStore {
       error = e as Error;
     } finally {
       const status = response
-        ? response.status
+        ? response?.status
         : this.getResponseCodeFromError(error);
-      this.addDiagnosticsMarker('download_config_specs', 'end', {
-        step: 'network_request',
-        value: status ?? false,
+      Diagnostics.mark.downloadConfigSpecs.networkRequest.end({
+        statusCode: status,
+        success: response?.ok ?? false,
+        sdkRegion: response?.headers?.get('x-statsig-region'),
       });
-      if (error) {
-        throw error;
-      }
-      if (!response) {
-        return;
-      }
+    }
+    if (error) {
+      throw error;
+    }
+    if (!response) {
+      return;
     }
 
-    this.addDiagnosticsMarker('download_config_specs', 'start', {
-      step: 'process',
-    });
+    Diagnostics.mark.downloadConfigSpecs.process.start({});
     const specsString = await response.text();
     const processResult = this._process(JSON.parse(specsString));
     if (!processResult) {
@@ -296,9 +284,8 @@ export default class SpecStore {
       this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
     }
     this._saveConfigSpecsToAdapter(specsString);
-    this.addDiagnosticsMarker('download_config_specs', 'end', {
-      step: 'process',
-      value: this.initReason === 'Network',
+    Diagnostics.mark.downloadConfigSpecs.process.end({
+      success: this.initReason === 'Network',
     });
   }
 
@@ -342,34 +329,26 @@ export default class SpecStore {
     }
   }
 
-  private addDiagnosticsMarker(
-    key: KeyType,
-    action: ActionType,
-    optionalArgs?: {
-      step?: StepType;
-      value?: string | number | boolean;
-      metadata?: Record<string, string | number | boolean>;
-    },
-  ) {
-    const { step, value, metadata } = optionalArgs ?? {};
-    const context = this.initialized ? 'config_sync' : 'initialize';
-    this.diagnostics.mark(context, key, action, step, value, metadata);
-  }
-
   private logDiagnostics(
     context: ContextType,
     type: 'id_list' | 'config_spec',
   ) {
-    if (this.initialized && context === 'config_sync') {
-      this.diagnostics.logDiagnostics('config_sync', {
-        type,
-        samplingRates: this.samplingRates,
-      });
-    } else if (this.initialized && context === 'initialize') {
-      this.diagnostics.logDiagnostics('initialize', {
-        type: 'initialize',
-        samplingRates: this.samplingRates,
-      });
+    if(!this.initialized) {
+      return;
+    }
+    switch (context) {
+      case 'config_sync':
+        Diagnostics.logDiagnostics('config_sync', {
+          type,
+          samplingRates: this.samplingRates,
+        });
+        break;
+      case 'initialize':
+        Diagnostics.logDiagnostics('initialize', {
+          type: 'initialize',
+          samplingRates: this.samplingRates,
+        });
+        break;
     }
   }
 
@@ -580,41 +559,39 @@ export default class SpecStore {
   }
 
   private async syncIdListsFromNetwork(): Promise<void> {
-    this.addDiagnosticsMarker('get_id_list_sources', 'start', {
-      step: 'network_request',
-    });
+    Diagnostics.mark.getIDListSources.networkRequest.start({});
     let response = null;
     try {
       response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
 
-      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
-        step: 'network_request',
-        value: response.status,
+      Diagnostics.mark.getIDListSources.networkRequest.end({
+        statusCode: response.status,
+        success: response?.ok ?? false,
+        sdkRegion: response?.headers?.get('x-statsig-region'),
       });
     } catch (e) {
       const status = this.getResponseCodeFromError(e);
-      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
-        step: 'network_request',
-        value: status ?? false,
+      Diagnostics.mark.getIDListSources.networkRequest.end({
+        statusCode: status,
+        success: false,
+        sdkRegion: response?.headers?.get('x-statsig-region'),
       });
       this.outputLogger.warn(e as Error);
       return;
     }
 
+    let threwError = false;
     try {
-      this.addDiagnosticsMarker('get_id_list_sources', 'start', {
-        step: 'process',
-      });
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
-      this.addDiagnosticsMarker('get_id_list_sources', 'end', {
-        step: 'process',
-      });
       if (!lookup) {
         return;
       }
+      Diagnostics.mark.getIDListSources.process.start({
+        idListCount: Object.keys(lookup).length,
+      });
       let promises = [];
 
       for (const [name, item] of Object.entries(lookup)) {
@@ -664,7 +641,13 @@ export default class SpecStore {
           this.store.idLists,
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      threwError = true;      
+    } finally {
+      Diagnostics.mark.getIDListSources.process.end({
+        success: !threwError,
+      });
+    }
   }
 
   private async genFetchIDList(
@@ -672,25 +655,33 @@ export default class SpecStore {
     url: string,
     readSize: number,
   ): Promise<void> {
+    let threwNetworkError = false;
+    let res: Response | null = null;
     try {
-      this.addDiagnosticsMarker('get_id_list', 'start', {
-        step: 'network_request',
-        metadata: { url: url },
+      Diagnostics.mark.getIDList.networkRequest.start({
+        url: url,
       });
-      const res = await safeFetch(url, {
+      res = await safeFetch(url, {
         method: 'GET',
         headers: {
           Range: `bytes=${readSize}-`,
         },
       });
-      this.addDiagnosticsMarker('get_id_list', 'end', {
-        step: 'network_request',
-        value: res.status,
-        metadata: { url: url },
+    } catch (e) {
+      threwNetworkError = true;
+    } finally {
+      Diagnostics.mark.getIDList.networkRequest.end({
+        statusCode: res?.status,
+        success: res?.ok ?? false,
+        url: url,
       });
-      this.addDiagnosticsMarker('get_id_list', 'start', {
-        step: 'process',
-        metadata: { url: url },
+    }
+    if(threwNetworkError || !res) {
+      return;
+    }
+    try {
+      Diagnostics.mark.getIDList.process.start({
+        url: url ,
       });
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
@@ -704,17 +695,15 @@ export default class SpecStore {
         throw new Error('Content-Length for the id list is invalid.');
       }
       IDListUtil.updateIdList(this.store.idLists, name, await res.text());
-      this.addDiagnosticsMarker('get_id_list', 'end', {
-        step: 'process',
-        value: true,
-        metadata: { url: url },
+      Diagnostics.mark.getIDList.process.end({
+        success: true,
+        url: url,
       });
     } catch (e) {
       this.outputLogger.warn(e as Error);
-      this.addDiagnosticsMarker('get_id_list', 'end', {
-        step: 'process',
-        value: false,
-        metadata: { url: url },
+      Diagnostics.mark.getIDList.process.end({
+        success: false,
+        url: url,
       });
     }
   }

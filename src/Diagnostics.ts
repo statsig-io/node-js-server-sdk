@@ -7,14 +7,14 @@ export const MAX_SAMPLING_RATE = 10000;
 export interface Marker {
   key: KeyType;
   action: ActionType;
-  step: StepType | null;
-  value: string | number | boolean | null;
   timestamp: number;
-  metadata?: MarkerMetadata;
-}
-
-export interface MarkerMetadata {
+  step?: StepType;
+  statusCode?: number;
+  success?: boolean;
   url?: string;
+  idListCount?: number;
+  reason?: 'timeout';
+  sdkRegion?: string | null;
 }
 
 export type ContextType = 'initialize' | 'config_sync' | 'event_logging';
@@ -33,52 +33,100 @@ type DiagnosticsMarkers = {
   event_logging: Marker[];
 };
 
-export default class Diagnostics {
-  markers: DiagnosticsMarkers;
-  private disable: boolean;
-  private logger: LogEventProcessor;
+export class DiagnosticsImpl {
+  readonly mark = {
+    overall: this.selectAction<OverrallDataType>('overall'),
+    downloadConfigSpecs: this.selectStep<DCSDataType>('download_config_specs'),
+    bootstrap: this.selectStep<BootstrapDataType>('bootstrap'),
+    getIDList: this.selectStep<GetIDListDataType>('get_id_list'),
+    getIDListSources: this.selectStep<GetIdListSourcesDataType>(
+      'get_id_list_sources',
+    ),
+  };
+
+  private readonly markers: DiagnosticsMarkers = {
+    initialize: [],
+    config_sync: [],
+    event_logging: [],
+  };
+
+  private disabled: boolean;
   private options: StatsigOptions;
+  private logger: LogEventProcessor;
+  private context: ContextType = 'initialize';
 
   constructor(args: {
     logger: LogEventProcessor;
     options?: StatsigOptions;
     markers?: DiagnosticsMarkers;
   }) {
-    this.logger = args.logger;
     this.markers = args.markers ?? {
       initialize: [],
       config_sync: [],
       event_logging: [],
     };
-    this.disable = args.options?.disableDiagnostics ?? false;
+    this.logger = args.logger;
     this.options = args.options ?? {};
+    this.disabled = args.options?.disableDiagnostics ?? false;
   }
 
-  mark(
-    context: ContextType,
+  setContext(context: ContextType) {
+    this.context = context;
+  }
+
+  selectAction<ActionType extends RequiredStepTags>(
     key: KeyType,
-    action: ActionType,
     step?: StepType,
-    value?: string | number | boolean,
-    metadata?: Record<string, unknown>,
   ) {
-    if (this.disable) {
+    type StartType = ActionType['start'];
+    type EndType = ActionType['end'];
+
+    return {
+      start: (data: StartType, context?: ContextType): void => {
+        this.addMarker(
+          {
+            key,
+            step,
+            action: 'start',
+            timestamp: Date.now(),
+            ...(data ?? {}),
+          },
+          context,
+        );
+      },
+      end: (data: EndType, context?: ContextType): void => {
+        this.addMarker(
+          {
+            key,
+            step,
+            action: 'end',
+            timestamp: Date.now(),
+            ...(data ?? {}),
+          },
+          context,
+        );
+      },
+    };
+  }
+
+  selectStep<StepType extends RequiredMarkerTags>(key: KeyType) {
+    type ProcessStepType = StepType['process'];
+    type NetworkRequestStepType = StepType['networkRequest'];
+
+    return {
+      process: this.selectAction<ProcessStepType>(key, 'process'),
+      networkRequest: this.selectAction<NetworkRequestStepType>(
+        key,
+        'network_request',
+      ),
+    };
+  }
+
+  addMarker(marker: Marker, context?: ContextType) {
+    if (this.disabled) {
       return;
     }
-
-    const marker: Marker = {
-      key,
-      action,
-      step: step ?? null,
-      value: value ?? null,
-      timestamp: Date.now(),
-      metadata: metadata,
-    };
-    this.addMarker(context, marker);
-  }
-
-  addMarker(context: ContextType, marker: Marker) {
-    this.markers[context].push(marker);
+    this.markers[context ?? this.context].push(marker);
   }
 
   logDiagnostics(
@@ -88,7 +136,7 @@ export default class Diagnostics {
       samplingRates: DiagnosticsSamplingRate;
     },
   ) {
-    if (this.disable) {
+    if (this.disabled) {
       return;
     }
 
@@ -125,4 +173,123 @@ export default class Diagnostics {
         throw new ExhaustSwitchError(type);
     }
   }
+}
+
+export default abstract class Diagnostics {
+  public static mark: DiagnosticsImpl['mark'];
+  private static instance: DiagnosticsImpl;
+
+  static initialize(args: {
+    logger: LogEventProcessor;
+    options?: StatsigOptions;
+    markers?: DiagnosticsMarkers;
+  }) {
+    this.instance = new DiagnosticsImpl(args);
+    this.mark = this.instance.mark;
+  }
+
+  static logDiagnostics(
+    context: ContextType,
+    optionalArgs?: {
+      type: 'id_list' | 'config_spec' | 'initialize';
+      samplingRates: DiagnosticsSamplingRate;
+    },
+  ) {
+    this.instance.logDiagnostics(context, optionalArgs);
+  }
+
+  static setContext(context: ContextType) {
+    this.instance.setContext(context);
+  }
+}
+
+type RequiredActionTags = {
+  [K in keyof Marker]?: Marker[K];
+};
+
+interface RequiredStepTags {
+  start: RequiredActionTags;
+  end: RequiredActionTags;
+}
+
+interface RequiredMarkerTags {
+  process: RequiredStepTags;
+  networkRequest: RequiredStepTags;
+}
+
+interface OverrallDataType extends RequiredStepTags {
+  overall: {
+    start: Record<string, never>;
+    end: {
+      success: boolean;
+      reason?: 'timeout';
+    };
+  };
+}
+
+interface DCSDataType extends RequiredMarkerTags {
+  process: {
+    start: Record<string, never>;
+    end: {
+      success: boolean;
+    };
+  };
+  networkRequest: {
+    start: Record<string, never>;
+    end: {
+      success: boolean;
+      sdkRegion?: string | null;
+      statusCode?: number;
+    };
+  };
+}
+
+interface GetIDListDataType extends RequiredMarkerTags {
+  process: {
+    start: {
+      url: string;
+    };
+    end: {
+      success: boolean;
+      url: string;
+    };
+  };
+  networkRequest: {
+    start: {
+      url: string;
+    };
+    end: {
+      success: boolean;
+      url: string;
+      statusCode?: number;
+      sdkRegion?: string | null;
+    };
+  };
+}
+interface GetIdListSourcesDataType extends RequiredMarkerTags {
+  process: {
+    start: {
+      idListCount: number;
+    };
+    end: {
+      success: boolean;
+    };
+  };
+  networkRequest: {
+    start: Record<string, never>;
+    end: {
+      success: boolean;
+      sdkRegion?: string | null;
+      statusCode?: number;
+    };
+  };
+}
+
+interface BootstrapDataType extends RequiredMarkerTags {
+  process: {
+    start: Record<string, never>;
+    end: {
+      success: boolean;
+    };
+  };
 }

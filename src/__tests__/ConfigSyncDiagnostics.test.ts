@@ -59,6 +59,7 @@ describe('ConfigSyncDiagnostics', () => {
       return Promise.resolve({
         ok: true,
         text: () => Promise.resolve(wholeList.slice(startingIndex)),
+        status: 200,
         headers: {
           get: jest.fn((v) => {
             if (v.toLowerCase() === 'content-length') {
@@ -119,20 +120,30 @@ describe('ConfigSyncDiagnostics', () => {
       expect(metadata['context']).toBe('config_sync');
 
       const markers = metadata['markers'];
-      assertMarkerEqual(markers[0], 'download_config_specs', 'start', {
+      assertMarkerEqual(markers[0], {
+        key: 'download_config_specs',
+        action: 'start',
         step: 'network_request',
       });
-      assertMarkerEqual(markers[1], 'download_config_specs', 'end', {
+      assertMarkerEqual(markers[1], {
+        key: 'download_config_specs',
+        action: 'end',
         step: 'network_request',
-        value: 200,
+        statusCode: 200,
+        success: true,
       });
-      assertMarkerEqual(markers[2], 'download_config_specs', 'start', {
+      assertMarkerEqual(markers[2], {
+        key: 'download_config_specs',
+        action: 'start',
         step: 'process',
       });
-      assertMarkerEqual(markers[3], 'download_config_specs', 'end', {
+      assertMarkerEqual(markers[3], {
+        key: 'download_config_specs',
+        action: 'end',
         step: 'process',
-        value: true,
+        success: true,
       });
+      
       expect(markers.length).toBe(4);
     },
   );
@@ -160,13 +171,19 @@ describe('ConfigSyncDiagnostics', () => {
     expect(metadata['context']).toBe('config_sync');
 
     const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], 'download_config_specs', 'start', {
+    assertMarkerEqual(markers[0], {
+      key: 'download_config_specs',
+      action: 'start',
       step: 'network_request',
     });
-    assertMarkerEqual(markers[1], 'download_config_specs', 'end', {
+    assertMarkerEqual(markers[1], {
+      key: 'download_config_specs',
+      action: 'end',
       step: 'network_request',
-      value: 500,
+      statusCode: 500,
+      success: false,
     });
+    
     expect(markers.length).toBe(2);
   });
 
@@ -192,13 +209,19 @@ describe('ConfigSyncDiagnostics', () => {
     expect(metadata['context']).toBe('config_sync');
 
     const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], 'get_id_list_sources', 'start', {
+    assertMarkerEqual(markers[0], {
+      key: 'get_id_list_sources',
+      action: 'start',
       step: 'network_request',
     });
-    assertMarkerEqual(markers[1], 'get_id_list_sources', 'end', {
+    assertMarkerEqual(markers[1], {
+      key: 'get_id_list_sources',
+      action: 'end',
       step: 'network_request',
-      value: 500,
+      statusCode: 500,
+      success: false,
     });
+    
 
     expect(markers.length).toBe(2);
   });
@@ -246,56 +269,87 @@ describe('ConfigSyncDiagnostics', () => {
       expect(metadata['context']).toBe('config_sync');
 
       const markers = metadata['markers'];
-      assertMarkerEqual(markers[0], 'get_id_list_sources', 'start', {
+      assertMarkerEqual(markers[0], {
+        key: 'get_id_list_sources',
+        action: 'start',
         step: 'network_request',
       });
-      assertMarkerEqual(markers[1], 'get_id_list_sources', 'end', {
+      assertMarkerEqual(markers[1], {
+        key: 'get_id_list_sources',
+        action: 'end',
         step: 'network_request',
-        value: 200,
+        statusCode: 200,
+        success: true,
       });
-
-      assertMarkerEqual(markers[2], 'get_id_list_sources', 'start', {
+      
+      assertMarkerEqual(markers[2], {
+        key: 'get_id_list_sources',
+        action: 'start',
         step: 'process',
+        idListCount: 2,
       });
-      assertMarkerEqual(markers[3], 'get_id_list_sources', 'end', {
-        step: 'process',
-      });
-
-      assertMarkerEqual(markers[4], 'get_id_list', 'start', {
+      assertMarkerEqual(markers[3], {
+        key: 'get_id_list',
+        action: 'start',
         step: 'network_request',
-        metadata: { url: 'https://id_list_content/list_1' },
+        url: 'https://id_list_content/list_1',
       });
-      assertMarkerEqual(markers[5], 'get_id_list', 'start', {
+      assertMarkerEqual(markers[4], {
+        key: 'get_id_list',
+        action: 'start',
         step: 'network_request',
-        metadata: { url: 'https://id_list_content/list_2' },
+        url: 'https://id_list_content/list_2',
       });
-      assertMarkerEqual(markers[6], 'get_id_list', 'end', {
+      assertMarkerEqual(markers[5], {
+        key: 'get_id_list',
+        action: 'end',
         step: 'network_request',
-        metadata: { url: 'https://id_list_content/list_1' },
+        statusCode: 200,
+        success: true,
+        url: 'https://id_list_content/list_1',
       });
-      assertMarkerEqual(markers[7], 'get_id_list', 'start', {
+      assertMarkerEqual(markers[6], {
+        key: 'get_id_list',
+        action: 'start',
         step: 'process',
-        metadata: { url: 'https://id_list_content/list_1' },
+        url: 'https://id_list_content/list_1',
       });
-      assertMarkerEqual(markers[8], 'get_id_list', 'end', {
+      assertMarkerEqual(markers[7], {
+        key: 'get_id_list',
+        action: 'end',
         step: 'network_request',
-        metadata: { url: 'https://id_list_content/list_2' },
+        statusCode: 200,
+        success: true,
+        url: 'https://id_list_content/list_2',
       });
-      assertMarkerEqual(markers[9], 'get_id_list', 'start', {
+      assertMarkerEqual(markers[8], {
+        key: 'get_id_list',
+        action: 'start',
         step: 'process',
-        metadata: { url: 'https://id_list_content/list_2' },
+        url: 'https://id_list_content/list_2',
       });
-
-      assertMarkerEqual(markers[10], 'get_id_list', 'end', {
+      
+      assertMarkerEqual(markers[9], {
+        key: 'get_id_list',
+        action: 'end',
         step: 'process',
-        value: true,
-        metadata: { url: 'https://id_list_content/list_1' },
+        success: true,
+        url: 'https://id_list_content/list_1',
       });
-      assertMarkerEqual(markers[11], 'get_id_list', 'end', {
+      assertMarkerEqual(markers[10], {
+        key: 'get_id_list',
+        action: 'end',
         step: 'process',
-        value: true,
-        metadata: { url: 'https://id_list_content/list_2' },
+        success: true,
+        url: 'https://id_list_content/list_2',
       });
+      assertMarkerEqual(markers[11], {
+        key: 'get_id_list_sources',
+        action: 'end',
+        step: 'process',
+        success: true,
+      });
+      
 
       expect(markers.length).toBe(12);
     },

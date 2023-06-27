@@ -1,9 +1,17 @@
-import Diagnostics, { ContextType, KeyType } from '../Diagnostics';
+import Diagnostics, {
+  ContextType,
+  DiagnosticsImpl,
+  KeyType,
+} from '../Diagnostics';
 import LogEventProcessor from '../LogEventProcessor';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 jest.mock('node-fetch', () => jest.fn());
+
+function getMarkers(): DiagnosticsImpl['markers'] {
+  return (Diagnostics as any).instance.markers;
+}
 
 describe('Diagnostics', () => {
   const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
@@ -11,7 +19,6 @@ describe('Diagnostics', () => {
     new StatsigFetcher('secret-asdf1234', options),
     options,
   );
-  let diagnostics: Diagnostics;
 
   let events: {
     eventName: string;
@@ -34,44 +41,45 @@ describe('Diagnostics', () => {
     });
 
     events = [];
-    diagnostics = new Diagnostics({ logger });
+    Diagnostics.initialize({ logger });
   });
 
   it.each(['initialize', 'config_sync', 'event_logging'] as ContextType[])(
     'test .mark() %s',
     async (context: ContextType) => {
-      assertMarkersEmpty(diagnostics);
-
-      diagnostics.mark(context, 'download_config_specs', 'start');
-      expect(diagnostics.markers.initialize).toHaveLength(
+      assertMarkersEmpty();
+      Diagnostics.setContext(context);
+      Diagnostics.mark.downloadConfigSpecs.process.start();
+      expect(getMarkers().initialize).toHaveLength(
         context === 'initialize' ? 1 : 0,
       );
-      expect(diagnostics.markers.config_sync).toHaveLength(
+      expect(getMarkers().config_sync).toHaveLength(
         context === 'config_sync' ? 1 : 0,
       );
-      expect(diagnostics.markers.event_logging).toHaveLength(
+      expect(getMarkers().event_logging).toHaveLength(
         context === 'event_logging' ? 1 : 0,
       );
     },
   );
 
   it('test .logDiagnostics()', async () => {
-    assertMarkersEmpty(diagnostics);
+    assertMarkersEmpty();
 
     let time = 1;
     jest.spyOn(Date, 'now').mockImplementation(() => {
       return time++;
     });
 
-    diagnostics.mark('initialize', 'download_config_specs', 'start');
-    diagnostics.mark('config_sync', 'download_config_specs', 'start');
-    diagnostics.mark('event_logging', 'download_config_specs', 'start');
+    Diagnostics.setContext('initialize');
+    Diagnostics.mark.downloadConfigSpecs.process.start({});
+    Diagnostics.setContext('config_sync');
+    Diagnostics.mark.downloadConfigSpecs.process.start({});
 
     const assertLogDiagnostics = (
       context: ContextType,
       expectedTime: number,
     ) => {
-      diagnostics.logDiagnostics(context);
+      Diagnostics.logDiagnostics(context);
       expect(events).toHaveLength(1);
       expect(events[0].eventName).toBe('statsig::diagnostics');
       expect(events[0].metadata['context']).toEqual(context);
@@ -83,7 +91,6 @@ describe('Diagnostics', () => {
 
     assertLogDiagnostics('initialize', 1);
     assertLogDiagnostics('config_sync', 2);
-    assertLogDiagnostics('event_logging', 3);
   });
 
   const types = ['initialize', 'id_list', 'config_spec'] as const;
@@ -97,8 +104,8 @@ describe('Diagnostics', () => {
     const context: ContextType =
       type === 'initialize' ? 'initialize' : 'config_sync';
     for (let i = 0; i < 1000; i++) {
-      diagnostics.mark(context, 'download_config_specs', 'start');
-      diagnostics.logDiagnostics(context, {
+      Diagnostics.mark.downloadConfigSpecs.networkRequest.start({}, context);
+      Diagnostics.logDiagnostics(context, {
         type: type,
         samplingRates,
       });
@@ -108,8 +115,8 @@ describe('Diagnostics', () => {
   });
 });
 
-function assertMarkersEmpty(diagnostics: Diagnostics) {
-  expect(diagnostics.markers.initialize).toHaveLength(0);
-  expect(diagnostics.markers.config_sync).toHaveLength(0);
-  expect(diagnostics.markers.event_logging).toHaveLength(0);
+function assertMarkersEmpty() {
+  expect(getMarkers().initialize).toHaveLength(0);
+  expect(getMarkers().config_sync).toHaveLength(0);
+  expect(getMarkers().event_logging).toHaveLength(0);
 }

@@ -90,13 +90,13 @@ describe('Verify behavior of SpecStore', () => {
       rulesetsSyncIntervalMs: 1000,
       idListsSyncIntervalMs: 1000,
     });
-    const diagnostics = new Diagnostics({ logger });
+    Diagnostics.initialize({ logger });
 
     // Get around the limit;
     options.rulesetsSyncIntervalMs = 1000;
     options.idListsSyncIntervalMs = 1000;
 
-    store = new SpecStore(net, options, diagnostics);
+    store = new SpecStore(net, options);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });

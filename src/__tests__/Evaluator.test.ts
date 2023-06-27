@@ -9,6 +9,15 @@ import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 describe('Test condition evaluation', () => {
+  const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
+  const logger = new LogEventProcessor(
+    new StatsigFetcher('secret-asdf1234', options),
+    options,
+  );
+  beforeEach(() => {
+    Diagnostics.initialize({ logger })
+  });
+
   const baseTime = 1609459200000;
   const baseTimeStr = '2021-01-01T00:00:00.000Z';
 

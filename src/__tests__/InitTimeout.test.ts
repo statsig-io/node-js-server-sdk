@@ -92,7 +92,8 @@ describe('Test local mode with overrides', () => {
     const markers = event?.metadata['markers'];
     expect(markers).toHaveLength(3);
     expect(markers[2]['action']).toBe('end');
-    expect(markers[2]['value']).toBe('timeout');
+    expect(markers[2]['success']).toBe(false);
+    expect(markers[2]['reason']).toStrictEqual('timeout');
   });
 
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {

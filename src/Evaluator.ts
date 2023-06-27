@@ -1,6 +1,5 @@
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
-import Diagnostics from './Diagnostics';
 import { EvaluationDetails } from './EvaluationDetails';
 import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
@@ -49,9 +48,8 @@ export default class Evaluator {
   public constructor(
     fetcher: StatsigFetcher,
     options: ExplicitStatsigOptions,
-    diagnostics: Diagnostics,
   ) {
-    this.store = new SpecStore(fetcher, options, diagnostics);
+    this.store = new SpecStore(fetcher, options);
     this.initStrategyForIP3Country = options.initStrategyForIP3Country;
     this.gateOverrides = {};
     this.configOverrides = {};
