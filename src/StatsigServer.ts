@@ -73,10 +73,7 @@ export default class StatsigServer {
       logger: this._logger,
       options: this._options,
     });
-    this._evaluator = new Evaluator(
-      this._fetcher,
-      this._options,
-    );
+    this._evaluator = new Evaluator(this._fetcher, this._options);
     this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
@@ -111,7 +108,7 @@ export default class StatsigServer {
         const initPromise = this._evaluator.init().finally(() => {
           this._ready = true;
           this._pendingInitPromise = null;
-          Diagnostics.mark.overall.end({success: true});
+          Diagnostics.mark.overall.end({ success: true });
           Diagnostics.logDiagnostics('initialize');
           Diagnostics.setContext('config_sync');
         });
@@ -123,7 +120,10 @@ export default class StatsigServer {
             initPromise,
             new Promise((resolve) => {
               setTimeout(() => {
-                Diagnostics.mark.overall.end({success: false, reason: 'timeout'});
+                Diagnostics.mark.overall.end({
+                  success: false,
+                  reason: 'timeout',
+                });
                 Diagnostics.logDiagnostics('initialize');
                 Diagnostics.setContext('config_sync');
                 this._ready = true;
@@ -644,6 +644,8 @@ export default class StatsigServer {
         layerName,
         ret?.json_value as Record<string, unknown>,
         ret?.rule_id,
+        ret?.group_name,
+        ret?.config_delegate,
         exposureLogging === ExposureLogging.Disabled ? null : logFunc,
       );
 
@@ -658,7 +660,13 @@ export default class StatsigServer {
           exposureLogging,
         );
         return await Promise.resolve(
-          new Layer(layerName, config?.value, config?.getRuleID()),
+          new Layer(
+            layerName,
+            config?.value,
+            config?.getRuleID(),
+            config?.getGroupName(),
+            ret.config_delegate,
+          ),
         );
       } catch {
         return await Promise.resolve(new Layer(layerName));
@@ -747,7 +755,7 @@ export default class StatsigServer {
             name,
             resJSON.value,
             resJSON.rule_id,
-            resJSON.groupName,
+            resJSON.group_name,
             [],
             this._makeOnDefaultValueFallbackFunction(user),
           ),

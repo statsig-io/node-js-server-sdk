@@ -58,6 +58,7 @@ fetch.mockImplementation((url, params) => {
             go: true,
           },
           rule_id: 'fallback_from_server',
+          group_name: 'fallback_from_server_group'
         }),
     });
   }
@@ -225,6 +226,13 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(layer.get('walk', 10)).toEqual(10000);
     expect(layer.get('go', false)).toEqual(true);
+    expect(layer.getRuleID()).toEqual('fallback_from_server');
+    expect(layer.getGroupName()).toEqual('fallback_from_server_group');
+
+    layer = await statsig.getLayer(randomUser, 'statsig::sample_experiment_layer')
+    expect(layer.getRuleID()).toEqual('5yQbPNUpd8mNbkB0SZZeln');
+    expect(layer.getGroupName()).toEqual('Test');
+    expect(layer.getAllocatedExperimentName()).toEqual('sample_experiment');
 
     statsig.shutdown();
     // fallback does not log an exposure, so nothing gets set here
