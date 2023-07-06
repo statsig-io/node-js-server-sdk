@@ -3,6 +3,9 @@ name: Release Bot
 on:
   pull_request:
     types: [opened, reopened, closed]
+    branches: [main, stable]
+  release:
+    types: [released, prereleased]
 
 jobs:
   run:
@@ -11,5 +14,5 @@ jobs:
     steps:
       - uses: statsig-io/statsig-publish-sdk-action@main
         with:
-          gh-token: ${{ secrets.KONG_FINE_GRAINED_REPO_PAT }}
-          npm-token: ${{ secrets.NPM_AUTOMATION_KEY }}
+          kong-private-key: ${{ secrets.KONG_GH_APP_PRIVATE_KEY }}
+          npm-token: ${{ secrets.NPM_TOKEN }}
