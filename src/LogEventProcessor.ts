@@ -91,8 +91,10 @@ export default class LogEventProcessor {
       .post(
         this.options.api + '/log_event',
         body,
-        fireAndForget ? 0 : this.options.postLogsRetryLimit,
-        this.options.postLogsRetryBackoff,
+        {
+          retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
+          backoff: this.options.postLogsRetryBackoff,
+        }
       )
       .then(() => {
         return Promise.resolve();

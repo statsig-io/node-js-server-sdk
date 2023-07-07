@@ -229,46 +229,15 @@ export default class SpecStore {
     return this.lastUpdateTime !== 0;
   }
 
-  private getResponseCodeFromError(e: unknown): number | undefined {
-    if (!(e instanceof Error)) {
-      return undefined;
-    }
-    const arr = e.message.split(' ');
-    const statusString = arr.length === 0 ? undefined : arr[arr.length - 1];
-    const status = parseInt(statusString ?? 'NaN');
-    return isNaN(status) ? undefined : status;
-  }
-
   private async _fetchConfigSpecsFromServer(): Promise<void> {
     this.lastDownloadConfigSpecsSyncTime = Date.now();
-    Diagnostics.mark.downloadConfigSpecs.networkRequest.start({});
     let response: Response | undefined = undefined;
-    let error: Error | undefined = undefined;
-    try {
-      const url =
-        (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
-      response = await this.fetcher.post(url, {
-        statsigMetadata: getStatsigMetadata(),
-        sinceTime: this.lastUpdateTime,
-      });
-    } catch (e) {
-      error = e as Error;
-    } finally {
-      const status = response
-        ? response?.status
-        : this.getResponseCodeFromError(error);
-      Diagnostics.mark.downloadConfigSpecs.networkRequest.end({
-        statusCode: status,
-        success: response?.ok ?? false,
-        sdkRegion: response?.headers?.get('x-statsig-region'),
-      });
-    }
-    if (error) {
-      throw error;
-    }
-    if (!response) {
-      return;
-    }
+    const url =
+      (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
+    response = await this.fetcher.post(url, {
+      statsigMetadata: getStatsigMetadata(),
+      sinceTime: this.lastUpdateTime,
+    });
 
     Diagnostics.mark.downloadConfigSpecs.process.start({});
     const specsString = await response.text();
@@ -559,25 +528,12 @@ export default class SpecStore {
   }
 
   private async syncIdListsFromNetwork(): Promise<void> {
-    Diagnostics.mark.getIDListSources.networkRequest.start({});
     let response = null;
     try {
       response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
-
-      Diagnostics.mark.getIDListSources.networkRequest.end({
-        statusCode: response.status,
-        success: response?.ok ?? false,
-        sdkRegion: response?.headers?.get('x-statsig-region'),
-      });
     } catch (e) {
-      const status = this.getResponseCodeFromError(e);
-      Diagnostics.mark.getIDListSources.networkRequest.end({
-        statusCode: status,
-        success: false,
-        sdkRegion: response?.headers?.get('x-statsig-region'),
-      });
       this.outputLogger.warn(e as Error);
       return;
     }

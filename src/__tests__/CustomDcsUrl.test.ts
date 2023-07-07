@@ -31,14 +31,14 @@ describe('Check custom DCS url', () => {
     statsigServer.logEvent({ userID: '42' }, 'test');
     await statsigServer.flush();
 
-    expect(spy).toHaveBeenCalledWith(customUrl + dcsPath, jasmine.anything());
+    expect(spy).toHaveBeenCalledWith(customUrl + dcsPath, expect.anything());
     expect(spy).not.toHaveBeenCalledWith(
       customUrl + '/get_id_lists',
-      jasmine.anything(),
+      expect.anything(),
     );
     expect(spy).not.toHaveBeenCalledWith(
       customUrl + '/log_event',
-      jasmine.anything(),
+      expect.anything(),
     );
 
     spy.mock.calls.forEach(u => {

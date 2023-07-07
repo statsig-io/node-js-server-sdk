@@ -48,8 +48,10 @@ describe('Verify behavior of top level index functions', () => {
     const result = await fetcher.post(
       'https://statsigapi.net/v1/test',
       { test: 123 },
-      5,
-      10,
+      {
+        retries: 5,
+        backoff: 10,
+      }
     );
     expect(spy).toHaveBeenCalledTimes(3);
     // @ts-ignore

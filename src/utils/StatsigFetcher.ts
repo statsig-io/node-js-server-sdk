@@ -1,3 +1,5 @@
+import { get } from 'http';
+import Diagnostics from '../Diagnostics';
 import {
   StatsigLocalModeNetworkError,
   StatsigTooManyRequestsError,
@@ -10,6 +12,7 @@ import safeFetch from './safeFetch';
 const { v4: uuidv4 } = require('uuid');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
+
 export default class StatsigFetcher {
   private sessionID: string;
   private leakyBucket: Record<string, number>;
@@ -38,10 +41,14 @@ export default class StatsigFetcher {
   public post(
     url: string,
     body: Record<string, unknown>,
-    retries: number = 0,
-    backoff: number | RetryBackoffFunc = 1000,
-    isRetrying = false,
+    options?: Partial<{
+      retries: number;
+      backoff: number | RetryBackoffFunc;
+      isRetrying: boolean;
+    }>,
   ): Promise<Response> {
+    const { retries = 0, backoff = 1000, isRetrying = false } = options ?? {};
+    const markDiagnostic = this.getDiagnosticFromURL(url);
     if (this.localMode) {
       return Promise.reject(new StatsigLocalModeNetworkError());
     }
@@ -78,8 +85,15 @@ export default class StatsigFetcher {
         'STATSIG-SDK-VERSION': getSDKVersion(),
       },
     };
+
+    if (!isRetrying) {
+      markDiagnostic?.start({});
+    }
+
+    let res: Response | undefined;
     return safeFetch(url, params)
-      .then((res) => {
+      .then((localRes) => {
+        res = localRes;
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
           return this._retry(url, body, retries - 1, backoffAdjusted);
         } else if (!res.ok) {
@@ -98,6 +112,11 @@ export default class StatsigFetcher {
         return Promise.reject(e);
       })
       .finally(() => {
+        markDiagnostic?.end({
+          statusCode: res?.status,
+          success: res?.ok === true,
+          sdkRegion: res?.headers?.get('x-statsig-region'),
+        });
         this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
       });
   }
@@ -125,11 +144,26 @@ export default class StatsigFetcher {
       this.pendingTimers.push(
         setTimeout(() => {
           this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
-          this.post(url, body, retries, backoff, true)
+          this.post(url, body, { retries, backoff, isRetrying: true })
             .then(resolve)
             .catch(reject);
         }, backoff).unref(),
       );
     });
+  }
+
+  private getDiagnosticFromURL(
+    url: string,
+  ):
+    | typeof Diagnostics.mark.downloadConfigSpecs.networkRequest
+    | typeof Diagnostics.mark.getIDListSources.networkRequest
+    | null {
+    if (url.endsWith('/download_config_specs')) {
+      return Diagnostics.mark.downloadConfigSpecs.networkRequest;
+    }
+    if (url.endsWith('/get_id_lists')) {
+      return Diagnostics.mark.getIDListSources.networkRequest;
+    }
+    return null;
   }
 }
