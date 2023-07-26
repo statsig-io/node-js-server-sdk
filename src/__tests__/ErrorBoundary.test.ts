@@ -99,7 +99,6 @@ describe('ErrorBoundary', () => {
         'STATSIG-SDK-TYPE': metadata.sdkType,
         'STATSIG-SDK-VERSION': metadata.sdkVersion,
         'Content-Type': 'application/json',
-        'Content-Length': expect.any(String),
       }),
     );
   });

@@ -87,7 +87,6 @@ export default class ErrorBoundary {
           'STATSIG-SDK-TYPE': getSDKType(),
           'STATSIG-SDK-VERSION': getSDKVersion(),
           'Content-Type': 'application/json',
-          'Content-Length': `${body.length}`,
         },
         body,
       }).catch(() => {});
