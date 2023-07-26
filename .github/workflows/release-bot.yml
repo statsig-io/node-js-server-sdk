@@ -15,4 +15,4 @@ jobs:
       - uses: statsig-io/statsig-publish-sdk-action@main
         with:
           kong-private-key: ${{ secrets.KONG_GH_APP_PRIVATE_KEY }}
-          npm-token: ${{ secrets.NPM_TOKEN }}
+          npm-token: ${{ secrets.NPM_AUTOMATION_KEY }}
