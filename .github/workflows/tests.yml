@@ -11,7 +11,7 @@ on:
 
 jobs:
   jest:
-    if: github.event_name != 'schedule' || github.repository.private
+    if: github.event_name != 'schedule' || github.event.repository.private
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2

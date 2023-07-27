@@ -17,7 +17,7 @@ on:
 
 jobs:
   KONG:
-    if: github.event_name != 'schedule' || github.repository.private  
+    if: github.event_name != 'schedule' || github.event.repository.private
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
