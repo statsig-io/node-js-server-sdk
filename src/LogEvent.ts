@@ -3,6 +3,15 @@ import { StatsigUser } from './StatsigUser';
 
 import { clone } from './utils/core';
 
+export type LogEventData = {
+  time: number;
+  eventName: string;
+  user: StatsigUser | null;
+  value: string | number | null;
+  metadata: Record<string, unknown> | null;
+  secondaryExposures: Record<string, unknown>[];
+};
+
 export default class LogEvent {
   private time: number;
   private eventName: string;
@@ -78,7 +87,7 @@ export default class LogEvent {
     return typeof this.eventName === 'string' && this.eventName.length > 0;
   }
 
-  public toObject(): Record<string, unknown> {
+  public toObject(): LogEventData {
     return {
       eventName: this.eventName,
       metadata: this.metadata,

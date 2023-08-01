@@ -1,9 +1,9 @@
 const { getStatsigMetadata, poll } = require('./utils/core');
 import ConfigEvaluation from './ConfigEvaluation';
-import Diagnostics, { Marker } from './Diagnostics';
+import { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
-import LogEvent from './LogEvent';
+import LogEvent, { LogEventData } from './LogEvent';
 import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -28,7 +28,7 @@ export default class LogEventProcessor {
   private options: ExplicitStatsigOptions;
   private fetcher: StatsigFetcher;
 
-  private queue: LogEvent[];
+  private queue: LogEventData[];
   private flushTimer: NodeJS.Timer | null;
 
   private loggedErrors: Set<string>;
@@ -71,7 +71,7 @@ export default class LogEventProcessor {
       this.loggedErrors.add(errorKey);
     }
 
-    this.queue.push(event);
+    this.queue.push(event.toObject());
     if (this.queue.length >= this.options.loggingMaxBufferSize) {
       this.flush();
     }
@@ -88,14 +88,10 @@ export default class LogEventProcessor {
       events: oldQueue,
     };
     return this.fetcher
-      .post(
-        this.options.api + '/log_event',
-        body,
-        {
-          retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
-          backoff: this.options.postLogsRetryBackoff,
-        }
-      )
+      .post(this.options.api + '/log_event', body, {
+        retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
+        backoff: this.options.postLogsRetryBackoff,
+      })
       .then(() => {
         return Promise.resolve();
       })
