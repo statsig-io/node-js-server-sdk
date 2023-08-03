@@ -6,12 +6,9 @@ on:
     branches: [main]
   push:
     branches: [main]
-  schedule:
-    - cron: '0 0,15 * * *'
 
 jobs:
   jest:
-    if: github.event_name != 'schedule' || github.event.repository.private
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
