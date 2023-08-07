@@ -1,39 +1,50 @@
 import DynamicConfig from './DynamicConfig';
-import { StatsigUninitializedError } from './Errors';
+import {
+  StatsigInvalidArgumentError,
+  StatsigUninitializedError,
+  StatsigLocalModeNetworkError,
+  StatsigTooManyRequestsError,
+} from './Errors';
 import { FeatureGate } from './FeatureGate';
 import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
 import Layer from './Layer';
 import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
+  InitStrategy,
   RulesUpdatedCallback,
   StatsigEnvironment,
-  InitStrategy,
   StatsigOptions,
 } from './StatsigOptions';
 import StatsigServer, { LogEventObject } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
 
-export {
-  DynamicConfig,
-  Layer,
+export type {
+  AdapterResponse,
+  InitStrategy,
   LogEventObject,
   RulesUpdatedCallback,
-  StatsigUser,
-  StatsigOptions,
   StatsigEnvironment,
-  InitStrategy,
-  IDataAdapter,
-  AdapterResponse,
-  StatsigServer,
+  StatsigOptions,
+  StatsigUser,
+};
+
+export { DynamicConfig, IDataAdapter, Layer, StatsigServer };
+
+// These need to be exported, and we currently export a top level Statsig object
+// So in order to not make a breaking change, they must be exported as members of
+// that top level object
+const EXPORTS = {
+  DynamicConfig,
+  Layer,
+  StatsigInvalidArgumentError,
+  StatsigLocalModeNetworkError,
+  StatsigTooManyRequestsError,
+  StatsigUninitializedError,
 };
 
 export const Statsig = {
-  // These need to be exported, and we currently export a top level Statsig object
-  // So in order to not make a breaking change, they must be exported as members of
-  // that top level object
-  DynamicConfig: DynamicConfig,
-  Layer: Layer,
+  ...EXPORTS,
 
   /**
    * Initializes the statsig server SDK.

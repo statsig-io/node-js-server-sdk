@@ -13,6 +13,7 @@ export class StatsigInvalidArgumentError extends Error {
     Object.setPrototypeOf(this, StatsigInvalidArgumentError.prototype);
   }
 }
+
 export class StatsigTooManyRequestsError extends Error {
   constructor(message: string) {
     super(message);
