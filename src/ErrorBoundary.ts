@@ -89,7 +89,7 @@ export default class ErrorBoundary {
           'Content-Type': 'application/json',
         },
         body,
-      }).catch(() => {});
+      }).catch(() => { });
     } catch (_error) {
       /* noop */
     }

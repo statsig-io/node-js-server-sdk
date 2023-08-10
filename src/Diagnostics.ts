@@ -17,7 +17,7 @@ export interface Marker {
   sdkRegion?: string | null;
 }
 
-export type ContextType = 'initialize' | 'config_sync' | 'event_logging';
+export type ContextType = 'initialize' | 'config_sync' | 'event_logging' | 'api_call';
 export type KeyType =
   | 'download_config_specs'
   | 'bootstrap'
@@ -31,6 +31,7 @@ type DiagnosticsMarkers = {
   initialize: Marker[];
   config_sync: Marker[];
   event_logging: Marker[];
+  api_call: Marker[];
 };
 
 export class DiagnosticsImpl {
@@ -48,6 +49,7 @@ export class DiagnosticsImpl {
     initialize: [],
     config_sync: [],
     event_logging: [],
+    api_call: [],
   };
 
   private disabled: boolean;
@@ -64,6 +66,7 @@ export class DiagnosticsImpl {
       initialize: [],
       config_sync: [],
       event_logging: [],
+      api_call: [],
     };
     this.logger = args.logger;
     this.options = args.options ?? {};
@@ -143,9 +146,9 @@ export class DiagnosticsImpl {
     const shouldLog = !optionalArgs
       ? true
       : this.getShouldLogDiagnostics(
-          optionalArgs.type,
-          optionalArgs.samplingRates,
-        );
+        optionalArgs.type,
+        optionalArgs.samplingRates,
+      );
 
     if (shouldLog) {
       this.logger.logDiagnosticsEvent({
