@@ -1,12 +1,12 @@
 import ConfigEvaluation from '../ConfigEvaluation';
-import { ConfigSpec, ConfigCondition } from '../ConfigSpec';
+import { ConfigCondition, ConfigSpec } from '../ConfigSpec';
 import Diagnostics from '../Diagnostics';
-const exampleConfigSpecs = require('./jest.setup');
 import Evaluator from '../Evaluator';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
+const exampleConfigSpecs = require('./jest.setup');
 
 describe('Test condition evaluation', () => {
   const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
@@ -15,7 +15,7 @@ describe('Test condition evaluation', () => {
     options,
   );
   beforeEach(() => {
-    Diagnostics.initialize({ logger })
+    Diagnostics.initialize({ logger });
   });
 
   const baseTime = 1609459200000;

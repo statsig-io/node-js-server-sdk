@@ -8,7 +8,9 @@ import {
   StatsigUninitializedError,
 } from '../Errors';
 import LogEvent from '../LogEvent';
+import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import StatsigTestUtils from './StatsigTestUtils';
+
 const exampleConfigSpecs = require('./jest.setup');
 
 jest.useFakeTimers();
@@ -130,6 +132,18 @@ describe('Verify behavior of top level index functions', () => {
     expect(StatsigInstanceUtils.getInstance()).toBeNull();
   });
 
+  test('Verify cannot call checkGateWithoutServerFallback() before initialize()', async () => {
+    expect.assertions(2);
+
+    try {
+      Statsig.checkGateWithoutServerFallback({ userID: '12345' }, 'my_gate');
+    } catch (e) {
+      expect(e).toEqual(new StatsigUninitializedError());
+    }
+
+    expect(StatsigInstanceUtils.getInstance()).toBeNull();
+  });
+
   test('Verify cannot call getConfig() before initialize()', async () => {
     expect.assertions(2);
 
@@ -179,6 +193,19 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
+  test('Verify cannot call checkGateWithoutServerFallback() with no gate name', () => {
+    expect.assertions(2);
+
+    return Statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+      // @ts-ignore intentionally testing incorrect param type
+      expect(() => Statsig.checkGateWithoutServerFallback(null)).toThrowError(
+        new Error('Lookup key must be a non-empty string'),
+      );
+      expect(spy).toHaveBeenCalledTimes(0);
+    });
+  });
+
   test('Verify cannot call checkGate() with invalid gate name', () => {
     expect.assertions(2);
 
@@ -192,8 +219,21 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
+  test('Verify cannot call checkGateWithoutServerFallback() with invalid gate name', () => {
+    expect.assertions(2);
+
+    return Statsig.initialize(secretKey).then(() => {
+      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+      expect(() =>
+        // @ts-ignore intentionally testing incorrect param type
+        Statsig.checkGateWithoutServerFallback({ userID: '123' }, 12),
+      ).toThrowError(new Error('Lookup key must be a non-empty string'));
+      expect(spy).toHaveBeenCalledTimes(0);
+    });
+  });
+
   test('cannot call checkGate(), getConfig(), or getExperiment() with no user or userID or customID', async () => {
-    expect.assertions(6);
+    expect.assertions(8);
 
     await Statsig.initialize(secretKey);
 
@@ -204,10 +244,31 @@ describe('Verify behavior of top level index functions', () => {
       ),
     );
 
+    expect(() =>
+      // @ts-ignore
+      Statsig.checkGateWithoutServerFallback(null, 'test_gate'),
+    ).toThrowError(
+      new StatsigInvalidArgumentError(
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+
     await expect(
       // @ts-ignore
       Statsig.checkGate({ email: '123@gmail.com' }, 'test_gate'),
     ).rejects.toEqual(
+      new Error(
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
+      ),
+    );
+
+    expect(() =>
+      Statsig.checkGateWithoutServerFallback(
+        // @ts-ignore
+        { email: '123@gmail.com' },
+        'test_gate',
+      ),
+    ).toThrowError(
       new Error(
         'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       ),
@@ -246,12 +307,18 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('can call checkGate(), getConfig(), or getExperiment() with no userID if you provide a customID', async () => {
-    expect.assertions(4);
+    expect.assertions(5);
 
     await Statsig.initialize(secretKey);
     await expect(
       Statsig.checkGate({ customIDs: { test: '123' } }, 'test_gate123'),
     ).resolves.toEqual(false);
+    expect(
+      Statsig.checkGateWithoutServerFallback(
+        { customIDs: { test: '123' } },
+        'test_gate123',
+      ),
+    ).toEqual(false);
     const config = await Statsig.getConfig(
       { customIDs: { test: '123' } },
       'test_config123',
@@ -305,7 +372,7 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify when Evaluator fails, checkGate() returns correct value and does not lot an exposure', async () => {
+  test('Verify when Evaluator fails, checkGate() returns correct value and does not log an exposure', async () => {
     expect.assertions(2);
 
     await Statsig.initialize(secretKey);
@@ -323,6 +390,37 @@ describe('Verify behavior of top level index functions', () => {
       true,
     );
     expect(spy).toHaveBeenCalledTimes(0);
+  });
+
+  test('Verify when Evaluator fails, checkGateWithoutServerFallback() returns default value and logs exposure with fallback_disabled ruleID', async () => {
+    expect.assertions(3);
+
+    await Statsig.initialize(secretKey);
+    jest
+      .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
+      .mockImplementation((user, gateName) => {
+        return ConfigEvaluation.fetchFromServer();
+      });
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    let gateName = 'gate_server';
+
+    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+
+    expect(
+      Statsig.checkGateWithoutServerFallback(user, gateName),
+    ).toStrictEqual(false);
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser({
+      userID: '123',
+    });
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(false),
+      ruleID: 'fallback_disabled',
+    });
+    expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
   test('Verify Evaluator returns correct value for checkGate() and logs an exposure correctly', async () => {
@@ -370,6 +468,51 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
+  test('Verify Evaluator returns correct value for checkGateWithoutServerFallback() and logs an exposure correctly', async () => {
+    expect.assertions(3);
+
+    await Statsig.initialize(secretKey);
+
+    jest
+      .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
+      .mockImplementation((user, gateName) => {
+        if (gateName === 'gate_pass') {
+          return new ConfigEvaluation(true, 'rule_id_pass', '', [
+            { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
+          ]);
+        }
+
+        if (gateName === 'gate_server') {
+          return ConfigEvaluation.fetchFromServer();
+        }
+
+        return new ConfigEvaluation(false, 'rule_id_fail', '');
+      });
+
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    let gateName = 'gate_pass';
+
+    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser({
+      userID: '123',
+    });
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(true),
+      ruleID: 'rule_id_pass',
+    });
+    gateExposure.setSecondaryExposures([
+      { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
+    ]);
+
+    expect(
+      Statsig.checkGateWithoutServerFallback(user, gateName),
+    ).toStrictEqual(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(gateExposure);
+  });
+
   test('Verify Evaluator returns correct value (for failed gates) for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
 
@@ -412,6 +555,52 @@ describe('Verify behavior of top level index functions', () => {
     await expect(Statsig.checkGate(user, gateName)).resolves.toStrictEqual(
       false,
     );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(gateExposure);
+  });
+
+  test('Verify Evaluator returns correct value (for failed gates) for checkGateWithoutServerFallback() and logs an exposure correctly', async () => {
+    expect.assertions(3);
+
+    // also set and verify environment is passed on to user as statsigEnvironment
+    await Statsig.initialize(secretKey, {
+      environment: { tier: 'production' },
+    });
+
+    jest
+      .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
+      .mockImplementation((user, gateName) => {
+        if (gateName === 'gate_pass') {
+          return new ConfigEvaluation(true, 'rule_id_pass', '', []);
+        }
+
+        if (gateName === 'gate_server') {
+          return ConfigEvaluation.fetchFromServer();
+        }
+
+        return new ConfigEvaluation(false, 'rule_id_fail', '', []);
+      });
+
+    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    let gateName = 'gate_fail';
+
+    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+    const gateExposure = new LogEvent('statsig::gate_exposure');
+    gateExposure.setUser({
+      userID: '123',
+      // @ts-ignore
+      statsigEnvironment: { tier: 'production' },
+    });
+    gateExposure.setMetadata({
+      gate: gateName,
+      gateValue: String(false),
+      ruleID: 'rule_id_fail',
+    });
+    gateExposure.setSecondaryExposures([]);
+
+    expect(
+      Statsig.checkGateWithoutServerFallback(user, gateName),
+    ).toStrictEqual(false);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
@@ -793,16 +982,19 @@ describe('Verify behavior of top level index functions', () => {
       bootstrapValues: JSON.stringify(jsonResponse),
     });
 
-    let passGate = await Statsig.checkGate(
+    checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      Statsig,
       { userID: '12345', email: 'tore@nfl.com' },
       exampleConfigSpecs.gate.name,
+      true,
     );
-    let failGate = await Statsig.checkGate(
+
+    checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      Statsig,
       { userID: '12345', email: 'tore@gmail.com' },
       exampleConfigSpecs.gate.name,
+      false,
     );
-    expect(passGate).toBe(true);
-    expect(failGate).toBe(false);
     // TODO verify network gates overwrite bootstrap values
   });
 
@@ -818,11 +1010,19 @@ describe('Verify behavior of top level index functions', () => {
     Statsig.logEvent({ userID: '123' }, 'my_event3');
     Statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
     Statsig.checkGate({ userID: '456' }, exampleConfigSpecs.gate.name);
+    Statsig.checkGateWithoutServerFallback(
+      { userID: '789' },
+      exampleConfigSpecs.gate.name,
+    );
+    Statsig.checkGateWithoutServerFallback(
+      { userID: '789' },
+      exampleConfigSpecs.gate.name,
+    );
 
     const flushPromise = Statsig.flush();
     expect(flushedEventCount).toEqual(0);
     jest.advanceTimersByTime(20);
     await flushPromise;
-    expect(flushedEventCount).toEqual(4);
+    expect(flushedEventCount).toEqual(5);
   });
 });

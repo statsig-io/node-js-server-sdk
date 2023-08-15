@@ -1,14 +1,14 @@
+import StatsigServer from '../StatsigServer';
 import {
   AdapterResponse,
   DataAdapterKey,
   IDataAdapter,
 } from '../interfaces/IDataAdapter';
-import StatsigServer from '../StatsigServer';
+import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import {
   GateForConfigSpecTest,
   GatesForIdListTest,
 } from './BootstrapWithDataAdapter.data';
-
 let hitNetwork = false;
 jest.mock('node-fetch', () =>
   jest.fn().mockImplementation(() => {
@@ -90,14 +90,30 @@ describe('Bootstrap with DataAdapter', () => {
     });
     await statsig.initializeAsync();
 
-    let value = await statsig.checkGate({ userID: 'a-user' }, 'test_id_list');
-    expect(value).toBe(true);
-
-    value = await statsig.checkGate({ userID: 'b-user' }, 'test_id_list');
-    expect(value).toBe(true);
-
-    value = await statsig.checkGate({ userID: 'c-user' }, 'test_id_list');
-    expect(value).toBe(false);
+    await Promise.all(
+      [
+        {
+          user: { userID: 'a-user' },
+          expectedValue: true,
+        },
+        {
+          user: { userID: 'b-user' },
+          expectedValue: true,
+        },
+        {
+          user: { userID: 'c-user' },
+          expectedValue: false,
+        },
+      ].map(
+        async ({ user, expectedValue }) =>
+          await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+            statsig,
+            user,
+            'test_id_list',
+            expectedValue,
+          ),
+      ),
+    );
   });
 
   it('bootstraps config specs', async () => {
@@ -111,7 +127,11 @@ describe('Bootstrap with DataAdapter', () => {
     });
     await statsig.initializeAsync();
 
-    const value = await statsig.checkGate({ userID: 'a-user' }, 'test_public');
-    expect(value).toBe(true);
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      { userID: 'a-user' },
+      'test_public',
+      true,
+    );
   });
 });

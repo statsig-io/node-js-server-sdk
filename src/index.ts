@@ -1,9 +1,9 @@
 import DynamicConfig from './DynamicConfig';
 import {
   StatsigInvalidArgumentError,
-  StatsigUninitializedError,
   StatsigLocalModeNetworkError,
   StatsigTooManyRequestsError,
+  StatsigUninitializedError,
 } from './Errors';
 import { FeatureGate } from './FeatureGate';
 import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
@@ -83,6 +83,22 @@ export const Statsig = {
    */
   checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
     return this._enforceServer().checkGate(user, gateName);
+  },
+
+  /**
+   * Gets the boolean result of a gate, evaluated against the given user.
+   * An exposure event will automatically be logged for the gate.
+   * This is a synchronous version of checkGate, and will return false value if a condition
+   * needs to fallback to the server.
+   *
+   * @param {StatsigUser} user - the user to check this gate value for
+   * @param {string} gateName - the name of the gate to check
+   * @returns {boolean} - The value of the gate for the user.  Gates are off (return false) by default
+   * @throws Error if initialize() was not called first
+   * @throws Error if the gateName is not provided or not a non-empty string
+   */
+  checkGateWithoutServerFallback(user: StatsigUser, gateName: string): boolean {
+    return this._enforceServer().checkGateWithoutServerFallback(user, gateName);
   },
 
   getFeatureGate(user: StatsigUser, gateName: string): Promise<FeatureGate> {

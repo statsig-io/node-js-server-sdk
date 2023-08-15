@@ -7,6 +7,7 @@ specifiers:
   '@types/jest': ^26.0.24
   '@types/node': ^14.18.26
   '@types/node-fetch': ^2.6.2
+  '@types/sha.js': ^2.4.0
   '@types/ua-parser-js': ^0.7.36
   '@types/useragent': ^2.3.1
   '@types/uuid': ^8.3.4
@@ -14,17 +15,17 @@ specifiers:
   babel-jest: ^26.6.3
   ip3country: ^5.0.0
   jest: ^26.6.3
-  js-sha256: ^0.9.0
   jsdoc-to-markdown: ^7.1.1
   node-fetch: ^2.6.7
+  sha.js: ^2.4.11
   typescript: ^4.7.4
   ua-parser-js: ^1.0.2
   uuid: ^8.3.2
 
 dependencies:
   ip3country: 5.0.0
-  js-sha256: 0.9.0
   node-fetch: 2.6.7
+  sha.js: 2.4.11
   ua-parser-js: 1.0.2
   uuid: 8.3.2
 
@@ -35,6 +36,7 @@ devDependencies:
   '@types/jest': 26.0.24
   '@types/node': 14.18.48
   '@types/node-fetch': 2.6.2
+  '@types/sha.js': 2.4.1
   '@types/ua-parser-js': 0.7.36
   '@types/useragent': 2.3.1
   '@types/uuid': 8.3.4
@@ -1616,6 +1618,12 @@ packages:
     resolution: {integrity: sha512-RI1L7N4JnW5gQw2spvL7Sllfuf1SaHdrZpCHiBlCXjIlufi1SMNnbu2teze3/QE67Fg2tBlH7W+mi4hVNk4p0A==}
     dev: true
 
+  /@types/sha.js/2.4.1:
+    resolution: {integrity: sha512-QHWKOJ4dkWB0OCfCoOFUZkhvpqUllcPs2WIhYFk7ugAprv3ts0z4nSuHtc0jlWBYLdPwfNRpVpv9pIpFSbYBYQ==}
+    dependencies:
+      '@types/node': 20.2.5
+    dev: true
+
   /@types/stack-utils/2.0.1:
     resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
     dev: true
@@ -2899,7 +2907,6 @@ packages:
 
   /inherits/2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
-    dev: true
 
   /ip3country/5.0.0:
     resolution: {integrity: sha512-lcFLMFU4eO1Z7tIpbVFZkaZ5ltqpeaRx7L9NsAbA9uA7/O/rj3RF8+evE5gDitooaTTIqjdzZrenFO/OOxQ2ew==}
@@ -3562,10 +3569,6 @@ packages:
       - ts-node
       - utf-8-validate
     dev: true
-
-  /js-sha256/0.9.0:
-    resolution: {integrity: sha512-sga3MHh9sgQN2+pJ9VYZ+1LPwXOxuBJBA5nrR5/ofPfuiJBE2hnjsaN8se8JznOmGLN2p49Pe5U/ttafcs/apA==}
-    dev: false
 
   /js-tokens/4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -4457,7 +4460,6 @@ packages:
 
   /safe-buffer/5.1.2:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
-    dev: true
 
   /safe-regex/1.1.0:
     resolution: {integrity: sha512-aJXcif4xnaNUzvUuC5gcb46oTS7zvg4jpMTnuqtrEPlR3vFr4pxtdTwaF1Qs3Enjn9HK+ZlwQui+a7z0SywIzg==}
@@ -4531,6 +4533,14 @@ packages:
       is-plain-object: 2.0.4
       split-string: 3.1.0
     dev: true
+
+  /sha.js/2.4.11:
+    resolution: {integrity: sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==}
+    hasBin: true
+    dependencies:
+      inherits: 2.0.4
+      safe-buffer: 5.1.2
+    dev: false
 
   /shebang-command/1.2.0:
     resolution: {integrity: sha512-EV3L1+UQWGor21OmnvojK36mhg+TyIKDh3iFBKBohr5xeXIhNBcx8oWdgkTEEQ+BEFFYdLRuqMfd5L84N1V5Vg==}

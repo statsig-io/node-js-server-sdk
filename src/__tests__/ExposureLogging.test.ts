@@ -58,6 +58,14 @@ describe('ExposureLogging', () => {
       expect(events[0].eventName).toEqual('statsig::gate_exposure');
     });
 
+    it('logs check gate exposures for checkGateWithoutServerFallback', async () => {
+      Statsig.checkGateWithoutServerFallback(user, 'a_gate');
+      expect(events.length).toBe(1);
+      expect(events[0].metadata.gate).toEqual('a_gate');
+      expect(events[0].metadata.isManualExposure).toBeUndefined();
+      expect(events[0].eventName).toEqual('statsig::gate_exposure');
+    });
+
     it('logs get feature gate exposures', async () => {
       await Statsig.getFeatureGate(user, 'b_gate');
       expect(events.length).toBe(1);

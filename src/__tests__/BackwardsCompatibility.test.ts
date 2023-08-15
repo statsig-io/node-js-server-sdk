@@ -1,16 +1,17 @@
 import * as starsig from '../index';
 import Statsig, {
+  AdapterResponse,
   DynamicConfig,
+  IDataAdapter,
   Layer,
   LogEventObject,
   RulesUpdatedCallback,
   StatsigEnvironment,
   StatsigOptions,
   StatsigUser,
-  IDataAdapter,
-  AdapterResponse,
 } from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -81,9 +82,12 @@ describe('Backward Compatibility', () => {
   ])('test functionality for %p', async (title, statsig) => {
     clearStatsig();
     await statsig.initialize('secret-key', { disableDiagnostics: true });
-
-    const gateResult = await statsig.checkGate(user, 'test_public');
-    expect(gateResult).toBe(true);
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      user,
+      'test_public',
+      true,
+    );
 
     const config = await statsig.getConfig(user, 'test_email_config');
     expect(config.value).toEqual({ header_text: 'jkw only' });
@@ -119,8 +123,12 @@ describe('Backward Compatibility', () => {
     });
 
     statsig.overrideGate('gate_override', true);
-    const gateOverrideResult = await statsig.checkGate(user, 'gate_override');
-    expect(gateOverrideResult).toBe(true);
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      user,
+      'gate_override',
+      true,
+    );
 
     statsig.overrideConfig('config_override', { foo: 1 });
     const configOverrideResult = await statsig.getConfig(

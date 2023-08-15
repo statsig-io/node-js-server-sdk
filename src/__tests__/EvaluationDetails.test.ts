@@ -74,12 +74,17 @@ describe('Evaluation Details', () => {
       uninitializedServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
+    uninitializedServer.checkGateWithoutServerFallback(
+      user,
+      'on_for_statsig_email',
+    );
     uninitializedServer.shutdown();
 
-    expect(events.length).toBe(3);
+    expect(events.length).toBe(4);
     expect(events[0]).toEqual(expectedResult('gate', 'Uninitialized', true));
     expect(events[1]).toEqual(expectedResult('config', 'Uninitialized', true));
     expect(events[2]).toEqual(expectedResult('config', 'Uninitialized', true));
+    expect(events[3]).toEqual(expectedResult('gate', 'Uninitialized', true));
   });
 
   it('returns unrecognized as an eval reason', async () => {
@@ -90,12 +95,14 @@ describe('Evaluation Details', () => {
       server.getLayer(user, 'not_a_layer'),
     ]);
     layer.get('a_value', 'fallback_value');
+    server.checkGateWithoutServerFallback(user, 'not_a_gate_2');
     server.shutdown();
 
-    expect(events.length).toBe(3);
+    expect(events.length).toBe(4);
     expect(events[0]).toEqual(expectedResult('gate', 'Unrecognized'));
     expect(events[1]).toEqual(expectedResult('config', 'Unrecognized'));
     expect(events[2]).toEqual(expectedResult('config', 'Unrecognized'));
+    expect(events[3]).toEqual(expectedResult('gate', 'Unrecognized'));
   });
 
   it('returns network as an eval reason', async () => {
@@ -106,29 +113,34 @@ describe('Evaluation Details', () => {
       server.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
+    server.checkGateWithoutServerFallback(user, 'on_for_statsig_email');
     server.shutdown();
 
-    expect(events.length).toBe(4);
+    expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'Network'));
     expect(events[1]).toEqual(expectedResult('config', 'Network'));
     expect(events[2]).toEqual(expectedResult('config', 'Network'));
     expect(events[3]).toEqual(expectedResult('layer', 'Network'));
+    expect(events[4]).toEqual(expectedResult('gate', 'Network'));
   });
 
   it('returns local override as an eval reason', async () => {
     server.overrideGate('always_on_gate', false);
+    server.overrideGate('on_for_statsig_email', false);
     server.overrideConfig('sample_experiment', {});
 
     await Promise.all([
       server.checkGate(user, 'always_on_gate'),
       server.getExperiment(user, 'sample_experiment'),
     ]);
+    server.checkGateWithoutServerFallback(user, 'on_for_statsig_email');
 
     server.shutdown();
 
-    expect(events.length).toBe(2);
+    expect(events.length).toBe(3);
     expect(events[0]).toEqual(expectedResult('gate', 'LocalOverride'));
     expect(events[1]).toEqual(expectedResult('config', 'LocalOverride'));
+    expect(events[2]).toEqual(expectedResult('gate', 'LocalOverride'));
   });
 
   it('returns bootstrap as an eval reason', async () => {
@@ -146,13 +158,18 @@ describe('Evaluation Details', () => {
       bootstrapServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
+    bootstrapServer.checkGateWithoutServerFallback(
+      user,
+      'on_for_statsig_email',
+    );
     bootstrapServer.shutdown();
 
-    expect(events.length).toBe(4);
+    expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'Bootstrap'));
     expect(events[1]).toEqual(expectedResult('config', 'Bootstrap'));
     expect(events[2]).toEqual(expectedResult('config', 'Bootstrap'));
     expect(events[3]).toEqual(expectedResult('layer', 'Bootstrap'));
+    expect(events[4]).toEqual(expectedResult('gate', 'Bootstrap'));
   });
 
   it('returns data adapter as an eval reason', async () => {
@@ -177,12 +194,17 @@ describe('Evaluation Details', () => {
       dataStoreServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    dataStoreServer.shutdown();
+    dataStoreServer.checkGateWithoutServerFallback(
+      user,
+      'on_for_statsig_email',
+    ),
+      dataStoreServer.shutdown();
 
-    expect(events.length).toBe(4);
+    expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'DataAdapter'));
     expect(events[1]).toEqual(expectedResult('config', 'DataAdapter'));
     expect(events[2]).toEqual(expectedResult('config', 'DataAdapter'));
     expect(events[3]).toEqual(expectedResult('layer', 'DataAdapter'));
+    expect(events[4]).toEqual(expectedResult('gate', 'DataAdapter'));
   });
 });

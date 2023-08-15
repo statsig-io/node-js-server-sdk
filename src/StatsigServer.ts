@@ -48,6 +48,19 @@ export type LogEventObject = {
   time?: string | null;
 };
 
+type GetGateImplResponse =
+  | {
+      type: 'valid';
+      gate: FeatureGate;
+    }
+  | {
+      type: 'error';
+      error: Error;
+    }
+  | {
+      type: 'fallback';
+    };
+
 /**
  * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
  */
@@ -153,10 +166,43 @@ export default class StatsigServer {
   public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
     return this._errorBoundary.capture(
       () =>
-        this.getGateImpl(user, gateName, ExposureLogging.Enabled).then(
-          (gate) => gate.value,
-        ),
+        this.getGateImplWithServerFallback(
+          user,
+          gateName,
+          ExposureLogging.Enabled,
+        ).then((gate) => gate.value),
       () => Promise.resolve(false),
+    );
+  }
+
+  /**
+   * Check the value of a gate configured in the statsig console
+   * @throws Error if initialize() was not called first
+   * @throws Error if the gateName is not provided or not a non-empty string
+   */
+  public checkGateWithoutServerFallback(
+    user: StatsigUser,
+    gateName: string,
+  ): boolean {
+    return this._errorBoundary.capture(
+      () => {
+        const result = this.getGateImpl(
+          user,
+          gateName,
+          ExposureLogging.Enabled,
+          false,
+        );
+
+        switch (result.type) {
+          case 'valid':
+            return result.gate.value;
+          case 'error':
+            throw result.error;
+          case 'fallback':
+            return false;
+        }
+      },
+      () => false,
     );
   }
 
@@ -165,7 +211,12 @@ export default class StatsigServer {
     gateName: string,
   ): Promise<FeatureGate> {
     return this._errorBoundary.capture(
-      () => this.getGateImpl(user, gateName, ExposureLogging.Enabled),
+      () =>
+        this.getGateImplWithServerFallback(
+          user,
+          gateName,
+          ExposureLogging.Enabled,
+        ),
       () => Promise.resolve(makeEmptyFeatureGate(gateName)),
     );
   }
@@ -184,7 +235,12 @@ export default class StatsigServer {
     gateName: string,
   ): Promise<FeatureGate> {
     return this._errorBoundary.capture(
-      () => this.getGateImpl(user, gateName, ExposureLogging.Disabled),
+      () =>
+        this.getGateImplWithServerFallback(
+          user,
+          gateName,
+          ExposureLogging.Disabled,
+        ),
       () => Promise.resolve(makeEmptyFeatureGate(gateName)),
     );
   }
@@ -508,35 +564,34 @@ export default class StatsigServer {
     );
   }
 
-  private async getGateImpl(
+  private getGateImpl(
     inputUser: StatsigUser,
     gateName: string,
     exposureLogging: ExposureLogging,
-  ): Promise<FeatureGate> {
-    const { rejection, normalizedUser: user } = this._validateInputs(
+    willCallerFallbackToServer: boolean,
+  ): GetGateImplResponse {
+    const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
       gateName,
     );
 
-    if (rejection) {
-      return rejection;
+    if (error) {
+      return {
+        type: 'error',
+        error: error,
+      };
     }
 
     const evaluation = this._evaluator.checkGate(user, gateName);
+
     if (evaluation.fetch_from_server) {
-      const res = await this._fetcher.dispatch(
-        this._options.api + '/check_gate',
-        Object.assign({
-          user: user,
-          gateName: gateName,
-          statsigMetadata: getStatsigMetadata({
-            exposureLoggingDisabled:
-              exposureLogging === ExposureLogging.Disabled,
-          }),
-        }),
-        5000,
-      );
-      return await res.json();
+      if (willCallerFallbackToServer) {
+        return {
+          type: 'fallback',
+        };
+      }
+
+      evaluation.rule_id = 'fallback_disabled';
     }
 
     if (exposureLogging !== ExposureLogging.Disabled) {
@@ -548,14 +603,44 @@ export default class StatsigServer {
       );
     }
 
-    return Promise.resolve(
-      makeFeatureGate(
+    return {
+      type: 'valid',
+      gate: makeFeatureGate(
         gateName,
         evaluation.rule_id,
         evaluation.value === true,
         evaluation.group_name,
       ),
-    );
+    };
+  }
+
+  private async getGateImplWithServerFallback(
+    inputUser: StatsigUser,
+    gateName: string,
+    exposureLogging: ExposureLogging,
+  ): Promise<FeatureGate> {
+    const result = this.getGateImpl(inputUser, gateName, exposureLogging, true);
+
+    switch (result.type) {
+      case 'valid':
+        return result.gate;
+      case 'error':
+        return Promise.reject(result.error);
+      case 'fallback':
+        const res = await this._fetcher.dispatch(
+          this._options.api + '/check_gate',
+          Object.assign({
+            user: inputUser,
+            gateName: gateName,
+            statsigMetadata: getStatsigMetadata({
+              exposureLoggingDisabled:
+                exposureLogging === ExposureLogging.Disabled,
+            }),
+          }),
+          5000,
+        );
+        return await res.json();
+    }
   }
 
   private logConfigExposureImpl(
@@ -577,10 +662,8 @@ export default class StatsigServer {
     configName: string,
     exposureLogging: ExposureLogging,
   ): Promise<DynamicConfig> {
-    const { rejection, normalizedUser: user } = this._validateInputs(
-      inputUser,
-      configName,
-    );
+    const { rejection, normalizedUser: user } =
+      this._validateInputsForAsyncMethods(inputUser, configName);
 
     if (rejection) {
       return rejection;
@@ -619,10 +702,8 @@ export default class StatsigServer {
     layerName: string,
     exposureLogging: ExposureLogging,
   ): Promise<Layer> {
-    const { rejection, normalizedUser: user } = this._validateInputs(
-      inputUser,
-      layerName,
-    );
+    const { rejection, normalizedUser: user } =
+      this._validateInputsForAsyncMethods(inputUser, layerName);
 
     if (rejection) {
       return rejection;
@@ -696,24 +777,31 @@ export default class StatsigServer {
     );
   }
 
+  private _validateInputsForAsyncMethods(
+    user: StatsigUser,
+    configName: string,
+  ) {
+    const validation = this._validateInputs(user, configName);
+    return {
+      rejection: validation.error ? Promise.reject(validation.error) : null,
+      normalizedUser: validation.normalizedUser,
+    };
+  }
+
   private _validateInputs(user: StatsigUser, configName: string) {
     const result: {
-      rejection: null | Promise<never>;
+      error: null | Error;
       normalizedUser: StatsigUser;
-    } = { rejection: null, normalizedUser: { userID: '' } };
+    } = { error: null, normalizedUser: { userID: '' } };
     if (this._ready !== true) {
-      result.rejection = Promise.reject(new StatsigUninitializedError());
+      result.error = new StatsigUninitializedError();
     } else if (typeof configName !== 'string' || configName.length === 0) {
-      result.rejection = Promise.reject(
-        new StatsigInvalidArgumentError(
-          'Lookup key must be a non-empty string',
-        ),
+      result.error = new StatsigInvalidArgumentError(
+        'Lookup key must be a non-empty string',
       );
     } else if (!isUserIdentifiable(user)) {
-      result.rejection = Promise.reject(
-        new StatsigInvalidArgumentError(
-          'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
-        ),
+      result.error = new StatsigInvalidArgumentError(
+        'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       );
     } else {
       result.normalizedUser = normalizeUser(user, this._options);
