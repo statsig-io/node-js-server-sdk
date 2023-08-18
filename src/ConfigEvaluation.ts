@@ -47,7 +47,7 @@ export default class ConfigEvaluation {
     return this;
   }
 
-  public setIsExperimentGroup(isExperimentGroup: boolean = false) {
+  public setIsExperimentGroup(isExperimentGroup = false) {
     this.is_experiment_group = isExperimentGroup;
   }
 

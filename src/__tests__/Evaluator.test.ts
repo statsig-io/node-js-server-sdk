@@ -65,6 +65,16 @@ describe('Test condition evaluation', () => {
     ['pass_gate', null, 'gate_fail', null, user, false],
     ['pass_gate', null, 'gate_server', null, user, false, undefined, true],
     ['fail_gate', null, 'gate_server', null, user, false, undefined, true],
+    ['multi_pass_gate', null, ['gate_pass'], null, user, true],
+    ['multi_pass_gate', null, ['gate_pass', 'gate_fail'], null, user, true],
+    ['multi_pass_gate', null, ['gate_fail', 'gate_pass', 'gate_server'], null, user, true],
+    ['multi_pass_gate', null, ['gate_fail'], null, user, false],
+    ['multi_pass_gate', null, ['gate_server', 'gate_pass'], null, user, false, undefined, true],
+    ['multi_fail_gate', null, ['gate_pass'], null, user, false],
+    ['multi_fail_gate', null, ['gate_pass', 'gate_fail'], null, user, true],
+    ['multi_fail_gate', null, ['gate_fail', 'gate_pass', 'gate_server'], null, user, true],
+    ['multi_fail_gate', null, ['gate_fail'], null, user, true],
+    ['multi_fail_gate', null, ['gate_server', 'gate_fail'], null, user, false, undefined, true],
 
     // ip_based condition when ip is not provided
     ['ip_based', 'any', ['US', 'CA'], 'country', user, true],
@@ -305,7 +315,7 @@ describe('Test condition evaluation', () => {
         additionalValues,
         fetchFromServer,
       ]) => {
-        let json = {
+        const json = {
           type,
           operator,
           targetValue,
@@ -399,7 +409,7 @@ describe('Test condition evaluation', () => {
   });
 
   it('implements pass percentage correctly', () => {
-    let valueID1 = mockedEvaluator._eval(
+    const valueID1 = mockedEvaluator._eval(
       {
         userID: Math.random() + '',
         email: 'tore@packers.com',
@@ -407,7 +417,7 @@ describe('Test condition evaluation', () => {
       },
       halfPassGateCustomIDSpec,
     ).value;
-    let valueID2 = mockedEvaluator._eval(
+    const valueID2 = mockedEvaluator._eval(
       {
         userID: Math.random() + '',
         email: 'tore@packers.com',
@@ -415,7 +425,7 @@ describe('Test condition evaluation', () => {
       },
       halfPassGateCustomIDSpec,
     ).value;
-    let valueID3 = mockedEvaluator._eval(
+    const valueID3 = mockedEvaluator._eval(
       {
         userID: Math.random() + '',
         email: 'tore@packers.com',
@@ -423,7 +433,7 @@ describe('Test condition evaluation', () => {
       },
       halfPassGateCustomIDSpec,
     ).value;
-    let valueID4 = mockedEvaluator._eval(
+    const valueID4 = mockedEvaluator._eval(
       {
         userID: Math.random() + '',
         email: 'tore@packers.com',
@@ -550,7 +560,7 @@ describe('testing checkGate and getConfig', () => {
       diagnostics,
     );
 
-    let now = Date.now();
+    const now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });
 
@@ -597,7 +607,7 @@ describe('testing checkGate and getConfig', () => {
     await evaluator.init();
 
     // check a config that should evaluate to real return value
-    let result = evaluator.getConfig(
+    const result = evaluator.getConfig(
       { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
       exampleConfigSpecs.config.name,
     );
