@@ -1,5 +1,6 @@
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import { LoggerInterface } from '../StatsigOptions';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 
 // @ts-ignore
@@ -216,5 +217,27 @@ describe('Test local mode with overrides', () => {
       layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
       expect(layer.get('a_param', 'fallback')).toEqual('a_value');
     });
+  });
+
+  it('does not log error on initialization', async () => {
+    let warnings: unknown[] = [];
+    let errors: unknown[] = [];
+    const customLogger: LoggerInterface = {
+      warn: (message?: any, ...optionalParams: any[]) => {
+        warnings.push(message);
+      },
+      error: (message?: any, ...optionalParams: any[]) => {
+        errors.push(message);
+      },
+    };
+
+    await statsig.initialize('secret-key', { 
+      localMode: true,
+      logger: customLogger
+    });
+    expect(hitNetwork).toEqual(false);
+
+    expect(warnings).toHaveLength(0);
+    expect(errors).toHaveLength(0);
   });
 });

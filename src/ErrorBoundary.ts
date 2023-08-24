@@ -52,7 +52,7 @@ export default class ErrorBoundary {
     ) {
       throw error; // Don't catch these
     }
-
+    
     this.outputLogger.error('[Statsig] An unexpected exception occurred.', error as Error);
 
     this.logError(error);

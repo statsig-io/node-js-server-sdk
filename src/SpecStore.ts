@@ -58,6 +58,7 @@ export default class SpecStore {
   private syncFailureCount: number = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
+  private localMode: boolean;
   private samplingRates: SDKConstants = {
     dcs: 0,
     log: 0,
@@ -93,6 +94,7 @@ export default class SpecStore {
     this.initReason = 'Uninitialized';
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
+    this.localMode = options.localMode;
     this.clientSDKKeyToAppMap = {};
   }
 
@@ -244,6 +246,9 @@ export default class SpecStore {
   }
 
   private async _fetchConfigSpecsFromServer(): Promise<void> {
+    if(this.localMode) {
+      return;
+    }
     let response: Response | undefined = undefined;
     const url =
       (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
@@ -350,24 +355,25 @@ export default class SpecStore {
       this.syncFailureCount = 0;
     } catch (e) {
       this.syncFailureCount++;
-      if (!(e instanceof StatsigLocalModeNetworkError)) {
-        if (isColdStart) {
-          this.outputLogger.error(
-            'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
-          );
-        } else if (
-          this.syncFailureCount * this.syncInterval >
-          SYNC_OUTDATED_MAX
-        ) {
-          this.outputLogger.warn(
-            `statsigSDK::sync> Syncing the server SDK with ${
-              shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
-            } has failed for  ${
-              this.syncFailureCount * this.syncInterval
-            }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
-          );
-          this.syncFailureCount = 0;
-        }
+      if (e instanceof StatsigLocalModeNetworkError) {
+        return;
+      }
+      if (isColdStart) {
+        this.outputLogger.error(
+          'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
+        );
+      } else if (
+        this.syncFailureCount * this.syncInterval >
+        SYNC_OUTDATED_MAX
+      ) {
+        this.outputLogger.warn(
+          `statsigSDK::sync> Syncing the server SDK with ${
+            shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
+          } has failed for  ${
+            this.syncFailureCount * this.syncInterval
+          }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+        );
+        this.syncFailureCount = 0;
       }
     } finally {
       this.logDiagnostics('config_sync', 'config_spec');
@@ -543,13 +549,19 @@ export default class SpecStore {
   }
 
   private async syncIdListsFromNetwork(): Promise<void> {
+    if(this.localMode) {
+      return;
+    }
+
     let response = null;
     try {
       response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
     } catch (e) {
-      this.outputLogger.warn(e as Error);
+      if (!(e instanceof StatsigLocalModeNetworkError)) {
+        this.outputLogger.warn(e as Error);
+      }
       return;
     }
 
