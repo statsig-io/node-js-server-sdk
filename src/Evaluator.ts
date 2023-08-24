@@ -45,10 +45,7 @@ export default class Evaluator {
 
   private initStrategyForIP3Country: InitStrategy;
 
-  public constructor(
-    fetcher: StatsigFetcher,
-    options: ExplicitStatsigOptions,
-  ) {
+  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.store = new SpecStore(fetcher, options);
     this.initStrategyForIP3Country = options.initStrategyForIP3Country;
     this.gateOverrides = {};
@@ -620,6 +617,9 @@ export default class Evaluator {
       }
       case 'multi_pass_gate':
       case 'multi_fail_gate': {
+        if (!Array.isArray(target)) {
+          return { passes: false, fetchFromServer: true };
+        }
         const gateNames = target as string[];
         let value = false;
         let exposures: Record<string, string>[] = [];
