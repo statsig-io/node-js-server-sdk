@@ -88,6 +88,18 @@ describe('Verify sync intervals reset', () => {
       { userID: '123', email: 'tore@packers.com' },
       'nfl_gate',
     );
+    gate = await statsig.checkGate(
+      { userID: '123', email: 'tore@packers.com' },
+      'nfl_gate',
+    );
+    gate = await statsig.checkGate(
+      { userID: '123', email: 'tore@packers.com' },
+      'nfl_gate',
+    );
+    gate = await statsig.checkGate(
+      { userID: '123', email: 'tore@packers.com' },
+      'nfl_gate',
+    );
     expect(gate).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
   });

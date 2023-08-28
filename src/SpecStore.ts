@@ -225,14 +225,12 @@ export default class SpecStore {
     let message = '';
     if (syncTimerInactive) {
       this.clearSyncTimer();
-      this._syncValues();
       message = message.concat(`Force reset sync timer. Last update time: ${
         this.syncTimerLastActiveTime
       }, now: ${Date.now()}`);
     }
     if (idListsSyncTimerInactive) {
       this.clearIdListsSyncTimer();
-      this._syncIdLists();
       message = message.concat(`Force reset id list sync timer. Last update time: ${
         this.idListsSyncTimerLastActiveTime
       }, now: ${Date.now()}`);
@@ -304,6 +302,7 @@ export default class SpecStore {
 
   private pollForUpdates() {
     if (this.syncTimer == null) {
+      this.syncTimerLastActiveTime = Date.now();
       this.syncTimer = poll(async () => {
         this.syncTimerLastActiveTime = Date.now();
         await this._syncValues();
@@ -311,6 +310,7 @@ export default class SpecStore {
     }
 
     if (this.idListsSyncTimer == null) {
+      this.idListsSyncTimerLastActiveTime = Date.now();
       this.idListsSyncTimer = poll(async () => {
         this.idListsSyncTimerLastActiveTime = Date.now();
         await this._syncIdLists();
