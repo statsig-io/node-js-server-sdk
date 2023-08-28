@@ -56,7 +56,7 @@ export default class StatsigFetcher {
     if (counter != null && counter >= 1000) {
       return Promise.reject(
         new StatsigTooManyRequestsError(
-          'Request failed because you are making the same request too frequently.',
+          `Request to ${url} failed because you are making the same request too frequently (${counter}).`,
         ),
       );
     }
