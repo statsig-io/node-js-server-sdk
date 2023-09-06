@@ -633,8 +633,8 @@ export default class Evaluator {
               ? gateResult.value === true
               : gateResult.value === false;
           exposures.push({
-            gate: String(target),
-            gateValue: String(value),
+            gate: String(gateName),
+            gateValue: String(gateResult?.value),
             ruleID: gateResult?.rule_id ?? '',
           });
           exposures = exposures.concat(gateResult.secondary_exposures);
