@@ -1,10 +1,11 @@
+import { FetchError } from 'node-fetch';
 import { MAX_SAMPLING_RATE } from '../Diagnostics';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import exampleConfigSpecs from './jest.setup';
 import StatsigTestUtils, { assertMarkerEqual } from './StatsigTestUtils';
 
-jest.mock('node-fetch', () => jest.fn());
+jest.mock('../utils/safeFetch', () => jest.fn());
 
 const jsonResponse = {
   time: Date.now(),
@@ -29,10 +30,14 @@ describe('ConfigSyncDiagnostics', () => {
   let getIDListJSON;
   let getIDListResponse;
   let downloadConfigSpecsResponse;
-  const fetch = require('node-fetch');
+  let throwDCSError;
+  const fetch = require('../utils/safeFetch');
 
   fetch.mockImplementation((url: string, params) => {
     if (url.includes('download_config_specs')) {
+      if(throwDCSError) {
+        return Promise.reject(throwDCSError);
+      }
       return Promise.resolve(downloadConfigSpecsResponse);
     }
 
@@ -89,6 +94,7 @@ describe('ConfigSyncDiagnostics', () => {
       text: () => Promise.resolve(JSON.stringify(jsonResponse)),
       status: 200,
     };
+    throwDCSError = null;
 
     events = [];
     // @ts-ignore
@@ -148,16 +154,63 @@ describe('ConfigSyncDiagnostics', () => {
     },
   );
 
-  it('test config download failure', async () => {
+  it.each([
+    {
+      setupFailureCase: () => {
+        downloadConfigSpecsResponse = {
+          ok: false,
+          status: 500,
+        };
+      },
+      expectedMarkers: [
+        {
+          key: 'download_config_specs',
+          action: 'start',
+          step: 'network_request',
+        },
+        {
+          key: 'download_config_specs',
+          action: 'end',
+          step: 'network_request',
+          statusCode: 500,
+          error: {
+            name: expect.any(String),
+            message: expect.any(String),
+          },
+          success: false,
+        }
+      ]
+    }, {
+      setupFailureCase: () => {
+        throwDCSError = new FetchError('test error', 'ECONNREFUSED');
+        throwDCSError.code = 'ECONNREFUSED';
+      },
+      expectedMarkers: [
+        {
+          key: 'download_config_specs',
+          action: 'start',
+          step: 'network_request',
+        },
+        {
+          key: 'download_config_specs',
+          action: 'end',
+          step: 'network_request',
+          error: {
+            name: expect.any(String),
+            code: expect.any(String),
+            message: expect.any(String),
+          },
+          success: false,
+        }
+      ],
+    }
+  ])('test config download failure', async ({setupFailureCase, expectedMarkers}) => {
     await Statsig.initialize('secret-key', {
       loggingMaxBufferSize: 1,
       rulesetsSyncIntervalMs: 100,
     });
 
-    downloadConfigSpecsResponse = {
-      ok: false,
-      status: 500,
-    };
+    setupFailureCase();
     await StatsigTestUtils.getEvaluator()['store']._syncValues();
 
     Statsig.shutdown();
@@ -171,20 +224,11 @@ describe('ConfigSyncDiagnostics', () => {
     expect(metadata['context']).toBe('config_sync');
 
     const markers = metadata['markers'];
-    assertMarkerEqual(markers[0], {
-      key: 'download_config_specs',
-      action: 'start',
-      step: 'network_request',
-    });
-    assertMarkerEqual(markers[1], {
-      key: 'download_config_specs',
-      action: 'end',
-      step: 'network_request',
-      statusCode: 500,
-      success: false,
+    expectedMarkers.forEach((expectedMarker, i) => {
+      assertMarkerEqual(markers[i], expectedMarker);
     });
     
-    expect(markers.length).toBe(2);
+    expect(markers.length).toBe(expectedMarkers.length);
   });
 
   it('test get_id_list_source failure', async () => {
@@ -219,6 +263,10 @@ describe('ConfigSyncDiagnostics', () => {
       action: 'end',
       step: 'network_request',
       statusCode: 500,
+      error: {
+        name: expect.any(String),
+        message: expect.any(String),
+      },
       success: false,
     });
     

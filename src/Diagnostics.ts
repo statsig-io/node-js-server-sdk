@@ -1,3 +1,4 @@
+import { FetchError } from 'node-fetch';
 import LogEventProcessor from './LogEventProcessor';
 import { DiagnosticsSamplingRate } from './SpecStore';
 import { StatsigOptions } from './StatsigOptions';
@@ -10,6 +11,7 @@ export interface Marker {
   timestamp: number;
   step?: StepType;
   statusCode?: number;
+  error?: Record<string, unknown>;
   success?: boolean;
   url?: string;
   idListCount?: number;
@@ -204,7 +206,26 @@ export default abstract class Diagnostics {
   static setContext(context: ContextType) {
     this.instance.setContext(context);
   }
+
+  static formatNetworkError(e: unknown): Record<string, unknown> | undefined {
+    if (!(e && typeof e === 'object')) {
+      return;
+    }
+    return {
+      code: safeGetField(e, 'code'),
+      name: safeGetField(e, 'name'),
+      message: safeGetField(e, 'message'),
+    };
+  }  
 }
+
+function safeGetField(data: object, field: string): unknown | undefined {
+  if (field in data) {
+    return (data as Record<string, unknown>)[field];
+  }
+  return undefined;
+}
+
 
 type RequiredActionTags = {
   [K in keyof Marker]?: Marker[K];
@@ -243,6 +264,7 @@ interface DCSDataType extends RequiredMarkerTags {
       success: boolean;
       sdkRegion?: string | null;
       statusCode?: number;
+      error?: Record<string, unknown>;
     };
   };
 }
@@ -284,6 +306,7 @@ interface GetIdListSourcesDataType extends RequiredMarkerTags {
       success: boolean;
       sdkRegion?: string | null;
       statusCode?: number;
+      error?: Record<string, unknown>;
     };
   };
 }

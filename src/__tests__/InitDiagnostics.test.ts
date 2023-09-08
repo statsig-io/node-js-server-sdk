@@ -208,6 +208,10 @@ describe('InitDiagnostics', () => {
       action: 'end',
       step: 'network_request',
       statusCode: 500,
+      error: {
+        name: expect.any(String),
+        message: expect.any(String)
+      },
       success: false,
     });
     assertMarkerEqual(markers[3], {

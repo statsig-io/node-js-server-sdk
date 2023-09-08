@@ -91,6 +91,7 @@ export default class StatsigFetcher {
     }
 
     let res: Response | undefined;
+    let error: unknown;
     return safeFetch(url, params)
       .then((localRes) => {
         res = localRes;
@@ -106,16 +107,18 @@ export default class StatsigFetcher {
         return Promise.resolve(res);
       })
       .catch((e) => {
+        error = e;
         if (retries > 0) {
           return this._retry(url, body, retries - 1, backoffAdjusted);
         }
-        return Promise.reject(e);
+        return Promise.reject(error);
       })
       .finally(() => {
         markDiagnostic?.end({
           statusCode: res?.status,
           success: res?.ok === true,
           sdkRegion: res?.headers?.get('x-statsig-region'),
+          error: Diagnostics.formatNetworkError(error),
         });
         this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
       });
