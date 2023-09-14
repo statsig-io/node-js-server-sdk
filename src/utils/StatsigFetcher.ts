@@ -144,14 +144,18 @@ export default class StatsigFetcher {
     backoff: number,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
-      this.pendingTimers.push(
-        setTimeout(() => {
-          this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
-          this.post(url, body, { retries, backoff, isRetrying: true })
-            .then(resolve)
-            .catch(reject);
-        }, backoff).unref(),
-      );
+      const timer = setTimeout(() => {
+        this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
+        this.post(url, body, { retries, backoff, isRetrying: true })
+          .then(resolve)
+          .catch(reject);
+      }, backoff);
+
+      if (timer.unref) {
+        timer.unref();
+      }
+
+      this.pendingTimers.push(timer);
     });
   }
 
