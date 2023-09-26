@@ -21,6 +21,14 @@ export class EvaluationDetails {
     return new EvaluationDetails(0, 0, 'Uninitialized');
   }
 
+  static unsupported(configSyncTime: number, initialUpdateTime: number) {
+    return new EvaluationDetails(
+      configSyncTime,
+      initialUpdateTime,
+      'Unsupported',
+    );
+  }
+
   static make(
     configSyncTime: number,
     initialUpdateTime: number,

@@ -180,30 +180,29 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify cannot call checkGate() with no gate name', () => {
+  test('Verify cannot call checkGate() with no gate name', async () => {
     expect.assertions(2);
+    await Statsig.initialize(secretKey);
 
-    return Statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-      // @ts-ignore intentionally testing incorrect param type
-      expect(Statsig.checkGate(null)).rejects.toEqual(
-        new Error('Lookup key must be a non-empty string'),
-      );
-      expect(spy).toHaveBeenCalledTimes(0);
-    });
+    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+
+    // @ts-ignore intentionally testing incorrect param type
+    expect(Statsig.checkGate(null)).rejects.toEqual(
+      new Error('Lookup key must be a non-empty string'),
+    );
+    expect(spy).toHaveBeenCalledTimes(0);
   });
 
-  test('Verify cannot call checkGateWithoutServerFallback() with no gate name', () => {
+  test('Verify cannot call checkGateWithoutServerFallback() with no gate name', async () => {
     expect.assertions(2);
+    await Statsig.initialize(secretKey);
 
-    return Statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-      // @ts-ignore intentionally testing incorrect param type
-      expect(() => Statsig.checkGateWithoutServerFallback(null)).toThrowError(
-        new Error('Lookup key must be a non-empty string'),
-      );
-      expect(spy).toHaveBeenCalledTimes(0);
-    });
+    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+    // @ts-ignore intentionally testing incorrect param type
+    expect(() => Statsig.checkGateWithoutServerFallback(null)).toThrowError(
+      new Error('Lookup key must be a non-empty string'),
+    );
+    expect(spy).toHaveBeenCalledTimes(0);
   });
 
   test('Verify cannot call checkGate() with invalid gate name', () => {
@@ -355,73 +354,89 @@ describe('Verify behavior of top level index functions', () => {
     });
   });
 
-  test('Verify cannot call getConfig() with invalid config name', () => {
+  test('Verify cannot call getConfig() with invalid config name', async () => {
     expect.assertions(3);
 
-    return Statsig.initialize(secretKey).then(() => {
-      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-      // @ts-ignore intentionally testing incorrect param type
-      expect(Statsig.getConfig({ userID: '123' }, false)).rejects.toEqual(
-        new Error('Lookup key must be a non-empty string'),
-      );
-      // @ts-ignore intentionally testing incorrect param type
-      expect(Statsig.getExperiment({ userID: '123' }, false)).rejects.toEqual(
-        new Error('Lookup key must be a non-empty string'),
-      );
-      expect(spy).toHaveBeenCalledTimes(0);
-    });
-  });
+    await Statsig.initialize(secretKey, { disableDiagnostics: true });
 
-  test('Verify when Evaluator fails, checkGate() returns correct value and does not log an exposure', async () => {
-    expect.assertions(2);
-
-    await Statsig.initialize(secretKey);
-    jest
-      .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
-      .mockImplementation((user, gateName) => {
-        return ConfigEvaluation.fetchFromServer();
-      });
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_server';
-
-    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-
-    await expect(Statsig.checkGate(user, gateName)).resolves.toStrictEqual(
-      true,
+    // @ts-ignore intentionally testing incorrect param type
+    expect(() => Statsig.getConfig({ userID: '123' }, false)).rejects.toEqual(
+      new Error('Lookup key must be a non-empty string'),
     );
-    expect(spy).toHaveBeenCalledTimes(0);
+    // @ts-ignore intentionally testing incorrect param type
+    expect(Statsig.getExperiment({ userID: '123' }, false)).rejects.toEqual(
+      new Error('Lookup key must be a non-empty string'),
+    );
+    expect(StatsigTestUtils.getLogger().queue).toHaveLength(0);
   });
 
-  test('Verify when Evaluator fails, checkGateWithoutServerFallback() returns default value and logs exposure with fallback_disabled ruleID', async () => {
-    expect.assertions(3);
+  test(
+    'Verify when Evaluator fails, checkGate() returns correct ' +
+      'value and does not log an exposure',
+    async () => {
+      expect.assertions(3);
 
-    await Statsig.initialize(secretKey);
-    jest
-      .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
-      .mockImplementation((user, gateName) => {
-        return ConfigEvaluation.fetchFromServer();
+      await Statsig.initialize(secretKey, { disableDiagnostics: true });
+      jest
+        .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
+        .mockImplementation((_user, _gateName) => {
+          return ConfigEvaluation.unsupported(-1, -2);
+        });
+      const user = {
+        userID: '123',
+        privateAttributes: { secret: 'do not log' },
+      };
+
+      const res = await Statsig.checkGate(user, 'gate_server');
+      expect(res).toStrictEqual(false);
+      expect(StatsigTestUtils.getLogger().queue).toHaveLength(1);
+      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+        eventName: 'statsig::gate_exposure',
+        metadata: {
+          configSyncTime: -1,
+          gate: 'gate_server',
+          gateValue: 'false',
+          initTime: -2,
+          reason: 'Unsupported',
+          ruleID: '',
+        },
       });
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_server';
+    },
+  );
 
-    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
+  test(
+    'Verify when Evaluator fails, checkGateWithoutServerFallback() ' +
+      'returns default value and logs exposure with fallback_disabled ruleID',
+    async () => {
+      expect.assertions(3);
 
-    expect(
-      Statsig.checkGateWithoutServerFallback(user, gateName),
-    ).toStrictEqual(false);
-    expect(spy).toHaveBeenCalledTimes(1);
+      await Statsig.initialize(secretKey, { disableDiagnostics: true });
+      jest
+        .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
+        .mockImplementation((_user, _gateName) => {
+          return ConfigEvaluation.unsupported(-1, -2);
+        });
+      let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      let gateName = 'gate_server';
 
-    const gateExposure = new LogEvent('statsig::gate_exposure');
-    gateExposure.setUser({
-      userID: '123',
-    });
-    gateExposure.setMetadata({
-      gate: gateName,
-      gateValue: String(false),
-      ruleID: 'fallback_disabled',
-    });
-    expect(spy).toHaveBeenCalledWith(gateExposure);
-  });
+      expect(
+        Statsig.checkGateWithoutServerFallback(user, gateName),
+      ).toStrictEqual(false);
+
+      expect(StatsigTestUtils.getLogger().queue).toHaveLength(1);
+      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+        eventName: 'statsig::gate_exposure',
+        metadata: {
+          configSyncTime: -1,
+          gate: 'gate_server',
+          gateValue: 'false',
+          initTime: -2,
+          reason: 'Unsupported',
+          ruleID: '',
+        },
+      });
+    },
+  );
 
   test('Verify Evaluator returns correct value for checkGate() and logs an exposure correctly', async () => {
     expect.assertions(3);
@@ -438,7 +453,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.fetchFromServer();
+          return ConfigEvaluation.unsupported(-1, -1);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '');
@@ -483,7 +498,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.fetchFromServer();
+          return ConfigEvaluation.unsupported(-1, -1);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '');
@@ -529,7 +544,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.fetchFromServer();
+          return ConfigEvaluation.unsupported(-1, -1);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '', []);
@@ -575,7 +590,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.fetchFromServer();
+          return ConfigEvaluation.unsupported(-1, -1);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '', []);
@@ -605,33 +620,41 @@ describe('Verify behavior of top level index functions', () => {
     expect(spy).toHaveBeenCalledWith(gateExposure);
   });
 
-  test('Verify when Evaluator fails to evaluate, getConfig() and getExperiment() return correct value and do not log exposures', async () => {
-    expect.assertions(5);
+  test(
+    'Verify when Evaluator fails to evaluate, getConfig() and getExperiment()' +
+      ' return correct value and logs unsupported',
+    async () => {
+      expect.assertions(3);
 
-    await Statsig.initialize(secretKey);
-    jest
-      .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
-      .mockImplementation(() => {
-        return ConfigEvaluation.fetchFromServer();
+      await Statsig.initialize(secretKey, { disableDiagnostics: true });
+
+      jest
+        .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
+        .mockImplementation(() => {
+          return ConfigEvaluation.unsupported(-1, -2);
+        });
+
+      let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      let configName = 'config_server';
+
+      let data = await Statsig.getConfig(user, configName);
+      expect(data.value).toEqual({});
+
+      data = await Statsig.getExperiment(user, configName);
+      expect(data.value).toEqual({});
+
+      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+        eventName: 'statsig::config_exposure',
+        metadata: expect.objectContaining({
+          config: 'config_server',
+          configSyncTime: -1,
+          initTime: -2,
+          reason: 'Unsupported',
+          ruleID: '',
+        }),
       });
-
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let configName = 'config_server';
-
-    const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-
-    await Statsig.getConfig(user, configName).then((data) => {
-      expect(data.getValue('number')).toStrictEqual(123);
-      expect(data.getValue('string')).toStrictEqual('123');
-    });
-
-    await Statsig.getExperiment(user, configName).then((data) => {
-      expect(data.getValue('number')).toStrictEqual(123);
-      expect(data.getValue('string')).toStrictEqual('123');
-    });
-
-    expect(spy).toHaveBeenCalledTimes(0);
-  });
+    },
+  );
 
   test('Verify when Evaluator evaluates successfully, getConfig() and getExperiment() return correct value and logs an exposure', async () => {
     expect.assertions(10);

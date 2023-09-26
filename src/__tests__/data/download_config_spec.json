@@ -1,7 +1,7 @@
 {
   "dynamic_configs": [
     {
-      "name": "test_config_fallback",
+      "name": "test_config_unsupported_condition",
       "type": "dynamic_config",
       "salt": "50ad5c60-9e7a-42ce-86c6-c49035185b14",
       "enabled": true,
@@ -13,7 +13,7 @@
       "rules": [
         {
           "name": "1kNmlB23wylPFZi1M0Divl",
-          "groupName": "fallback to server",
+          "groupName": "unsupported condition type",
           "passPercentage": 100,
           "conditions": [
             {
@@ -344,7 +344,7 @@
       "entity": "feature_gate"
     },
     {
-      "name": "fetch_from_server_fallback",
+      "name": "unsupported_condition_type",
       "type": "feature_gate",
       "salt": "47403b4e-7829-43d1-b1ac-3992a5c1b4ac",
       "enabled": true,
@@ -412,7 +412,7 @@
   "layers": {
     "statsig::sample_experiment_layer": ["sample_experiment"],
     "statsig::test_layer": ["test"],
-    "d_layer_delegate_to_fallback": ["test_config_fallback"]
+    "d_layer_delegate_to_fallback": ["test_config_unsupported_condition"]
   },
   "layer_configs": [
     {
@@ -598,7 +598,7 @@
           "returnValue": true,
           "id": "6N6Z8ODekNYZ7F8gFdoLP5",
           "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f",
-          "configDelegate": "test_config_fallback"
+          "configDelegate": "test_config_unsupported_condition"
         }
       ],
       "isDeviceBased": false,

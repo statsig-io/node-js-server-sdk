@@ -79,30 +79,13 @@ export const Statsig = {
    * @param {string} gateName - the name of the gate to check
    * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
-   * @throws Error if the gateName is not provided or not a non-empty string
    */
-  checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    return this._enforceServer().checkGate(user, gateName);
+  checkGateSync(user: StatsigUser, gateName: string): boolean {
+    return this._enforceServer().checkGateSync(user, gateName);
   },
 
-  /**
-   * Gets the boolean result of a gate, evaluated against the given user.
-   * An exposure event will automatically be logged for the gate.
-   * This is a synchronous version of checkGate, and will return false value if a condition
-   * needs to fallback to the server.
-   *
-   * @param {StatsigUser} user - the user to check this gate value for
-   * @param {string} gateName - the name of the gate to check
-   * @returns {boolean} - The value of the gate for the user.  Gates are off (return false) by default
-   * @throws Error if initialize() was not called first
-   * @throws Error if the gateName is not provided or not a non-empty string
-   */
-  checkGateWithoutServerFallback(user: StatsigUser, gateName: string): boolean {
-    return this._enforceServer().checkGateWithoutServerFallback(user, gateName);
-  },
-
-  getFeatureGate(user: StatsigUser, gateName: string): Promise<FeatureGate> {
-    return this._enforceServer().getFeatureGate(user, gateName);
+  getFeatureGateSync(user: StatsigUser, gateName: string): FeatureGate {
+    return this._enforceServer().getFeatureGateSync(user, gateName);
   },
 
   /**
@@ -113,23 +96,22 @@ export const Statsig = {
    * @param {string} gateName - the name of the gate to check
    * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
-   * @throws Error if the gateName is not provided or not a non-empty string
    */
-  checkGateWithExposureLoggingDisabled(
+  checkGateWithExposureLoggingDisabledSync(
     user: StatsigUser,
     gateName: string,
-  ): Promise<boolean> {
-    return this._enforceServer().checkGateWithExposureLoggingDisabled(
+  ): boolean {
+    return this._enforceServer().checkGateWithExposureLoggingDisabledSync(
       user,
       gateName,
     );
   },
 
-  getFeatureGateWithExposureLoggingDisabled(
+  getFeatureGateWithExposureLoggingDisabledSync(
     user: StatsigUser,
     gateName: string,
-  ): Promise<FeatureGate> {
-    return this._enforceServer().getFeatureGateWithExposureLoggingDisabled(
+  ): FeatureGate {
+    return this._enforceServer().getFeatureGateWithExposureLoggingDisabledSync(
       user,
       gateName,
     );
@@ -153,10 +135,9 @@ export const Statsig = {
    * @param {string} configName - the name of the dynamic config to get
    * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
-   * @throws Error if the configName is not provided or not a non-empty string
    */
-  getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig> {
-    return this._enforceServer().getConfig(user, configName);
+  getConfigSync(user: StatsigUser, configName: string): DynamicConfig {
+    return this._enforceServer().getConfigSync(user, configName);
   },
 
   /**
@@ -167,13 +148,12 @@ export const Statsig = {
    * @param {string} configName - the name of the dynamic config to get
    * @returns {Promise<DynamicConfig>} - the config for the user
    * @throws Error if initialize() was not called first
-   * @throws Error if the configName is not provided or not a non-empty string
    */
-  getConfigWithExposureLoggingDisabled(
+  getConfigWithExposureLoggingDisabledSync(
     user: StatsigUser,
     configName: string,
-  ): Promise<DynamicConfig> {
-    return this._enforceServer().getConfigWithExposureLoggingDisabled(
+  ): DynamicConfig {
+    return this._enforceServer().getConfigWithExposureLoggingDisabledSync(
       user,
       configName,
     );
@@ -197,13 +177,9 @@ export const Statsig = {
    * @param {string} experimentName - the name of the experiment to get
    * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
-   * @throws Error if the experimentName is not provided or not a non-empty string
    */
-  getExperiment(
-    user: StatsigUser,
-    experimentName: string,
-  ): Promise<DynamicConfig> {
-    return this._enforceServer().getExperiment(user, experimentName);
+  getExperimentSync(user: StatsigUser, experimentName: string): DynamicConfig {
+    return this._enforceServer().getExperimentSync(user, experimentName);
   },
 
   /**
@@ -214,13 +190,12 @@ export const Statsig = {
    * @param {string} experimentName - the name of the experiment to get
    * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
-   * @throws Error if the experimentName is not provided or not a non-empty string
    */
-  getExperimentWithExposureLoggingDisabled(
+  getExperimentWithExposureLoggingDisabledSync(
     user: StatsigUser,
     experimentName: string,
-  ): Promise<DynamicConfig> {
-    return this._enforceServer().getExperimentWithExposureLoggingDisabled(
+  ): DynamicConfig {
+    return this._enforceServer().getExperimentWithExposureLoggingDisabledSync(
       user,
       experimentName,
     );
@@ -244,10 +219,9 @@ export const Statsig = {
    * @param {string} layerName - the name of the layer to get
    * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
-   * @throws Error if the layerName is not provided or not a non-empty string
    */
-  getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    return this._enforceServer().getLayer(user, layerName);
+  getLayerSync(user: StatsigUser, layerName: string): Layer {
+    return this._enforceServer().getLayerSync(user, layerName);
   },
 
   /**
@@ -260,11 +234,11 @@ export const Statsig = {
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
    */
-  getLayerWithExposureLoggingDisabled(
+  getLayerWithExposureLoggingDisabledSync(
     user: StatsigUser,
     layerName: string,
-  ): Promise<Layer> {
-    return this._enforceServer().getLayerWithExposureLoggingDisabled(
+  ): Layer {
+    return this._enforceServer().getLayerWithExposureLoggingDisabledSync(
       user,
       layerName,
     );
@@ -403,6 +377,140 @@ export const Statsig = {
    */
   getFeatureGateList(): string[] {
     return this._enforceServer().getFeatureGateList();
+  },
+
+  //#region Deprecated Async Methods
+
+  /**
+   * @deprecated Please use checkGateSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
+    return this._enforceServer().checkGate(user, gateName);
+  },
+
+  /**
+   * @deprecated Please use getFeatureGateSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getFeatureGate(user: StatsigUser, gateName: string): Promise<FeatureGate> {
+    return this._enforceServer().getFeatureGate(user, gateName);
+  },
+
+  /**
+   * @deprecated Please use checkGateWithExposureLoggingDisabledSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  async checkGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<boolean> {
+    return this._enforceServer().checkGateWithExposureLoggingDisabled(
+      user,
+      gateName,
+    );
+  },
+
+  /**
+   * @deprecated Please use getFeatureGateWithExposureLoggingDisabledSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getFeatureGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): Promise<FeatureGate> {
+    return this._enforceServer().getFeatureGateWithExposureLoggingDisabled(
+      user,
+      gateName,
+    );
+  },
+
+  /**
+   * @deprecated Please use getConfigSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getConfig(user: StatsigUser, configName: string): Promise<DynamicConfig> {
+    return this._enforceServer().getConfig(user, configName);
+  },
+
+  /**
+   * @deprecated Please use getConfigWithExposureLoggingDisabledSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getConfigWithExposureLoggingDisabled(
+    user: StatsigUser,
+    configName: string,
+  ): Promise<DynamicConfig> {
+    return this._enforceServer().getConfigWithExposureLoggingDisabled(
+      user,
+      configName,
+    );
+  },
+
+  /**
+   * @deprecated Please use getExperimentSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getExperiment(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig> {
+    return this._enforceServer().getConfig(user, experimentName);
+  },
+
+  /**
+   * @deprecated Please use getExperimentWithExposureLoggingDisabledSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getExperimentWithExposureLoggingDisabled(
+    user: StatsigUser,
+    experimentName: string,
+  ): Promise<DynamicConfig> {
+    return this._enforceServer().getConfigWithExposureLoggingDisabled(
+      user,
+      experimentName,
+    );
+  },
+
+  /**
+   * @deprecated Please use getLayerSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
+    return this._enforceServer().getLayer(user, layerName);
+  },
+
+  /**
+   * @deprecated Please use getLayerWithExposureLoggingDisabledSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  getLayerWithExposureLoggingDisabled(
+    user: StatsigUser,
+    layerName: string,
+  ): Promise<Layer> {
+    return this._enforceServer().getLayerWithExposureLoggingDisabled(
+      user,
+      layerName,
+    );
+  },
+
+  //#endregion
+
+  /**
+   * Gets the boolean result of a gate, evaluated against the given user.
+   * An exposure event will automatically be logged for the gate.
+   * This is a synchronous version of checkGate, and will return false value if a condition
+   * needs to fallback to the server.
+   *
+   * @param {StatsigUser} user - the user to check this gate value for
+   * @param {string} gateName - the name of the gate to check
+   * @returns {boolean} - The value of the gate for the user.  Gates are off (return false) by default
+   * @deprecated Please use checkGateSync instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   * @throws Error if initialize() was not called first
+   */
+  checkGateWithoutServerFallback(user: StatsigUser, gateName: string): boolean {
+    return this._enforceServer().checkGateSync(user, gateName);
   },
 
   _enforceServer(): StatsigServer {
