@@ -56,7 +56,7 @@ describe('Test condition evaluation', () => {
 
   // prettier-ignore
   const params = [
-    //type                operator          targetValue        field             user  result   additionalValues   fetchFromServer
+    //type                operator          targetValue        field             user  result   additionalValues   unsupported
     ['public', null, null, null, user, true],
     ['public', 'any', false, null, user, true],
     ['fail_gate', null, 'gate_pass', null, user, false],
@@ -275,7 +275,7 @@ describe('Test condition evaluation', () => {
       }
 
       if (gateName === 'gate_server') {
-        return ConfigEvaluation.fetchFromServer();
+        return ConfigEvaluation.unsupported(-1, -1);
       }
 
       return new ConfigEvaluation(false, 'default');
@@ -313,7 +313,7 @@ describe('Test condition evaluation', () => {
         user,
         evalPasses,
         additionalValues,
-        fetchFromServer,
+        unsupported,
       ]) => {
         const json = {
           type,
@@ -332,7 +332,7 @@ describe('Test condition evaluation', () => {
         const result = mockedEvaluator._evalCondition(user, condition);
         if (
           result.passes !== evalPasses ||
-          result.fetchFromServer !== fetchFromServer
+          result.unsupported !== unsupported
         ) {
           console.log(
             `Evaluation test failed for condition ${JSON.stringify(

@@ -1,6 +1,3 @@
-import { ActionType, MarkerMetadata, StepType, KeyType } from '../Diagnostics';
-import Evaluator from '../Evaluator';
-import LogEventProcessor from '../LogEventProcessor';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 
 export default abstract class StatsigTestUtils {
@@ -15,10 +12,7 @@ export default abstract class StatsigTestUtils {
   }
 }
 
-export function assertMarkerEqual(
-  marker: any,
-  expected: any
-) {
+export function assertMarkerEqual(marker: any, expected: any) {
   expect(marker).toStrictEqual({
     ...expected,
     timestamp: expect.any(Number),

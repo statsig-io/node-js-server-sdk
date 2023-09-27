@@ -35,33 +35,7 @@ fetch.mockImplementation((url, params) => {
       json: () => Promise.resolve({}),
     });
   }
-  if (url.includes('check_gate')) {
-    return Promise.resolve({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          name: 'gate_name',
-          value: true,
-          rule_id: 'fallback_from_server',
-        }),
-    });
-  }
-  if (url.includes('get_config')) {
-    return Promise.resolve({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          name: 'config_name',
-          value: {
-            newParam: 'I come from a land down under',
-            walk: 10000,
-            go: true,
-          },
-          rule_id: 'fallback_from_server',
-          group_name: 'fallback_from_server_group',
-        }),
-    });
-  }
+
   return Promise.reject();
 });
 
@@ -113,15 +87,14 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(failingEmail).toEqual(false);
 
-    // fetch from server does not log an exposure
-    const fetchFromServer = await statsig.checkGate(
+    const unsupportedGate = await statsig.checkGate(
       statsigUser,
-      'fetch_from_server_fallback',
+      'unsupported_condition_type',
     );
-    expect(fetchFromServer).toEqual(true);
+    expect(unsupportedGate).toEqual(false);
 
     statsig.shutdown();
-    expect(postedLogs.events.length).toEqual(3);
+    expect(postedLogs.events.length).toEqual(4);
     expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[0].metadata['gate']).toEqual('always_on_gate');
     expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
@@ -180,12 +153,11 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(failingEmail).toEqual(false);
 
-    // fetch from server logs an exposure with checkGateWithoutServerFallback
-    const fetchFromServer = statsig.checkGateWithoutServerFallback(
+    const unsupportedGate = statsig.checkGateWithoutServerFallback(
       statsigUser,
-      'fetch_from_server_fallback',
+      'unsupported_condition_type',
     );
-    expect(fetchFromServer).toEqual(false);
+    expect(unsupportedGate).toEqual(false);
 
     statsig.shutdown();
     expect(postedLogs.events.length).toEqual(4);
@@ -214,12 +186,11 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     expect(postedLogs.events[3].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[3].metadata['gate']).toEqual(
-      'fetch_from_server_fallback',
+      'unsupported_condition_type',
     );
     expect(postedLogs.events[3].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[3].metadata['ruleID']).toEqual(
-      'fallback_disabled',
-    );
+    expect(postedLogs.events[3].metadata['ruleID']).toEqual('');
+    expect(postedLogs.events[3].metadata['reason']).toEqual('Unsupported');
   });
 
   test('Verify getConfig and exposure logs', async () => {
@@ -236,16 +207,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.get('string', '')).toEqual('default');
     expect(config.get('boolean', false)).toEqual(true);
 
-    // fetch from server does not log an exposure
-    config = await statsig.getConfig(statsigUser, 'test_config_fallback');
-    expect(config.get('newParam', 'default')).toEqual(
-      'I come from a land down under',
+    // unsupported returns no values
+    config = await statsig.getConfig(
+      statsigUser,
+      'test_config_unsupported_condition',
     );
-    expect(config.get('walk', 10)).toEqual(10000);
-    expect(config.get('go', false)).toEqual(true);
+    expect(config.value).toEqual({});
 
     statsig.shutdown();
-    expect(postedLogs.events.length).toEqual(2);
+    expect(postedLogs.events.length).toEqual(3);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual('test_config');
     expect(postedLogs.events[0].metadata['ruleID']).toEqual(
@@ -255,6 +225,13 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(postedLogs.events[1].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[1].metadata['config']).toEqual('test_config');
     expect(postedLogs.events[1].metadata['ruleID']).toEqual('default');
+
+    expect(postedLogs.events[2].eventName).toEqual('statsig::config_exposure');
+    expect(postedLogs.events[2].metadata['config']).toEqual(
+      'test_config_unsupported_condition',
+    );
+    expect(postedLogs.events[2].metadata['ruleID']).toEqual('');
+    expect(postedLogs.events[2].metadata['reason']).toEqual('Unsupported');
   });
 
   test('Verify getExperiment and exposure logs', async () => {
@@ -292,18 +269,14 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify getLayer and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-    // should delegate to a bad config, which fetches from the server
+    // should delegate to a unsupported config, which returns no values
     let layer = await statsig.getLayer(
       statsigUser,
       'd_layer_delegate_to_fallback',
     );
-    expect(layer.get('newParam', 'default')).toEqual(
-      'I come from a land down under',
-    );
-    expect(layer.get('walk', 10)).toEqual(10000);
-    expect(layer.get('go', false)).toEqual(true);
-    expect(layer.getRuleID()).toEqual('fallback_from_server');
-    expect(layer.getGroupName()).toEqual('fallback_from_server_group');
+    expect(layer.getValue('b_param', 'err')).toBe('err');
+    expect(layer.getRuleID()).toEqual('');
+    expect(layer.getGroupName()).toBeNull();
 
     layer = await statsig.getLayer(
       randomUser,

@@ -117,7 +117,7 @@ export default class Evaluator {
       );
     }
 
-    return this._evalConfig(user, this.store.getGate(gateName));
+    return this._evalSpec(user, this.store.getGate(gateName));
   }
 
   public getConfig(user: StatsigUser, configName: string): ConfigEvaluation {
@@ -138,7 +138,7 @@ export default class Evaluator {
       );
     }
 
-    return this._evalConfig(user, this.store.getConfig(configName));
+    return this._evalSpec(user, this.store.getConfig(configName));
   }
 
   public getLayer(user: StatsigUser, layerName: string): ConfigEvaluation {
@@ -159,7 +159,7 @@ export default class Evaluator {
       );
     }
 
-    return this._evalConfig(user, this.store.getLayer(layerName));
+    return this._evalSpec(user, this.store.getLayer(layerName));
   }
 
   public getClientInitializeResponse(
@@ -194,7 +194,7 @@ export default class Evaluator {
         const res = this._eval(user, spec);
         return {
           name: getHashedName(gate),
-          value: res.fetch_from_server ? false : res.value,
+          value: res.unsupported ? false : res.value,
           rule_id: res.rule_id,
           secondary_exposures: this._cleanExposures(res.secondary_exposures),
         };
@@ -387,7 +387,7 @@ export default class Evaluator {
   ): InitializeResponse {
     const output: InitializeResponse = {
       name: getHashedName(spec.name),
-      value: res.fetch_from_server ? {} : res.json_value,
+      value: res.unsupported ? {} : res.json_value,
       group: res.rule_id,
       rule_id: res.rule_id,
       is_device_based:
@@ -422,7 +422,7 @@ export default class Evaluator {
     this.store.shutdown();
   }
 
-  _evalConfig(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
+  _evalSpec(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
       return new ConfigEvaluation(false, '', null).withEvaluationDetails(
         EvaluationDetails.make(
@@ -434,6 +434,10 @@ export default class Evaluator {
     }
 
     const evaulation = this._eval(user, config);
+    if (evaulation.evaluation_details) {
+      return evaulation;
+    }
+
     return evaulation.withEvaluationDetails(
       EvaluationDetails.make(
         this.store.getLastUpdateTime(),
@@ -458,8 +462,11 @@ export default class Evaluator {
     for (let i = 0; i < config.rules.length; i++) {
       const rule = config.rules[i];
       const ruleResult = this._evalRule(user, rule);
-      if (ruleResult.fetch_from_server) {
-        return ConfigEvaluation.fetchFromServer();
+      if (ruleResult.unsupported) {
+        return ConfigEvaluation.unsupported(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+        );
       }
 
       secondary_exposures = secondary_exposures.concat(
@@ -556,8 +563,11 @@ export default class Evaluator {
 
     for (const condition of rule.conditions) {
       const result = this._evalCondition(user, condition);
-      if (result.fetchFromServer) {
-        return ConfigEvaluation.fetchFromServer();
+      if (result.unsupported) {
+        return ConfigEvaluation.unsupported(
+          this.store.getLastUpdateTime(),
+          this.store.getInitialUpdateTime(),
+        );
       }
 
       if (!result.passes) {
@@ -585,7 +595,7 @@ export default class Evaluator {
     condition: ConfigCondition,
   ): {
     passes: boolean;
-    fetchFromServer?: boolean;
+    unsupported?: boolean;
     exposures?: Record<string, string>[];
   } {
     let value = null;
@@ -598,8 +608,8 @@ export default class Evaluator {
       case 'fail_gate':
       case 'pass_gate': {
         const gateResult = this.checkGate(user, target as string);
-        if (gateResult?.fetch_from_server) {
-          return { passes: false, fetchFromServer: true };
+        if (gateResult?.unsupported) {
+          return { passes: false, unsupported: true };
         }
         value = gateResult?.value;
 
@@ -619,15 +629,15 @@ export default class Evaluator {
       case 'multi_pass_gate':
       case 'multi_fail_gate': {
         if (!Array.isArray(target)) {
-          return { passes: false, fetchFromServer: true };
+          return { passes: false, unsupported: true };
         }
         const gateNames = target as string[];
         let value = false;
         let exposures: Record<string, string>[] = [];
         for (const gateName of gateNames) {
           const gateResult = this.checkGate(user, gateName as string);
-          if (gateResult?.fetch_from_server) {
-            return { passes: false, fetchFromServer: true };
+          if (gateResult?.unsupported) {
+            return { passes: false, unsupported: true };
           }
           const resValue =
             condition.type === 'multi_pass_gate'
@@ -679,7 +689,7 @@ export default class Evaluator {
         value = this._getUnitID(user, idType);
         break;
       default:
-        return { passes: false, fetchFromServer: true };
+        return { passes: false, unsupported: true };
     }
 
     const op = condition.operator?.toLowerCase();
@@ -850,7 +860,7 @@ export default class Evaluator {
         break;
       }
       default:
-        return { passes: false, fetchFromServer: true };
+        return { passes: false, unsupported: true };
     }
     return { passes: evalResult };
   }

@@ -1,4 +1,3 @@
-import { MessageChannel } from 'worker_threads';
 import {
   StatsigInvalidArgumentError,
   StatsigTooManyRequestsError,
@@ -52,8 +51,11 @@ export default class ErrorBoundary {
     ) {
       throw error; // Don't catch these
     }
-    
-    this.outputLogger.error('[Statsig] An unexpected exception occurred.', error as Error);
+
+    this.outputLogger.error(
+      '[Statsig] An unexpected exception occurred.',
+      error as Error,
+    );
 
     this.logError(error);
 
@@ -89,7 +91,7 @@ export default class ErrorBoundary {
           'Content-Type': 'application/json',
         },
         body,
-      }).catch(() => { });
+      }).catch(() => {});
     } catch (_error) {
       /* noop */
     }

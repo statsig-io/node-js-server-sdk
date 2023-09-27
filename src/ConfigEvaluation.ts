@@ -7,7 +7,7 @@ export default class ConfigEvaluation {
   public json_value: Record<string, unknown>;
   public explicit_parameters: string[] | null;
   public config_delegate: string | null;
-  public fetch_from_server: boolean;
+  public unsupported: boolean;
   public undelegated_secondary_exposures: Record<string, string>[] | undefined;
   public is_experiment_group: boolean;
   public group_name: string | null;
@@ -21,7 +21,7 @@ export default class ConfigEvaluation {
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,
-    fetch_from_server = false,
+    unsupported = false,
   ) {
     this.value = value;
     this.rule_id = rule_id;
@@ -34,7 +34,7 @@ export default class ConfigEvaluation {
     this.secondary_exposures = secondary_exposures;
     this.undelegated_secondary_exposures = secondary_exposures;
     this.config_delegate = config_delegate;
-    this.fetch_from_server = fetch_from_server;
+    this.unsupported = unsupported;
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
     this.group_name = group_name;
@@ -51,7 +51,7 @@ export default class ConfigEvaluation {
     this.is_experiment_group = isExperimentGroup;
   }
 
-  public static fetchFromServer() {
+  public static unsupported(configSyncTime: number, initialUpdateTime: number) {
     return new ConfigEvaluation(
       false,
       '',
@@ -61,6 +61,8 @@ export default class ConfigEvaluation {
       undefined,
       undefined,
       true,
+    ).withEvaluationDetails(
+      EvaluationDetails.unsupported(configSyncTime, initialUpdateTime),
     );
   }
 }
