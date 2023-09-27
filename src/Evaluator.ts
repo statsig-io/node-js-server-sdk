@@ -3,7 +3,7 @@ import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import { EvaluationDetails } from './EvaluationDetails';
 import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
-import { StatsigUser } from './StatsigUser';
+import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -285,6 +285,7 @@ export default class Evaluator {
       generator: 'statsig-node-sdk',
       time: 0, // set the time to 0 so this doesnt interfere with polling,
       evaluated_keys: evaluatedKeys,
+      user_hash: getUserHashWithoutStableID(user),
     };
   }
 

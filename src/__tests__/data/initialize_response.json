@@ -117,5 +117,7 @@
   "generator": "statsig-node-sdk",
   "evaluated_keys": {
     "userID": "123"
-  }
+  },
+  "user_hash": "1800907990"
 }
+

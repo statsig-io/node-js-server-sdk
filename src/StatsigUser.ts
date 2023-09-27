@@ -1,4 +1,5 @@
 import { StatsigEnvironment } from './StatsigOptions';
+import { djb2HashForObject } from './utils/Hashing';
 
 /**
  * An object of properties relating to the current user
@@ -26,3 +27,10 @@ export type StatsigUser =
     > | null;
     statsigEnvironment?: StatsigEnvironment;
   };
+
+export function getUserHashWithoutStableID(user: StatsigUser): string {
+  const { customIDs, ...rest } = user;
+  const copyCustomIDs = { ...customIDs };
+  delete copyCustomIDs.stableID;
+  return djb2HashForObject({ ...rest, customIDs: copyCustomIDs });
+}
