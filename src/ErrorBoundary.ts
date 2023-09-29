@@ -1,5 +1,6 @@
 import {
   StatsigInvalidArgumentError,
+  StatsigLocalModeNetworkError,
   StatsigTooManyRequestsError,
   StatsigUninitializedError,
 } from './Errors';
@@ -13,7 +14,6 @@ export default class ErrorBoundary {
   private sdkKey: string;
   private statsigMetadata = getStatsigMetadata();
   private seen = new Set<string>();
-  private outputLogger = OutputLogger.getLogger();
 
   constructor(sdkKey: string) {
     this.sdkKey = sdkKey;
@@ -25,7 +25,7 @@ export default class ErrorBoundary {
     });
   }
 
-  capture<T>(task: () => T, recover: () => T): T {
+  capture<T>(task: () => T, recover: (e: unknown) => T): T {
     try {
       const result = task();
       if (result instanceof Promise) {
@@ -43,7 +43,7 @@ export default class ErrorBoundary {
     this.sdkKey = sdkKey;
   }
 
-  private onCaught<T>(error: unknown, recover: () => T): T {
+  private onCaught<T>(error: unknown, recover: (e: unknown) => T): T {
     if (
       error instanceof StatsigUninitializedError ||
       error instanceof StatsigInvalidArgumentError ||
@@ -51,15 +51,18 @@ export default class ErrorBoundary {
     ) {
       throw error; // Don't catch these
     }
+    if (error instanceof StatsigLocalModeNetworkError) {
+      return recover(error);
+    }
 
-    this.outputLogger.error(
+    OutputLogger.error(
       '[Statsig] An unexpected exception occurred.',
       error as Error,
     );
 
     this.logError(error);
 
-    return recover();
+    return recover(error);
   }
 
   public logError(error: unknown, key?: string) {

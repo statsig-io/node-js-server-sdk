@@ -211,7 +211,7 @@ describe('ConfigSyncDiagnostics', () => {
     });
 
     setupFailureCase();
-    await StatsigTestUtils.getEvaluator()['store']._syncValues();
+    await StatsigTestUtils.getEvaluator()['store']._syncConfigSpecs();
 
     Statsig.shutdown();
 
@@ -410,7 +410,7 @@ const statsig = Statsig.default;
 async function runSync(type: 'getIDList' | 'getConfigSpecs') {
   const evaluator = StatsigTestUtils.getEvaluator();
   if (type === 'getConfigSpecs') {
-    await evaluator['store']._syncValues();
+    await evaluator['store']._syncConfigSpecs();
   }
   if (type === 'getIDList') {
     await evaluator['store']._syncIdLists();

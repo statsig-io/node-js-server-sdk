@@ -10,6 +10,7 @@ import StatsigFetcher from './utils/StatsigFetcher';
 
 import shajs from 'sha.js';
 import ip3country from 'ip3country';
+import OutputLogger from './OutputLogger';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -424,6 +425,7 @@ export default class Evaluator {
 
   _evalSpec(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
     if (!config) {
+      OutputLogger.debug('statsigSDK> Evaluating a non-existent gate/config');
       return new ConfigEvaluation(false, '', null).withEvaluationDetails(
         EvaluationDetails.make(
           this.store.getLastUpdateTime(),

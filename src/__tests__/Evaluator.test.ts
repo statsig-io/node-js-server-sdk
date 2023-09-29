@@ -543,11 +543,6 @@ fetch.mockImplementation((url) => {
 describe('testing checkGate and getConfig', () => {
   let evaluator: Evaluator;
   const options = OptionsWithDefaults({});
-  const logger = new LogEventProcessor(
-    new StatsigFetcher('secret-asdf1234', options),
-    options,
-  );
-  const diagnostics = new Diagnostics({ logger });
 
   beforeEach(() => {
     jest.resetModules();
@@ -557,7 +552,6 @@ describe('testing checkGate and getConfig', () => {
     evaluator = new Evaluator(
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
-      diagnostics,
     );
 
     const now = Date.now();

@@ -29,3 +29,19 @@ export class StatsigLocalModeNetworkError extends Error {
     Object.setPrototypeOf(this, StatsigLocalModeNetworkError.prototype);
   }
 }
+
+export class StatsigInitializeFromNetworkError extends Error {
+  constructor() {
+    super('statsigSDK::initialize> Failed to initialize from the network. See https://docs.statsig.com/messages/serverSDKConnection for more information');
+
+    Object.setPrototypeOf(this, StatsigInitializeFromNetworkError.prototype);
+  }
+}
+
+export class StatsigInvalidBootstrapValuesError extends Error {
+  constructor() {
+    super('statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.');
+
+    Object.setPrototypeOf(this, StatsigInvalidBootstrapValuesError.prototype);
+  }
+}

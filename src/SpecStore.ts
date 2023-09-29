@@ -1,17 +1,14 @@
 import { ConfigSpec } from './ConfigSpec';
-import Diagnostics, {
-  ContextType,
-  Marker,
-  MAX_SAMPLING_RATE,
-} from './Diagnostics';
-import { StatsigLocalModeNetworkError } from './Errors';
+import Diagnostics, { ContextType, MAX_SAMPLING_RATE } from './Diagnostics';
+import {
+  StatsigInitializeFromNetworkError,
+  StatsigInvalidBootstrapValuesError,
+  StatsigLocalModeNetworkError,
+} from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
-import {
-  ExplicitStatsigOptions,
-  InitStrategy,
-} from './StatsigOptions';
+import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
@@ -39,7 +36,6 @@ export type SDKConstants = DiagnosticsSamplingRate;
 
 export default class SpecStore {
   private initReason: EvaluationReason;
-
   private api: string;
   private apiForDownloadConfigSpecs: string | null;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
@@ -58,20 +54,15 @@ export default class SpecStore {
   private syncFailureCount: number = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
-  private localMode: boolean;
   private samplingRates: SDKConstants = {
     dcs: 0,
     log: 0,
     idlist: 0,
     initialize: MAX_SAMPLING_RATE,
   };
-  private outputLogger = OutputLogger.getLogger();
   private clientSDKKeyToAppMap: Record<string, string> = {};
 
-  public constructor(
-    fetcher: StatsigFetcher,
-    options: ExplicitStatsigOptions,
-  ) {
+  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
     this.api = options.api;
     this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
@@ -94,7 +85,6 @@ export default class SpecStore {
     this.initReason = 'Uninitialized';
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
-    this.localMode = options.localMode;
     this.clientSDKKeyToAppMap = {};
   }
 
@@ -148,48 +138,43 @@ export default class SpecStore {
 
   public async init(): Promise<void> {
     var specsJSON = null;
-    if (this.bootstrapValues != null) {
-      if (this.dataAdapter != null) {
-        this.outputLogger.error(
+
+    if (this.dataAdapter) {
+      if (this.bootstrapValues != null) {
+        OutputLogger.info(
           'statsigSDK::initialize> Conflict between bootstrap and adapter. Defaulting to adapter.',
         );
-      } else {
-        try {
-          Diagnostics.mark.bootstrap.process.start({});
-          specsJSON = JSON.parse(this.bootstrapValues);
-          if (this._process(specsJSON)) {
-            this.initReason = 'Bootstrap';
-          }
-          this.setInitialUpdateTime();
-        } catch (e) {
-          this.outputLogger.error(
-            'statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.',
-          );
+      }
+      await this.dataAdapter.initialize();
+      await this._fetchConfigSpecsFromAdapter();
+    }
+
+    if (this.initReason === 'Uninitialized' && this.bootstrapValues != null) {
+      try {
+        Diagnostics.mark.bootstrap.process.start({});
+        specsJSON = JSON.parse(this.bootstrapValues);
+        this._process(specsJSON);
+        if (this.lastUpdateTime !== 0) {
+          this.initReason = 'Bootstrap';
         }
+      } catch (e) {
+        OutputLogger.error(new StatsigInvalidBootstrapValuesError());
+      }
 
-        Diagnostics.mark.bootstrap.process.end({
-          success: this.initReason === 'Bootstrap',
-        });
+      Diagnostics.mark.bootstrap.process.end({
+        success: this.initReason === 'Bootstrap',
+      });
+    }
+
+    if (this.initReason === 'Uninitialized') {
+      const { failed } = await this._fetchConfigSpecsFromServer();
+      if (failed) {
+        OutputLogger.error(new StatsigInitializeFromNetworkError());
       }
     }
 
-    const adapter = this.dataAdapter;
-    if (adapter) {
-      await adapter.initialize();
-    }
+    this.setInitialUpdateTime();
 
-    // If the provided bootstrapValues can be used to bootstrap the SDK rulesets, then we don't
-    // need to immediately fetch the rulesets from the server.
-    if (this.initReason !== 'Bootstrap') {
-      if (adapter) {
-        await this._fetchConfigSpecsFromAdapter();
-      }
-      if (this.lastUpdateTime === 0) {
-        await this._syncValues(true);
-      }
-
-      this.setInitialUpdateTime();
-    }
     if (this.initStrategyForIDLists === 'lazy') {
       setTimeout(async () => {
         await this._initIDLists();
@@ -225,15 +210,19 @@ export default class SpecStore {
     let message = '';
     if (syncTimerInactive) {
       this.clearSyncTimer();
-      message = message.concat(`Force reset sync timer. Last update time: ${
-        this.syncTimerLastActiveTime
-      }, now: ${Date.now()}`);
+      message = message.concat(
+        `Force reset sync timer. Last update time: ${
+          this.syncTimerLastActiveTime
+        }, now: ${Date.now()}`,
+      );
     }
     if (idListsSyncTimerInactive) {
       this.clearIdListsSyncTimer();
-      message = message.concat(`Force reset id list sync timer. Last update time: ${
-        this.idListsSyncTimerLastActiveTime
-      }, now: ${Date.now()}`);
+      message = message.concat(
+        `Force reset id list sync timer. Last update time: ${
+          this.idListsSyncTimerLastActiveTime
+        }, now: ${Date.now()}`,
+      );
     }
     this.pollForUpdates();
     return new Error(message);
@@ -243,49 +232,67 @@ export default class SpecStore {
     return this.lastUpdateTime !== 0;
   }
 
-  private async _fetchConfigSpecsFromServer(): Promise<void> {
-    if(this.localMode) {
-      return;
-    }
-    let response: Response | undefined = undefined;
-    const url =
-      (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
-    response = await this.fetcher.post(url, {
-      statsigMetadata: getStatsigMetadata(),
-      sinceTime: this.lastUpdateTime,
-    });
+  private async _fetchConfigSpecsFromServer(): Promise<{
+    synced: boolean;
+    failed: boolean;
+  }> {
+    try {
+      let response: Response | undefined = undefined;
+      const url =
+        (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
+      response = await this.fetcher.post(url, {
+        statsigMetadata: getStatsigMetadata(),
+        sinceTime: this.lastUpdateTime,
+      });
 
-    Diagnostics.mark.downloadConfigSpecs.process.start({});
-    const specsString = await response.text();
-    const processResult = this._process(JSON.parse(specsString));
-    if (!processResult) {
-      return;
+      Diagnostics.mark.downloadConfigSpecs.process.start({});
+      const specsString = await response.text();
+      if (!this._process(JSON.parse(specsString))) {
+        return { synced: false, failed: true };
+      }
+      this.initReason = 'Network';
+      if (
+        this.rulesUpdatedCallback != null &&
+        typeof this.rulesUpdatedCallback === 'function'
+      ) {
+        this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
+      }
+      this._saveConfigSpecsToAdapter(specsString);
+      Diagnostics.mark.downloadConfigSpecs.process.end({
+        success: this.initReason === 'Network',
+      });
+      return { synced: true, failed: false };
+    } catch (e) {
+      if (e instanceof StatsigLocalModeNetworkError) {
+        return { synced: false, failed: false };
+      }
+      OutputLogger.warn(e as Error);
+      return { synced: false, failed: true };
     }
-    this.initReason = 'Network';
-    if (
-      this.rulesUpdatedCallback != null &&
-      typeof this.rulesUpdatedCallback === 'function'
-    ) {
-      this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
-    }
-    this._saveConfigSpecsToAdapter(specsString);
-    Diagnostics.mark.downloadConfigSpecs.process.end({
-      success: this.initReason === 'Network',
-    });
   }
 
-  private async _fetchConfigSpecsFromAdapter(): Promise<void> {
-    if (!this.dataAdapter) {
-      return;
-    }
-    const { result, error, time } = await this.dataAdapter.get(
-      DataAdapterKey.Rulesets,
-    );
-    if (result && !error) {
-      const configSpecs = JSON.parse(result);
-      if (this._process(configSpecs)) {
-        this.initReason = 'DataAdapter';
+  private async _fetchConfigSpecsFromAdapter(): Promise<{
+    synced: boolean;
+    failed: boolean;
+  }> {
+    try {
+      if (!this.dataAdapter) {
+        return { synced: false, failed: false };
       }
+      const { result, error } = await this.dataAdapter.get(
+        DataAdapterKey.Rulesets,
+      );
+      if (result && !error) {
+        const configSpecs = JSON.parse(result);
+        if (this._process(configSpecs)) {
+          this.initReason = 'DataAdapter';
+          return { synced: true, failed: false };
+        }
+      }
+      return { synced: false, failed: true };
+    } catch (e) {
+      OutputLogger.warn(e as Error);
+      return { synced: false, failed: true };
     }
   }
 
@@ -305,7 +312,7 @@ export default class SpecStore {
       this.syncTimerLastActiveTime = Date.now();
       this.syncTimer = poll(async () => {
         this.syncTimerLastActiveTime = Date.now();
-        await this._syncValues();
+        await this._syncConfigSpecs();
       }, this.syncInterval);
     }
 
@@ -322,7 +329,7 @@ export default class SpecStore {
     context: ContextType,
     type: 'id_list' | 'config_spec',
   ) {
-    if(!this.initialized) {
+    if (!this.initialized) {
       return;
     }
     switch (context) {
@@ -341,43 +348,30 @@ export default class SpecStore {
     }
   }
 
-  private async _syncValues(isColdStart: boolean = false): Promise<void> {
+  private async _syncConfigSpecs(): Promise<void> {
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
       adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
 
-    try {
-      if (shouldSyncFromAdapter) {
-        await this._fetchConfigSpecsFromAdapter();
-      } else {
-        await this._fetchConfigSpecsFromServer();
-      }
+    const { synced, failed } = shouldSyncFromAdapter
+      ? await this._fetchConfigSpecsFromAdapter()
+      : await this._fetchConfigSpecsFromServer();
+    if (synced) {
       this.syncFailureCount = 0;
-    } catch (e) {
+    } else if (failed) {
       this.syncFailureCount++;
-      if (e instanceof StatsigLocalModeNetworkError) {
-        return;
-      }
-      if (isColdStart) {
-        this.outputLogger.error(
-          'statsigSDK::initialize> Failed to initialize from the network.  See https://docs.statsig.com/messages/serverSDKConnection for more information',
-        );
-      } else if (
-        this.syncFailureCount * this.syncInterval >
-        SYNC_OUTDATED_MAX
-      ) {
-        this.outputLogger.warn(
+      if (this.syncFailureCount * this.syncInterval > SYNC_OUTDATED_MAX) {
+        OutputLogger.warn(
           `statsigSDK::sync> Syncing the server SDK with ${
             shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
           } has failed for  ${
             this.syncFailureCount * this.syncInterval
-          }ms.  Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync.  See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+          }ms. Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
         );
         this.syncFailureCount = 0;
       }
-    } finally {
-      this.logDiagnostics('config_sync', 'config_spec');
     }
+    this.logDiagnostics('config_sync', 'config_spec');
   }
 
   private async _syncIdLists(): Promise<void> {
@@ -427,7 +421,7 @@ export default class SpecStore {
   // returns a boolean indicating whether specsJSON has was successfully parsed
   private _process(specsJSON: Record<string, unknown>): boolean {
     if (!specsJSON?.has_updates) {
-      return false;
+      return true;
     }
 
     const updatedGates: Record<string, ConfigSpec> = {};
@@ -549,19 +543,18 @@ export default class SpecStore {
   }
 
   private async syncIdListsFromNetwork(): Promise<void> {
-    if(this.localMode) {
-      return;
-    }
-
-    let response = null;
+    let response: Response | null = null;
     try {
       response = await this.fetcher.post(this.api + '/get_id_lists', {
         statsigMetadata: getStatsigMetadata(),
       });
     } catch (e) {
       if (!(e instanceof StatsigLocalModeNetworkError)) {
-        this.outputLogger.warn(e as Error);
+        OutputLogger.warn(e as Error);
       }
+    }
+
+    if (!response) {
       return;
     }
 
@@ -625,7 +618,7 @@ export default class SpecStore {
         );
       }
     } catch (e) {
-      threwError = true;      
+      threwError = true;
     } finally {
       Diagnostics.mark.getIDListSources.process.end({
         success: !threwError,
@@ -659,12 +652,12 @@ export default class SpecStore {
         url: url,
       });
     }
-    if(threwNetworkError || !res) {
+    if (threwNetworkError || !res) {
       return;
     }
     try {
       Diagnostics.mark.getIDList.process.start({
-        url: url ,
+        url: url,
       });
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
@@ -683,7 +676,7 @@ export default class SpecStore {
         url: url,
       });
     } catch (e) {
-      this.outputLogger.warn(e as Error);
+      OutputLogger.warn(e as Error);
       Diagnostics.mark.getIDList.process.end({
         success: false,
         url: url,
