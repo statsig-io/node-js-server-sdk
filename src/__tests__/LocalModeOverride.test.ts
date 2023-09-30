@@ -220,8 +220,8 @@ describe('Test local mode with overrides', () => {
   });
 
   it('does not log error on initialization', async () => {
-    let warnings: unknown[] = [];
-    let errors: unknown[] = [];
+    const warnings: unknown[] = [];
+    const errors: unknown[] = [];
     const customLogger: LoggerInterface = {
       warn: (message?: any, ...optionalParams: any[]) => {
         warnings.push(message);

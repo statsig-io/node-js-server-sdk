@@ -1,7 +1,7 @@
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
-let statsig = statsigsdk.default;
+const statsig = statsigsdk.default;
 
 // @ts-ignore
 const fetch = require('node-fetch');
@@ -56,7 +56,7 @@ describe('Layer Exposure Logging', () => {
     it('logs layers without an allocated experiment correctly', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-      let layer = await statsig.getLayer(user, 'unallocated_layer');
+      const layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('an_int', 0);
       statsig.shutdown();
 
@@ -78,7 +78,7 @@ describe('Layer Exposure Logging', () => {
     it('logs explicit and implicit parameters correctly', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-      let layer = await statsig.getLayer(
+      const layer = await statsig.getLayer(
         user,
         'explicit_vs_implicit_parameter_layer',
       );
@@ -116,7 +116,7 @@ describe('Layer Exposure Logging', () => {
     it('logs different object types correctly', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-      let layer = await statsig.getLayer(
+      const layer = await statsig.getLayer(
         user,
         'different_object_type_logging_layer',
       );
@@ -151,7 +151,7 @@ describe('Layer Exposure Logging', () => {
     it('logs the correct name and user values', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-      let layer = await statsig.getLayer(
+      const layer = await statsig.getLayer(
         { userID: 'dan', email: 'd@n.com' },
         'unallocated_layer',
       );

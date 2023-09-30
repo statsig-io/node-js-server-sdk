@@ -45,7 +45,7 @@ describe('On Default Value Fallback', () => {
     StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key');
 
-    let inst = StatsigInstanceUtils.getInstance();
+    const inst = StatsigInstanceUtils.getInstance();
     if (inst != null) {
       // @ts-ignore
       inst._options.loggingMaxBufferSize = 1;

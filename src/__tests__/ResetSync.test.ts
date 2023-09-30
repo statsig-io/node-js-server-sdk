@@ -59,7 +59,7 @@ describe('Verify sync intervals reset', () => {
   test('Verify timers reset if rulesets stale', async () => {
     expect.assertions(6);
     await statsig.initialize(secretKey);
-    let now = Date.now();
+    const now = Date.now();
 
     const evaluator = StatsigTestUtils.getEvaluator();
     const spy = jest.spyOn(evaluator['store'], 'pollForUpdates');

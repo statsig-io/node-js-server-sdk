@@ -58,7 +58,7 @@ describe('InitDiagnostics', () => {
 
       if (url.includes('id_list_content')) {
         let wholeList = '';
-        for (var i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 5; i++) {
           wholeList += `+${i}\n`;
         }
         const startingIndex = parseInt(

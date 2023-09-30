@@ -21,7 +21,7 @@ export default class Dispatcher {
     promise: Promise<Response>,
     timeoutms: number,
   ): Promise<Response> {
-    let entry: Entry = {
+    const entry: Entry = {
       expiry: Date.now() + timeoutms,
       promise: promise,
       taskCompleted: false,
@@ -69,7 +69,7 @@ export default class Dispatcher {
   }
 
   private _drainQueue() {
-    let oldQueue = this.queue;
+    const oldQueue = this.queue;
     this.queue = [];
     const now = Date.now();
     oldQueue.forEach((entry) => {

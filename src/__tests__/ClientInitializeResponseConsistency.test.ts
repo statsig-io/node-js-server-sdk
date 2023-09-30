@@ -8,8 +8,8 @@ import StatsigInstanceUtils from '../StatsigInstanceUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
-let clientKey = 'client-wlH3WMkysINMhMU8VrNBkbjrEr2JQrqgxKwDPOUosJK';
-let secret = process.env.test_api_key;
+const clientKey = 'client-wlH3WMkysINMhMU8VrNBkbjrEr2JQrqgxKwDPOUosJK';
+const secret = process.env.test_api_key;
 if (!secret) {
   throw 'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.';
 }
@@ -54,7 +54,7 @@ async function _validateInitializeConsistency(api, environment) {
     },
   };
 
-  let serverUser = JSON.parse(JSON.stringify(user));
+  const serverUser = JSON.parse(JSON.stringify(user));
   if (environment != null) {
     serverUser['statsigEnvironment'] = environment;
   }
@@ -93,7 +93,7 @@ async function _validateInitializeConsistency(api, environment) {
     }
   }
 
-  let options: statsigsdk.StatsigOptions = {
+  const options: statsigsdk.StatsigOptions = {
     api,
   };
   if (environment != null) {

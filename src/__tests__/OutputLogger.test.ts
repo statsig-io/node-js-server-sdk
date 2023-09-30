@@ -6,8 +6,8 @@ import { LoggerInterface } from '../StatsigOptions';
 const logLevels = ['warn', 'error'] as ('warn' | 'error')[]
 describe('Output Logger Interface', () => {
   it.each(logLevels)('verify calls to logger with log level %s', async (level) => {
-    let warnings: unknown[] = [];
-    let errors: unknown[] = [];
+    const warnings: unknown[] = [];
+    const errors: unknown[] = [];
     const customLogger: LoggerInterface = {
       warn: (message?: any, ...optionalParams: any[]) => {
         warnings.push(message);

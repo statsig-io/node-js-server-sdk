@@ -21,7 +21,7 @@ export default class DynamicConfig {
   public constructor(
     configName: string,
     value: Record<string, unknown> = {},
-    ruleID: string = '',
+    ruleID = '',
     groupName: string | null = null,
     secondaryExposures: Record<string, unknown>[] = [],
     onDefaultValueFallback: OnDefaultValueFallback | null = null,

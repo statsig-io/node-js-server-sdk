@@ -51,7 +51,7 @@ export default class SpecStore {
   private idListsSyncTimerLastActiveTime: number = Date.now();
   private fetcher: StatsigFetcher;
   private dataAdapter: IDataAdapter | null;
-  private syncFailureCount: number = 0;
+  private syncFailureCount = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
   private samplingRates: SDKConstants = {
@@ -137,7 +137,7 @@ export default class SpecStore {
   }
 
   public async init(): Promise<void> {
-    var specsJSON = null;
+    let specsJSON = null;
 
     if (this.dataAdapter) {
       if (this.bootstrapValues != null) {
@@ -568,7 +568,7 @@ export default class SpecStore {
       Diagnostics.mark.getIDListSources.process.start({
         idListCount: Object.keys(lookup).length,
       });
-      let promises = [];
+      const promises = [];
 
       for (const [name, item] of Object.entries(lookup)) {
         const url = item.url;
@@ -582,7 +582,7 @@ export default class SpecStore {
         ) {
           continue;
         }
-        let newFile =
+        const newFile =
           fileID !== this.store.idLists[name]?.fileID &&
           newCreationTime >= oldCreationTime;
 

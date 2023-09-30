@@ -320,7 +320,7 @@ export const Statsig = {
    * If no userID is provided, it will override for all users
    * If a userID is provided, it will override the gate with the given value for that user only
    */
-  overrideGate(gateName: string, value: boolean, userID: string = ''): void {
+  overrideGate(gateName: string, value: boolean, userID = ''): void {
     this._enforceServer().overrideGate(gateName, value, userID);
   },
 
@@ -332,7 +332,7 @@ export const Statsig = {
   overrideConfig(
     configName: string,
     value: Record<string, unknown>,
-    userID: string = '',
+    userID = '',
   ): void {
     this._enforceServer().overrideConfig(configName, value, userID);
   },
@@ -514,7 +514,7 @@ export const Statsig = {
   },
 
   _enforceServer(): StatsigServer {
-    let instance = StatsigInstanceUtils.getInstance();
+    const instance = StatsigInstanceUtils.getInstance();
     if (instance == null) {
       throw new StatsigUninitializedError();
     }

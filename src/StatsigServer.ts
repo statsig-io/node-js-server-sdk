@@ -54,7 +54,7 @@ export type LogEventObject = {
  */
 export default class StatsigServer {
   private _pendingInitPromise: Promise<void> | null = null;
-  private _ready: boolean = false;
+  private _ready = false;
   private _options: ExplicitStatsigOptions;
   private _logger: LogEventProcessor;
   private _secretKey: string;
@@ -321,7 +321,7 @@ export default class StatsigServer {
       let user = eventObject.user ?? null;
       let value = eventObject.value ?? null;
       let metadata = eventObject.metadata ?? null;
-      let time = eventObject.time ?? null;
+      const time = eventObject.time ?? null;
 
       if (!(this._ready === true && this._logger != null)) {
         throw new StatsigUninitializedError();
@@ -363,7 +363,7 @@ export default class StatsigServer {
         metadata = { statsig_error: 'Metadata length too large' };
       }
 
-      let event = new LogEvent(eventName);
+      const event = new LogEvent(eventName);
       event.setUser(user);
       event.setValue(value);
       event.setMetadata(metadata);

@@ -59,7 +59,7 @@ describe('Backward Compatibility', () => {
 
   it('has top level types', () => {
     // just checking this compiles
-    let topLevelTypes: {
+    const topLevelTypes: {
       options?: StatsigOptions;
       environment?: StatsigEnvironment;
       user?: StatsigUser;

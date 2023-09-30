@@ -15,21 +15,21 @@ describe('Verify behavior of ConfigSpec', () => {
     expect(gateSpec.enabled).toEqual(true);
     expect(gateSpec.defaultValue).toEqual(false);
 
-    let rules = gateSpec.rules;
+    const rules = gateSpec.rules;
     expect(Array.isArray(rules)).toEqual(true);
     expect(rules.length).toEqual(1);
 
-    let rule = rules[0];
+    const rule = rules[0];
     expect(rule.name).toEqual('employees');
     expect(rule.id).toEqual('rule_id_gate');
     expect(rule.passPercentage).toEqual(100);
     expect(rule.returnValue).toEqual(true);
 
-    let conds = rule.conditions;
+    const conds = rule.conditions;
     expect(Array.isArray(conds)).toEqual(true);
     expect(conds.length).toEqual(1);
 
-    let cond = conds[0];
+    const cond = conds[0];
     expect(cond.type).toEqual('user_field');
     expect(cond.targetValue).toEqual(['packers.com', 'nfl.com']);
     expect(cond.operator).toEqual('str_contains_any');
@@ -46,11 +46,11 @@ describe('Verify behavior of ConfigSpec', () => {
       test: 'default',
     });
 
-    let rules = dynamicConfigSpec.rules;
+    const rules = dynamicConfigSpec.rules;
     expect(Array.isArray(rules)).toEqual(true);
     expect(rules.length).toEqual(2);
 
-    let rule = rules[0];
+    const rule = rules[0];
     expect(rule.name).toEqual('can see teams');
     expect(rule.id).toEqual('rule_id_config');
     expect(rule.passPercentage).toEqual(100);
@@ -65,11 +65,11 @@ describe('Verify behavior of ConfigSpec', () => {
       },
     });
 
-    let conds = rule.conditions;
+    const conds = rule.conditions;
     expect(Array.isArray(conds)).toEqual(true);
     expect(conds.length).toEqual(1);
 
-    let cond = conds[0];
+    const cond = conds[0];
     expect(cond.type).toEqual('user_field');
     expect(cond.targetValue).toEqual(9);
     expect(cond.operator).toEqual('gte');

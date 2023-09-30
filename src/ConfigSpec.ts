@@ -36,9 +36,9 @@ export class ConfigSpec {
 
   parseRules(rulesJSON: unknown) {
     const json = rulesJSON as Record<string, unknown>[];
-    var rules = [];
+    const rules = [];
     for (let i = 0; i < json.length; i++) {
-      let rule = new ConfigRule(json[i]);
+      const rule = new ConfigRule(json[i]);
       rules.push(rule);
     }
     return rules;
@@ -75,9 +75,9 @@ export class ConfigRule {
 
   parseConditions(conditionsJSON: unknown) {
     const json = conditionsJSON as Record<string, unknown>[];
-    var conditions: ConfigCondition[] = [];
+    const conditions: ConfigCondition[] = [];
     json?.forEach((cJSON) => {
-      let condition = new ConfigCondition(cJSON);
+      const condition = new ConfigCondition(cJSON);
       conditions.push(condition);
     });
     return conditions;

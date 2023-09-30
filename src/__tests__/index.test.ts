@@ -79,7 +79,7 @@ describe('Verify behavior of top level index functions', () => {
     flushedEventCount = 0;
 
     // ensure Date.now() returns the same value in each test
-    let now = Date.now();
+    const now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });
 
@@ -416,8 +416,8 @@ describe('Verify behavior of top level index functions', () => {
         .mockImplementation((_user, _gateName) => {
           return ConfigEvaluation.unsupported(-1, -2);
         });
-      let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-      let gateName = 'gate_server';
+      const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      const gateName = 'gate_server';
 
       expect(
         Statsig.checkGateWithoutServerFallback(user, gateName),
@@ -459,8 +459,8 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail', '');
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_pass';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const gateName = 'gate_pass';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
@@ -504,8 +504,8 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail', '');
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_pass';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const gateName = 'gate_pass';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
@@ -550,8 +550,8 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail', '', []);
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_fail';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const gateName = 'gate_fail';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
@@ -596,8 +596,8 @@ describe('Verify behavior of top level index functions', () => {
         return new ConfigEvaluation(false, 'rule_id_fail', '', []);
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let gateName = 'gate_fail';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const gateName = 'gate_fail';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     const gateExposure = new LogEvent('statsig::gate_exposure');
@@ -634,8 +634,8 @@ describe('Verify behavior of top level index functions', () => {
           return ConfigEvaluation.unsupported(-1, -2);
         });
 
-      let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-      let configName = 'config_server';
+      const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      const configName = 'config_server';
 
       let data = await Statsig.getConfig(user, configName);
       expect(data.value).toEqual({});
@@ -675,8 +675,8 @@ describe('Verify behavior of top level index functions', () => {
         );
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let configName = 'config_downloaded';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const configName = 'config_downloaded';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     const configExposure = new LogEvent('statsig::config_exposure');
@@ -721,8 +721,8 @@ describe('Verify behavior of top level index functions', () => {
         });
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let configName = 'config_downloaded';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const configName = 'config_downloaded';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     for (let ii = 0; ii < 10000; ii++) {
@@ -746,8 +746,8 @@ describe('Verify behavior of top level index functions', () => {
         });
       });
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let configName = 'config_downloaded';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const configName = 'config_downloaded';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     for (let ii = 0; ii < 10000; ii++) {
@@ -762,8 +762,8 @@ describe('Verify behavior of top level index functions', () => {
     expect.assertions(1);
     await Statsig.initialize(secretKey);
 
-    let user = { userID: '123', privateAttributes: { secret: 'do not log' } };
-    let configName = 'config_downloaded';
+    const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+    const configName = 'config_downloaded';
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     for (let ii = 0; ii < 10000; ii++) {
@@ -793,7 +793,7 @@ describe('Verify behavior of top level index functions', () => {
       });
 
     const configName = 'non_existent_config';
-    let config = new DynamicConfig(configName, {}, '');
+    const config = new DynamicConfig(configName, {}, '');
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     await Statsig.getConfig({ userID: '12345' }, configName).then((data) => {
@@ -929,7 +929,7 @@ describe('Verify behavior of top level index functions', () => {
     }
     expect(str_1k.length).toBe(2048);
     return Statsig.initialize(secretKey).then(() => {
-      let bigUser = {
+      const bigUser = {
         userID: str_64 + 'more',
         email: 'jest@Statsig.com',
         custom: { extradata: str_1k },

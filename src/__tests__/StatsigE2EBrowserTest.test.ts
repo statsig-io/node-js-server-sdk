@@ -276,7 +276,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
 
     // should delegate to a bad config, which fetches from the server
-    let layer = await statsig.getLayer(
+    const layer = await statsig.getLayer(
       statsigUser,
       'd_layer_delegate_to_fallback',
     );

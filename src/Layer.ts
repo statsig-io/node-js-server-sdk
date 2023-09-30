@@ -16,7 +16,7 @@ export default class Layer {
   public constructor(
     layerName: string,
     value: Record<string, unknown> = {},
-    ruleID: string = '',
+    ruleID = '',
     groupName: string | null = null,
     allocatedExperimentName: string | null = null,
     logExposure: ExposeLayer | null = null,

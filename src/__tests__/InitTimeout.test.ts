@@ -55,7 +55,7 @@ describe('Test local mode with overrides', () => {
   beforeEach(() => {
     events = [];
 
-    let now = Date.now();
+    const now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
     jest.resetModules();
     jest.restoreAllMocks();

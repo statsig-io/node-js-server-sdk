@@ -53,7 +53,7 @@ fetch.mockImplementation((url, params) => {
   }
   if (url.includes('id_list_content')) {
     let wholeList = '';
-    for (var i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 5; i++) {
       wholeList += `+${i}\n`;
     }
     const startingIndex = parseInt(
@@ -142,7 +142,7 @@ describe('Verify behavior of SpecStore', () => {
     });
 
     // first sync gives updated values
-    let modifiedGate = JSON.parse(JSON.stringify(exampleConfigSpecs.gate));
+    const modifiedGate = JSON.parse(JSON.stringify(exampleConfigSpecs.gate));
     modifiedGate.enabled = false;
     const timeAfterFirstSync = Date.now() + 1000;
 
@@ -275,7 +275,7 @@ describe('Verify behavior of SpecStore', () => {
       }
       if (url.includes('id_list_content')) {
         let wholeList = '';
-        for (var i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 5; i++) {
           wholeList += `+${i}\n`;
         }
         const startingIndex = parseInt(
@@ -340,7 +340,7 @@ describe('Verify behavior of SpecStore', () => {
       }
       if (url.includes('id_list_content')) {
         let wholeList = '';
-        for (var i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 5; i++) {
           wholeList += `+${i}\n`;
         }
         wholeList += '?'; // make the starting character not - or +
@@ -405,7 +405,7 @@ describe('Verify behavior of SpecStore', () => {
       }
       if (url.includes('id_list_content')) {
         let wholeList = '';
-        for (var i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 10; i++) {
           wholeList += `+${i}\n`;
         }
         const startingIndex = parseInt(
