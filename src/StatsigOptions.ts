@@ -1,6 +1,7 @@
 import { IDataAdapter } from './interfaces/IDataAdapter';
 
 const DEFAULT_API = 'https://statsigapi.net/v1';
+const DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS = 'https://api.statsigcdn.com/v1';
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
 const MIN_RULESETS_SYNC_INTERVAL = 5 * 1000;
 const DEFAULT_ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -31,7 +32,7 @@ export interface LoggerInterface {
 
 export type ExplicitStatsigOptions = {
   api: string;
-  apiForDownloadConfigSpecs: string | null;
+  apiForDownloadConfigSpecs: string;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
@@ -63,8 +64,12 @@ export function OptionsWithDefaults(
       getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
     ) as string,
     apiForDownloadConfigSpecs: normalizeUrl(
-      getString(opts, 'apiForDownloadConfigSpecs', null),
-    ),
+      getString(
+        opts,
+        'apiForDownloadConfigSpecs',
+        DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+      ),
+    ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)
@@ -74,7 +79,7 @@ export function OptionsWithDefaults(
       : null,
     localMode: getBoolean(opts, 'localMode', false),
     initTimeoutMs: getNumber(opts, 'initTimeoutMs', 0),
-    logger: opts.logger ?? {...console, logLevel: 'warn'},
+    logger: opts.logger ?? { ...console, logLevel: 'warn' },
     dataAdapter: opts.dataAdapter ?? null,
     rulesetsSyncIntervalMs: Math.max(
       getNumber(opts, 'rulesetsSyncIntervalMs', DEFAULT_RULESETS_SYNC_INTERVAL),

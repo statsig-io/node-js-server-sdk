@@ -37,7 +37,7 @@ export type SDKConstants = DiagnosticsSamplingRate;
 export default class SpecStore {
   private initReason: EvaluationReason;
   private api: string;
-  private apiForDownloadConfigSpecs: string | null;
+  private apiForDownloadConfigSpecs: string;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
   private initialUpdateTime: number;
   private lastUpdateTime: number;
@@ -238,8 +238,7 @@ export default class SpecStore {
   }> {
     try {
       let response: Response | undefined = undefined;
-      const url =
-        (this.apiForDownloadConfigSpecs ?? this.api) + '/download_config_specs';
+      const url = this.apiForDownloadConfigSpecs + '/download_config_specs';
       response = await this.fetcher.post(url, {
         statsigMetadata: getStatsigMetadata(),
         sinceTime: this.lastUpdateTime,
