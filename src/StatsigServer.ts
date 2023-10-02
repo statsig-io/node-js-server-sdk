@@ -394,6 +394,24 @@ export default class StatsigServer {
     });
   }
 
+  /**
+   * Informs the statsig SDK that the server is closing or shutting down
+   * so the SDK can clean up internal state
+   * Ensures any pending promises are resolved and remaining events are flushed.
+   */
+   public async shutdownAsync() {
+    if (this._logger == null) {
+      return;
+    }
+
+    this._errorBoundary.swallow(async () => {
+      this._ready = false;
+      await this._logger.shutdownAsync();
+      this._fetcher.shutdown();
+      await this._evaluator.shutdownAsync();
+    });
+  }
+
   public async flush(): Promise<void> {
     return this._errorBoundary.capture(
       () => {

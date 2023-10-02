@@ -8,4 +8,5 @@ module.exports = {
     '<rootDir>/dist/',
   ],
   testEnvironment: 'node',
+  transformIgnorePatterns: ['/node_modules/(?!uuid)'],
 };

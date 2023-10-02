@@ -419,8 +419,12 @@ export default class Evaluator {
       .filter(notEmpty);
   }
 
-  public shutdown() {
+  public shutdown(): void {
     this.store.shutdown();
+  }
+
+  public async shutdownAsync(): Promise<void> {
+    await this.store.shutdownAsync();
   }
 
   _evalSpec(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {

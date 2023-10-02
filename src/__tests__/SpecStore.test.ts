@@ -133,7 +133,7 @@ describe('Verify behavior of SpecStore', () => {
     expect(store.lastUpdateTime).toBeLessThanOrEqual(latest);
     expect(store.lastUpdateTime).toBeGreaterThanOrEqual(latest - 1);
     expect(store.initialized).toEqual(true);
-    expect(store.syncTimer).toBeTruthy();
+    expect(store.rulesetsSyncTimer).toBeTruthy();
     expect(store.samplingRates).toEqual({
       dcs: 0,
       log: 0,
@@ -244,7 +244,7 @@ describe('Verify behavior of SpecStore', () => {
     );
     expect(store.lastUpdateTime).toEqual(timeAfterFirstSync);
     expect(store.initialized).toEqual(true);
-    expect(store.syncTimer).toBeTruthy();
+    expect(store.rulesetsSyncTimer).toBeTruthy();
     expect(store.samplingRates).toEqual(updatedSamplingRates);
 
     // second sync gives no updates to rulesets, but changes the url for id list
@@ -440,7 +440,7 @@ describe('Verify behavior of SpecStore', () => {
     );
 
     store.shutdown();
-    expect(store.syncTimer).toBeNull();
+    expect(store.rulesetsSyncTimer).toBeNull();
     expect(store.idListsSyncTimer).toBeNull();
   });
 });

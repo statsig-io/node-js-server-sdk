@@ -104,16 +104,28 @@ export default class LogEventProcessor {
       });
   }
 
-  public async shutdown(): Promise<void> {
+  public shutdown(): void {
     if (this.flushTimer != null) {
-      clearTimeout(this.flushTimer);
+      clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
     if (this.deduperTimer != null) {
-      clearTimeout(this.deduperTimer);
+      clearInterval(this.deduperTimer);
       this.deduperTimer = null;
     }
-    return this.flush(true);
+    this.flush(true);
+  }
+
+  public async shutdownAsync(): Promise<void> {
+    if (this.flushTimer != null) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    if (this.deduperTimer != null) {
+      clearInterval(this.deduperTimer);
+      this.deduperTimer = null;
+    }
+    return await this.flush(true);
   }
 
   public logStatsigInternal(

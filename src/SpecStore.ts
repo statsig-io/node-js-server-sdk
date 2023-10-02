@@ -42,13 +42,15 @@ export default class SpecStore {
   private initialUpdateTime: number;
   private lastUpdateTime: number;
   private store: ConfigStore;
-  private syncInterval: number;
+  private rulesetsSyncInterval: number;
   private idListSyncInterval: number;
   private initialized: boolean;
-  private syncTimer: NodeJS.Timeout | null;
+  private rulesetsSyncTimer: NodeJS.Timeout | null;
   private idListsSyncTimer: NodeJS.Timeout | null;
-  private syncTimerLastActiveTime: number = Date.now();
+  private rulesetsSyncTimerLastActiveTime: number = Date.now();
   private idListsSyncTimerLastActiveTime: number = Date.now();
+  private rulesetsSyncPromise: () => Promise<void> = () => Promise.resolve();
+  private idListsSyncPromise: () => Promise<void> = () => Promise.resolve();
   private fetcher: StatsigFetcher;
   private dataAdapter: IDataAdapter | null;
   private syncFailureCount = 0;
@@ -76,10 +78,10 @@ export default class SpecStore {
       layers: {},
       experimentToLayer: {},
     };
-    this.syncInterval = options.rulesetsSyncIntervalMs;
+    this.rulesetsSyncInterval = options.rulesetsSyncIntervalMs;
     this.idListSyncInterval = options.idListsSyncIntervalMs;
     this.initialized = false;
-    this.syncTimer = null;
+    this.rulesetsSyncTimer = null;
     this.idListsSyncTimer = null;
     this.dataAdapter = options.dataAdapter;
     this.initReason = 'Uninitialized';
@@ -198,21 +200,21 @@ export default class SpecStore {
   }
 
   public resetSyncTimerIfExited(): Error | null {
-    const syncTimerInactive =
-      this.syncTimerLastActiveTime <
-      Date.now() - Math.max(SYNC_OUTDATED_MAX, this.syncInterval);
+    const rulesetsSyncTimerInactive =
+      this.rulesetsSyncTimerLastActiveTime <
+      Date.now() - Math.max(SYNC_OUTDATED_MAX, this.rulesetsSyncInterval);
     const idListsSyncTimerInactive =
       this.idListsSyncTimerLastActiveTime <
       Date.now() - Math.max(SYNC_OUTDATED_MAX, this.idListSyncInterval);
-    if (!syncTimerInactive && !idListsSyncTimerInactive) {
+    if (!rulesetsSyncTimerInactive && !idListsSyncTimerInactive) {
       return null;
     }
     let message = '';
-    if (syncTimerInactive) {
-      this.clearSyncTimer();
+    if (rulesetsSyncTimerInactive) {
+      this.clearRulesetsSyncTimer();
       message = message.concat(
         `Force reset sync timer. Last update time: ${
-          this.syncTimerLastActiveTime
+          this.rulesetsSyncTimerLastActiveTime
         }, now: ${Date.now()}`,
       );
     }
@@ -307,20 +309,28 @@ export default class SpecStore {
   }
 
   private pollForUpdates() {
-    if (this.syncTimer == null) {
-      this.syncTimerLastActiveTime = Date.now();
-      this.syncTimer = poll(async () => {
-        this.syncTimerLastActiveTime = Date.now();
+    if (this.rulesetsSyncTimer == null) {
+      this.rulesetsSyncTimerLastActiveTime = Date.now();
+      this.rulesetsSyncPromise = async () => {
+        this.rulesetsSyncTimerLastActiveTime = Date.now();
         await this._syncConfigSpecs();
-      }, this.syncInterval);
+      };
+      this.rulesetsSyncTimer = poll(
+        this.rulesetsSyncPromise,
+        this.rulesetsSyncInterval,
+      );
     }
 
     if (this.idListsSyncTimer == null) {
       this.idListsSyncTimerLastActiveTime = Date.now();
-      this.idListsSyncTimer = poll(async () => {
+      this.idListsSyncPromise = async () => {
         this.idListsSyncTimerLastActiveTime = Date.now();
         await this._syncIdLists();
-      }, this.idListSyncInterval);
+      };
+      this.idListsSyncTimer = poll(
+        this.idListsSyncPromise,
+        this.idListSyncInterval,
+      );
     }
   }
 
@@ -359,12 +369,15 @@ export default class SpecStore {
       this.syncFailureCount = 0;
     } else if (failed) {
       this.syncFailureCount++;
-      if (this.syncFailureCount * this.syncInterval > SYNC_OUTDATED_MAX) {
+      if (
+        this.syncFailureCount * this.rulesetsSyncInterval >
+        SYNC_OUTDATED_MAX
+      ) {
         OutputLogger.warn(
           `statsigSDK::sync> Syncing the server SDK with ${
             shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
           } has failed for  ${
-            this.syncFailureCount * this.syncInterval
+            this.syncFailureCount * this.rulesetsSyncInterval
           }ms. Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
         );
         this.syncFailureCount = 0;
@@ -684,10 +697,16 @@ export default class SpecStore {
     this.dataAdapter?.shutdown();
   }
 
-  private clearSyncTimer(): void {
-    if (this.syncTimer != null) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
+  public async shutdownAsync(): Promise<void> {
+    this.shutdown();
+    await this.rulesetsSyncPromise();
+    await this.idListsSyncPromise();
+  }
+
+  private clearRulesetsSyncTimer(): void {
+    if (this.rulesetsSyncTimer != null) {
+      clearInterval(this.rulesetsSyncTimer);
+      this.rulesetsSyncTimer = null;
     }
   }
 
@@ -699,7 +718,7 @@ export default class SpecStore {
   }
 
   private clearTimers(): void {
-    this.clearSyncTimer();
+    this.clearRulesetsSyncTimer();
     this.clearIdListsSyncTimer();
   }
 

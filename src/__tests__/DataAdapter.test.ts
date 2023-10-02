@@ -277,8 +277,8 @@ describe('DataAdapter', () => {
       await loadStore(syncingDataAdapter);
 
       const evaluator = StatsigTestUtils.getEvaluator();
-      evaluator.store.syncInterval = 1000;
-      evaluator.store.syncTimer = null;
+      evaluator.store.rulesetsSyncInterval = 1000;
+      evaluator.store.rulesetsSyncTimer = null;
       evaluator.store.pollForUpdates();
       await new Promise((_) => setTimeout(_, 1100));
 
@@ -415,9 +415,9 @@ describe('DataAdapter', () => {
       );
 
       const evaluator = StatsigTestUtils.getEvaluator();
-      evaluator.store.syncInterval = 1000;
+      evaluator.store.rulesetsSyncInterval = 1000;
       evaluator.store.idListSyncInterval = 1000;
-      evaluator.store.syncTimer = null;
+      evaluator.store.rulesetsSyncTimer = null;
       evaluator.store.idListsSyncTimer = null;
       evaluator.store.pollForUpdates();
       await new Promise((_) => setTimeout(_, 1100));

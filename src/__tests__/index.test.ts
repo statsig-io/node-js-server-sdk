@@ -970,7 +970,7 @@ describe('Verify behavior of top level index functions', () => {
 
       expect(logger.flushTimer).toBeNull();
       expect(logger.deduperTimer).toBeNull();
-      expect(evaluator.store.syncTimer).toBeNull();
+      expect(evaluator.store.rulesetsSyncTimer).toBeNull();
       expect(evaluator.store.idListsSyncTimer).toBeNull();
     });
   });

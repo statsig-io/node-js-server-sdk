@@ -300,6 +300,16 @@ export const Statsig = {
   },
 
   /**
+   * Informs the statsig SDK that the server is closing or shutting down
+   * so the SDK can clean up internal state
+   * Ensures any pending promises are resolved and remaining events are flushed.
+   */
+  async shutdownAsync(): Promise<void> {
+    await this._enforceServer().shutdownAsync();
+    OutputLogger.resetLogger();
+  },
+
+  /**
    * Returns the initialize values for the given user
    * Can be used to bootstrap a client SDK with up to date values
    * @param user the user to evaluate configurations for
