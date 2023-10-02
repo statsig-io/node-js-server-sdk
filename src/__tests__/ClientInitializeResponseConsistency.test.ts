@@ -100,7 +100,7 @@ async function _validateInitializeConsistency(api, environment) {
     options.environment = environment;
   }
 
-  await statsig.initialize(secret!, options);
+  await statsig.initialize(secret ?? '', options);
 
   const sdkInitializeResponse = statsig.getClientInitializeResponse(
     user,

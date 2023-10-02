@@ -1,4 +1,5 @@
-import { get } from 'http';
+import { v4 as uuidv4 } from 'uuid';
+
 import Diagnostics from '../Diagnostics';
 import {
   StatsigLocalModeNetworkError,
@@ -8,8 +9,6 @@ import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import safeFetch from './safeFetch';
-
-const { v4: uuidv4 } = require('uuid');
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 

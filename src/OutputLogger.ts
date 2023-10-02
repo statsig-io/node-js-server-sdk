@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { LoggerInterface } from './StatsigOptions';
 
 let _logger: LoggerInterface = { ...console, logLevel: 'warn' };

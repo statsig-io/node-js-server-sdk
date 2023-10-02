@@ -1,16 +1,16 @@
+import ip3country from 'ip3country';
+import shajs from 'sha.js';
+
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import { EvaluationDetails } from './EvaluationDetails';
+import OutputLogger from './OutputLogger';
 import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
-
-import shajs from 'sha.js';
-import ip3country from 'ip3country';
-import OutputLogger from './OutputLogger';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -952,6 +952,7 @@ function hashUnitIDForIDList(unitID: string) {
   return getHashedName(unitID).substr(0, 8);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getFromUser(user: StatsigUser, field: string): any | null {
   if (typeof user !== 'object') {
     return null;
@@ -1136,6 +1137,7 @@ function dateCompare(
   };
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function arrayAny(
   value: any,
   array: unknown,

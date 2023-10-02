@@ -1,7 +1,5 @@
-import { metadata } from 'figlet';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { MarkerMetadata } from '../Diagnostics';
 import { assertMarkerEqual } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
@@ -59,7 +57,7 @@ describe('InitStrategy', () => {
         }
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
 
         return Promise.resolve({
@@ -217,7 +215,7 @@ describe('InitStrategy', () => {
       action: 'end',
       success: true,
     });
-    
+
     expect(markers.length).toBe(6);
 
     expect(idlistCalled).toBe(false);
@@ -264,7 +262,7 @@ describe('InitStrategy', () => {
       action: 'end',
       success: true,
     });
-    
+
     expect(markers.length).toBe(6);
     jest.runOnlyPendingTimers();
 

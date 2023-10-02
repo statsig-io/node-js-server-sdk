@@ -1,4 +1,3 @@
-const { getStatsigMetadata, poll } = require('./utils/core');
 import ConfigEvaluation from './ConfigEvaluation';
 import { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
@@ -6,6 +5,7 @@ import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
 import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
+import { getStatsigMetadata, poll } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
@@ -43,12 +43,11 @@ export default class LogEventProcessor {
     this.deduper = new Set();
     this.loggedErrors = new Set();
 
-    const processor = this;
     this.flushTimer = poll(() => {
-      processor.flush();
+      this.flush();
     }, options.loggingIntervalMs);
     this.deduperTimer = poll(() => {
-      processor.deduper.clear();
+      this.deduper.clear();
     }, deduperInterval);
   }
 

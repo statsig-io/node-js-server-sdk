@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+
 import { StatsigUser } from '../StatsigUser';
 
 function getSDKVersion(): string {
@@ -93,7 +94,7 @@ function isUserIdentifiable(user: StatsigUser | null): boolean {
   );
 }
 
-function poll(fn: () => {}, interval: number): NodeJS.Timer {
+function poll(fn: () => void, interval: number): NodeJS.Timer {
   const timer = setInterval(fn, interval);
   if (timer.unref) {
     timer.unref();

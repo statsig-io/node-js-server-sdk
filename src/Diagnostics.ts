@@ -1,4 +1,3 @@
-import { FetchError } from 'node-fetch';
 import LogEventProcessor from './LogEventProcessor';
 import { DiagnosticsSamplingRate } from './SpecStore';
 import { StatsigOptions } from './StatsigOptions';

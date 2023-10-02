@@ -22,9 +22,9 @@ import {
   StatsigOptions,
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
-import StatsigFetcher from './utils/StatsigFetcher';
 import asyncify from './utils/asyncify';
 import { isUserIdentifiable } from './utils/core';
+import StatsigFetcher from './utils/StatsigFetcher';
 
 const MAX_VALUE_SIZE = 64;
 const MAX_OBJ_SIZE = 2048;

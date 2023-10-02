@@ -67,7 +67,7 @@ describe('Evaluation Details', () => {
 
     await uninitializedServer.initializeAsync();
 
-    const [_g, _c, _e, layer] = await Promise.all([
+    const [, , , layer] = await Promise.all([
       uninitializedServer.checkGate(user, 'always_on_gate'),
       uninitializedServer.getConfig(user, 'test_config'),
       uninitializedServer.getExperiment(user, 'sample_experiment'),
@@ -88,7 +88,7 @@ describe('Evaluation Details', () => {
   });
 
   it('returns unrecognized as an eval reason', async () => {
-    const [_g, _c, _e, layer] = await Promise.all([
+    const [, , , layer] = await Promise.all([
       server.checkGate(user, 'not_a_gate'),
       server.getConfig(user, 'not_a_config'),
       server.getExperiment(user, 'not_an_experiment'),
@@ -106,7 +106,7 @@ describe('Evaluation Details', () => {
   });
 
   it('returns network as an eval reason', async () => {
-    const [_g, _c, _e, layer] = await Promise.all([
+    const [, , , layer] = await Promise.all([
       server.checkGate(user, 'always_on_gate'),
       server.getConfig(user, 'test_config'),
       server.getExperiment(user, 'sample_experiment'),
@@ -151,7 +151,7 @@ describe('Evaluation Details', () => {
     });
     await bootstrapServer.initializeAsync();
 
-    const [_g, _c, _e, layer] = await Promise.all([
+    const [, , , layer] = await Promise.all([
       bootstrapServer.checkGate(user, 'always_on_gate'),
       bootstrapServer.getConfig(user, 'test_config'),
       bootstrapServer.getExperiment(user, 'sample_experiment'),
@@ -175,8 +175,8 @@ describe('Evaluation Details', () => {
   it('returns data adapter as an eval reason', async () => {
     const dataStoreServer = new StatsigServer('secret-key', {
       dataAdapter: {
-        get: (_) => Promise.resolve({ result: CONFIG_SPEC_RESPONSE }),
-        set: (_, _1) =>
+        get: () => Promise.resolve({ result: CONFIG_SPEC_RESPONSE }),
+        set: () =>
           Promise.reject(
             'Should not be called.  If this changes, update the test',
           ),
@@ -187,7 +187,7 @@ describe('Evaluation Details', () => {
     });
     await dataStoreServer.initializeAsync();
 
-    const [_g, _c, _e, layer] = await Promise.all([
+    const [, , , layer] = await Promise.all([
       dataStoreServer.checkGate(user, 'always_on_gate'),
       dataStoreServer.getConfig(user, 'test_config'),
       dataStoreServer.getExperiment(user, 'sample_experiment'),

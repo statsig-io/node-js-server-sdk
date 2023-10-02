@@ -36,7 +36,9 @@ export default abstract class IDListUtil {
       if (Array.isArray(result)) {
         return result as IDListsLookupBootstrap;
       }
-    } catch (error) {}
+    } catch (error) {
+      /* noop */
+    }
     return null;
   }
 
@@ -73,7 +75,10 @@ export default abstract class IDListUtil {
   ) {
     const deletedLists = [];
     for (const name in lists) {
-      if (lists.hasOwnProperty(name) && !lookup.hasOwnProperty(name)) {
+      if (
+        Object.prototype.hasOwnProperty.call(lists, name) &&
+        !Object.prototype.hasOwnProperty.call(lookup, name)
+      ) {
         deletedLists.push(name);
       }
     }
@@ -96,7 +101,7 @@ export default abstract class IDListUtil {
     for (const [key, value] of Object.entries(lists)) {
       let ids = '';
       for (const prop in value.ids) {
-        if (!value.ids.hasOwnProperty(prop)) continue;
+        if (!Object.prototype.hasOwnProperty.call(value.ids, prop)) continue;
 
         ids += `+${prop}\n`;
       }

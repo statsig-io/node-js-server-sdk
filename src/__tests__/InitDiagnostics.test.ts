@@ -63,7 +63,7 @@ describe('InitDiagnostics', () => {
         }
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
         return Promise.resolve({
           ok: true,

@@ -1,7 +1,7 @@
 import {
   AdapterResponse,
-  IDataAdapter,
   DataAdapterKey,
+  IDataAdapter,
 } from '../interfaces/IDataAdapter';
 
 export default class TestDataAdapter implements IDataAdapter {

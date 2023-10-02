@@ -1,12 +1,13 @@
 import fetch from 'node-fetch';
-import StatsigInstanceUtils from '../StatsigInstanceUtils';
+
 import * as statsigsdk from '../index';
 import { DataAdapterKey } from '../interfaces/IDataAdapter';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
+import exampleConfigSpecs from './jest.setup';
 import StatsigTestUtils from './StatsigTestUtils';
 import TestDataAdapter, { TestSyncingDataAdapter } from './TestDataAdapter';
-import exampleConfigSpecs from './jest.setup';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -151,7 +152,8 @@ describe('DataAdapter', () => {
       await statsig.initialize('secret-key', statsigOptions);
 
       const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
-      const configSpecs = JSON.parse(result!);
+      expect(result).not.toBeUndefined();
+      const configSpecs = JSON.parse(result as string);
 
       // Check gates
       const gates = configSpecs['feature_gates'];
@@ -207,7 +209,8 @@ describe('DataAdapter', () => {
       });
 
       const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
-      const configSpecs = JSON.parse(result!);
+      expect(result).not.toBeUndefined();
+      const configSpecs = JSON.parse(result as string);
 
       // Check gates
       const gates = configSpecs['feature_gates'];

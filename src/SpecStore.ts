@@ -10,10 +10,10 @@ import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
+import { getStatsigMetadata } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
 import StatsigFetcher from './utils/StatsigFetcher';
-const { getStatsigMetadata } = require('./utils/core');
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
 
@@ -490,11 +490,7 @@ export default class SpecStore {
   ): Record<string, string> {
     const reverseMapping: Record<string, string> = {};
     if (layersMapping != null && typeof layersMapping === 'object') {
-      for (const [layerName, experiments] of Object.entries(
-        // @ts-ignore
-        layersMapping,
-      )) {
-        // @ts-ignore
+      for (const [layerName, experiments] of Object.entries(layersMapping)) {
         for (const experimentName of experiments) {
           // experiment -> layer is a 1:1 mapping
           reverseMapping[experimentName] = layerName;
@@ -516,24 +512,24 @@ export default class SpecStore {
     const tasks: Promise<void>[] = [];
     for (const name of lookup) {
       tasks.push(
-        new Promise(async (resolve) => {
-          const data = await dataAdapter.get(
-            IDListUtil.getIdListDataStoreKey(name),
-          );
-          if (!data.result) {
-            return;
-          }
+        new Promise((resolve) => {
+          dataAdapter
+            .get(IDListUtil.getIdListDataStoreKey(name))
+            .then((data) => {
+              if (!data.result) {
+                return;
+              }
+              this.store.idLists[name] = {
+                ids: {},
+                readBytes: 0,
+                url: 'bootstrap',
+                fileID: 'bootstrap',
+                creationTime: 0,
+              };
 
-          this.store.idLists[name] = {
-            ids: {},
-            readBytes: 0,
-            url: 'bootstrap',
-            fileID: 'bootstrap',
-            creationTime: 0,
-          };
-
-          IDListUtil.updateIdList(this.store.idLists, name, data.result);
-          resolve();
+              IDListUtil.updateIdList(this.store.idLists, name, data.result);
+            })
+            .finally(() => resolve());
         }),
       );
     }
@@ -586,8 +582,8 @@ export default class SpecStore {
           newCreationTime >= oldCreationTime;
 
         if (
-          (lookup.hasOwnProperty(name) &&
-            !this.store.idLists.hasOwnProperty(name)) ||
+          (Object.prototype.hasOwnProperty.call(lookup, name) &&
+            !Object.prototype.hasOwnProperty.call(this.store.idLists, name)) ||
           newFile // when fileID changes, we reset the whole list
         ) {
           this.store.idLists[name] = {

@@ -71,7 +71,7 @@ export default class ErrorBoundary {
         return;
       }
 
-      const unwrapped = (error ?? Error('[Statsig] Error was empty')) as any;
+      const unwrapped = (error ?? Error('[Statsig] Error was empty'));
       const isError = unwrapped instanceof Error;
       const name = isError && unwrapped.name ? unwrapped.name : 'No Name';
       if (this.seen.has(name) || (key != null && this.seen.has(key))) {
@@ -94,13 +94,13 @@ export default class ErrorBoundary {
           'Content-Type': 'application/json',
         },
         body,
-      }).catch(() => {});
+      }).catch();
     } catch (_error) {
       /* noop */
     }
   }
 
-  private getDescription(obj: any): string {
+  private getDescription(obj: unknown): string {
     try {
       return JSON.stringify(obj);
     } catch {

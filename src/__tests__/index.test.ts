@@ -1,13 +1,12 @@
 import ConfigEvaluation from '../ConfigEvaluation';
-import Statsig from '../index';
-import StatsigInstanceUtils from '../StatsigInstanceUtils';
-
 import DynamicConfig from '../DynamicConfig';
 import {
   StatsigInvalidArgumentError,
   StatsigUninitializedError,
 } from '../Errors';
+import Statsig from '../index';
 import LogEvent from '../LogEvent';
+import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import StatsigTestUtils from './StatsigTestUtils';
 
@@ -73,7 +72,7 @@ describe('Verify behavior of top level index functions', () => {
 
     try {
       Statsig.shutdown();
-    } catch (e) {}
+    } catch (e) {/* noop */}
 
     StatsigInstanceUtils.setInstance(null);
     flushedEventCount = 0;

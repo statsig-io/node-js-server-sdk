@@ -1,9 +1,9 @@
-import StatsigServer from '../StatsigServer';
 import {
   AdapterResponse,
   DataAdapterKey,
   IDataAdapter,
 } from '../interfaces/IDataAdapter';
+import StatsigServer from '../StatsigServer';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import {
   GateForConfigSpecTest,
@@ -46,9 +46,10 @@ class BootstrapDataAdapter implements IDataAdapter {
       case DataAdapterKey.IDLists:
         return Promise.resolve({ result: this.idListLookup });
 
-      default:
+      default: {
         const idListName = key.replace(DataAdapterKey.IDLists + '::', '');
         return Promise.resolve({ result: this.idLists[idListName] });
+      }
     }
   }
 

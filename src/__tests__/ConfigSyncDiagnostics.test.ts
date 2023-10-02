@@ -1,4 +1,5 @@
 import { FetchError } from 'node-fetch';
+
 import { MAX_SAMPLING_RATE } from '../Diagnostics';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
@@ -59,7 +60,7 @@ describe('ConfigSyncDiagnostics', () => {
       }
       const startingIndex = parseInt(
         // @ts-ignore
-        /\=(.*)\-/.exec(params['headers']['Range'])[1],
+        /=(.*)-/.exec(params['headers']['Range'])[1],
       );
       return Promise.resolve({
         ok: true,

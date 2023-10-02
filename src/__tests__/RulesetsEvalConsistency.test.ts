@@ -1,8 +1,8 @@
-import safeFetch from '../utils/safeFetch';
-import Statsig from '../index';
 import Evaluator from '../Evaluator';
-import StatsigTestUtils from './StatsigTestUtils';
+import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
+import safeFetch from '../utils/safeFetch';
+import StatsigTestUtils from './StatsigTestUtils';
 
 const secret: string = process.env.test_api_key ?? '';
 const shouldSkip = typeof secret !== 'string' || secret.length == 0;

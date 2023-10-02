@@ -1,6 +1,5 @@
 import OutputLogger from './OutputLogger';
 import { StatsigUser } from './StatsigUser';
-
 import { clone } from './utils/core';
 
 export type LogEventData = {

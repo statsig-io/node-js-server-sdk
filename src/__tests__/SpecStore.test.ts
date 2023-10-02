@@ -1,9 +1,9 @@
-import SpecStore, { SDKConstants } from '../SpecStore';
 import { ConfigSpec } from '../ConfigSpec';
-import StatsigFetcher from '../utils/StatsigFetcher';
-import { OptionsWithDefaults } from '../StatsigOptions';
 import Diagnostics, { MAX_SAMPLING_RATE } from '../Diagnostics';
 import LogEventProcessor from '../LogEventProcessor';
+import SpecStore, { SDKConstants } from '../SpecStore';
+import { OptionsWithDefaults } from '../StatsigOptions';
+import StatsigFetcher from '../utils/StatsigFetcher';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -58,7 +58,7 @@ fetch.mockImplementation((url, params) => {
     }
     const startingIndex = parseInt(
       // @ts-ignore
-      /\=(.*)\-/.exec(params['headers']['Range'])[1],
+      /=(.*)-/.exec(params['headers']['Range'])[1],
     );
     return Promise.resolve({
       ok: true,
@@ -185,15 +185,15 @@ describe('Verify behavior of SpecStore', () => {
       }
       if (url.includes('id_list_content')) {
         let wholeList = '';
-        for (var i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 5; i++) {
           wholeList += `+${i}\n`;
         }
-        for (var i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 3; i++) {
           wholeList += `-${i}\n`;
         }
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
         return Promise.resolve({
           ok: true,
@@ -280,7 +280,7 @@ describe('Verify behavior of SpecStore', () => {
         }
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
         return Promise.resolve({
           ok: true,
@@ -346,7 +346,7 @@ describe('Verify behavior of SpecStore', () => {
         wholeList += '?'; // make the starting character not - or +
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
         return Promise.resolve({
           ok: true,
@@ -410,7 +410,7 @@ describe('Verify behavior of SpecStore', () => {
         }
         const startingIndex = parseInt(
           // @ts-ignore
-          /\=(.*)\-/.exec(params['headers']['Range'])[1],
+          /=(.*)-/.exec(params['headers']['Range'])[1],
         );
         return Promise.resolve({
           ok: true,

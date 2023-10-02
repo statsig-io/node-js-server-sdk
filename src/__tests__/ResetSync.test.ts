@@ -46,8 +46,6 @@ fetch.mockImplementation((url, params) => {
 
 describe('Verify sync intervals reset', () => {
   const secretKey = 'secret-key';
-  const str_64 =
-    '1234567890123456789012345678901234567890123456789012345678901234';
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
