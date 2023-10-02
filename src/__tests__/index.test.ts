@@ -72,7 +72,7 @@ describe('Verify behavior of top level index functions', () => {
 
     try {
       Statsig.shutdown();
-    } catch (e) {/* noop */}
+    } catch {/* noop */}
 
     StatsigInstanceUtils.setInstance(null);
     flushedEventCount = 0;

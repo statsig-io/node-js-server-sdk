@@ -36,7 +36,7 @@ export default abstract class IDListUtil {
       if (Array.isArray(result)) {
         return result as IDListsLookupBootstrap;
       }
-    } catch (error) {
+    } catch {
       /* noop */
     }
     return null;

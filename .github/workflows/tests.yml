@@ -23,3 +23,24 @@ jobs:
       - run: npm run test
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
+  eslint:
+      runs-on: ubuntu-20.04
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            ref: ${{ github.head_ref }}
+        - name: cache .npm
+          uses: actions/cache@v2
+          env:
+            cache-name: npm
+          with:
+            path: ~/.npm
+            key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+        - run: npm install
+        - name: Lint
+          run: npm run lint
+        - name: Commit changes
+          uses: stefanzweifel/git-auto-commit-action@v4.1.2
+          with:
+            commit_message: Lint/Format
+            branch: ${{ github.head_ref }}

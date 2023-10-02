@@ -94,10 +94,9 @@ export default class ErrorBoundary {
           'Content-Type': 'application/json',
         },
         body,
-      }).catch();
-    } catch (_error) {
-      /* noop */
-    }
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      }).catch(() => {});
+    } catch {/* noop */}
   }
 
   private getDescription(obj: unknown): string {

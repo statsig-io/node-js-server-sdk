@@ -175,8 +175,8 @@ describe('Evaluation Details', () => {
   it('returns data adapter as an eval reason', async () => {
     const dataStoreServer = new StatsigServer('secret-key', {
       dataAdapter: {
-        get: () => Promise.resolve({ result: CONFIG_SPEC_RESPONSE }),
-        set: () =>
+        get: (_) => Promise.resolve({ result: CONFIG_SPEC_RESPONSE }),
+        set: (_, _1) =>
           Promise.reject(
             'Should not be called.  If this changes, update the test',
           ),

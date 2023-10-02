@@ -145,7 +145,7 @@ describe('DataAdapter', () => {
     });
 
     it('updates config specs when with newer network values', async () => {
-      expect.assertions(2);
+      expect.assertions(3);
 
       isNetworkEnabled = true;
       // Initialize with network
@@ -189,7 +189,7 @@ describe('DataAdapter', () => {
     });
 
     it('correctly handles bootstrap and adapter at the same time', async () => {
-      expect.assertions(2);
+      expect.assertions(3);
 
       await loadStore(dataAdapter);
 
