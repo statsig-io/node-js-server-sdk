@@ -104,19 +104,7 @@ export default class LogEventProcessor {
       });
   }
 
-  public shutdown(): void {
-    if (this.flushTimer != null) {
-      clearInterval(this.flushTimer);
-      this.flushTimer = null;
-    }
-    if (this.deduperTimer != null) {
-      clearInterval(this.deduperTimer);
-      this.deduperTimer = null;
-    }
-    this.flush(true);
-  }
-
-  public async shutdownAsync(): Promise<void> {
+  public async shutdown(): Promise<void> {
     if (this.flushTimer != null) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;

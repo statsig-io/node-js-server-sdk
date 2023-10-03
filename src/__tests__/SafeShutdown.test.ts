@@ -84,10 +84,10 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
     expect(events).toHaveLength(1);
   });
 
-  test('LogEventProcessor shutdownAsync', async () => {
-    logger.log(new LogEvent('LogEventProcessor shutdownAsync test event'));
+  test('LogEventProcessor shutdown async', async () => {
+    logger.log(new LogEvent('LogEventProcessor shutdown async test event'));
     const start = Date.now();
-    await logger.shutdownAsync();
+    await logger.shutdown();
     const end = Date.now();
     expect(events).toHaveLength(1);
     expect(end - start).toBeGreaterThanOrEqual(500);
@@ -106,7 +106,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
     expect(store.getInitReason()).toEqual('Network');
   });
 
-  test('SpecStore shutdownAsync', async () => {
+  test('SpecStore shutdown async', async () => {
     await store.init();
     expect(store.getInitReason()).toEqual('Uninitialized');
     const start = Date.now();

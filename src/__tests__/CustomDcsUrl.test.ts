@@ -1,5 +1,9 @@
+import Diagnostics from '../Diagnostics';
+import LogEvent from '../LogEvent';
+import LogEventProcessor from '../LogEventProcessor';
+import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
-import StatsigServer from '../StatsigServer';
+import StatsigFetcher from '../utils/StatsigFetcher';
 
 const jsonResponse = {
   time: Date.now(),
@@ -14,22 +18,25 @@ const customUrl = 'custom_download_config_specs_url';
 describe('Check custom DCS url', () => {
   const options = OptionsWithDefaults({
     apiForDownloadConfigSpecs: customUrl,
+    disableDiagnostics: true,
   });
-  const statsigServer = new StatsigServer('secret-123', options);
+  const fetcher = new StatsigFetcher('secret-123', options);
+  const logger = new LogEventProcessor(fetcher, options);
+  const store = new SpecStore(fetcher, options);
+  Diagnostics.initialize({ logger });
   
   const spy = jest
-    // @ts-ignore  
-    .spyOn(statsigServer._fetcher, 'post')
+    .spyOn(fetcher, 'post')
     .mockImplementation(() => {
-      return new Promise((r) => {
-        return new Response(JSON.stringify(jsonResponse), { status: 200 });
+      return new Promise((resolve) => {
+        resolve(new Response(JSON.stringify(jsonResponse), { status: 200 }));
       })
     });
   
   it('works', async () => {
-    await statsigServer.initializeAsync();
-    statsigServer.logEvent({ userID: '42' }, 'test');
-    await statsigServer.flush();
+    await store.init();
+    logger.log(new LogEvent('test'));
+    await logger.flush();
 
     expect(spy).toHaveBeenCalledWith(customUrl + dcsPath, expect.anything());
     expect(spy).not.toHaveBeenCalledWith(

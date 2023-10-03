@@ -406,7 +406,7 @@ export default class StatsigServer {
 
     this._errorBoundary.swallow(async () => {
       this._ready = false;
-      await this._logger.shutdownAsync();
+      await this._logger.shutdown();
       this._fetcher.shutdown();
       await this._evaluator.shutdownAsync();
     });
