@@ -12,6 +12,12 @@ import safeFetch from './safeFetch';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 
+type RequestOptions = Partial<{
+  retries: number;
+  backoff: number | RetryBackoffFunc;
+  isRetrying: boolean;
+}>
+
 export default class StatsigFetcher {
   private sessionID: string;
   private leakyBucket: Record<string, number>;
@@ -37,14 +43,26 @@ export default class StatsigFetcher {
     return this.dispatcher.enqueue(this.post(url, body), timeout);
   }
 
-  public post(
+  public async post(
     url: string,
     body: Record<string, unknown>,
-    options?: Partial<{
-      retries: number;
-      backoff: number | RetryBackoffFunc;
-      isRetrying: boolean;
-    }>,
+    options?: RequestOptions,
+  ): Promise<Response> {
+    return await this.request('POST', url, body, options);
+  }
+
+  public async get(
+    url: string,
+    options?: RequestOptions,
+  ): Promise<Response> {
+    return await this.request('GET', url, options);;
+  }
+
+  public async request(
+    method: 'POST' | 'GET',
+    url: string,
+    body?: Record<string, unknown>,
+    options?: RequestOptions,
   ): Promise<Response> {
     const { retries = 0, backoff = 1000, isRetrying = false } = options ?? {};
     const markDiagnostic = this.getDiagnosticFromURL(url);
@@ -73,8 +91,8 @@ export default class StatsigFetcher {
         : backoff(retries);
 
     const params = {
-      method: 'POST',
-      body: JSON.stringify(body),
+      method: method,
+      body: body ? JSON.stringify(body) : undefined,
       headers: {
         'Content-type': 'application/json; charset=UTF-8',
         'STATSIG-API-KEY': this.sdkKey,
@@ -95,7 +113,7 @@ export default class StatsigFetcher {
       .then((localRes) => {
         res = localRes;
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
-          return this._retry(url, body, retries - 1, backoffAdjusted);
+          return this._retry(method, url, body, retries - 1, backoffAdjusted);
         } else if (!res.ok) {
           return Promise.reject(
             new Error(
@@ -108,7 +126,7 @@ export default class StatsigFetcher {
       .catch((e) => {
         error = e;
         if (retries > 0) {
-          return this._retry(url, body, retries - 1, backoffAdjusted);
+          return this._retry(method, url, body, retries - 1, backoffAdjusted);
         }
         return Promise.reject(error);
       })
@@ -137,15 +155,16 @@ export default class StatsigFetcher {
   }
 
   private _retry(
+    method: 'POST' | 'GET',
     url: string,
-    body: Record<string, unknown>,
+    body: Record<string, unknown> | undefined,
     retries: number,
     backoff: number,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
-        this.post(url, body, { retries, backoff, isRetrying: true })
+        this.request(method, url, body, { retries, backoff, isRetrying: true })
           .then(resolve)
           .catch(reject);
       }, backoff);

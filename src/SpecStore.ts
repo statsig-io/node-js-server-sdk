@@ -241,10 +241,7 @@ export default class SpecStore {
     try {
       let response: Response | undefined = undefined;
       const url = this.apiForDownloadConfigSpecs + '/download_config_specs';
-      response = await this.fetcher.post(url, {
-        statsigMetadata: getStatsigMetadata(),
-        sinceTime: this.lastUpdateTime,
-      });
+      response = await this.fetcher.get(url);
 
       Diagnostics.mark.downloadConfigSpecs.process.start({});
       const specsString = await response.text();
