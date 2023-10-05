@@ -31,8 +31,16 @@ export class StatsigLocalModeNetworkError extends Error {
 }
 
 export class StatsigInitializeFromNetworkError extends Error {
-  constructor() {
-    super('statsigSDK::initialize> Failed to initialize from the network. See https://docs.statsig.com/messages/serverSDKConnection for more information');
+  constructor(error?: Error) {
+    super(`statsigSDK::initialize> Failed to initialize from the network${error ? `: ${error.message}` : ''}. See https://docs.statsig.com/messages/serverSDKConnection for more information`);
+
+    Object.setPrototypeOf(this, StatsigInitializeFromNetworkError.prototype);
+  }
+}
+
+export class StatsigInitializeIDListsError extends Error {
+  constructor(error?: Error) {
+    super(`statsigSDK::initialize> Failed to initialize id lists${error ? `: ${error.message}` : ''}.`);
 
     Object.setPrototypeOf(this, StatsigInitializeFromNetworkError.prototype);
   }
@@ -43,5 +51,29 @@ export class StatsigInvalidBootstrapValuesError extends Error {
     super('statsigSDK::initialize> the provided bootstrapValues is not a valid JSON string.');
 
     Object.setPrototypeOf(this, StatsigInvalidBootstrapValuesError.prototype);
+  }
+}
+
+export class StatsigInvalidDataAdapterValuesError extends Error {
+  constructor(key: string) {
+    super(`statsigSDK::dataAdapter> Failed to retrieve valid values for ${key}) from the provided data adapter`);
+
+    Object.setPrototypeOf(this, StatsigInvalidDataAdapterValuesError.prototype);
+  }
+}
+
+export class StatsigInvalidIDListsResponseError extends Error {
+  constructor() {
+    super('statsigSDK::dataAdapter> Failed to retrieve a valid ID lists response from network');
+
+    Object.setPrototypeOf(this, StatsigInvalidIDListsResponseError.prototype);
+  }
+}
+
+export class StatsigInvalidConfigSpecsResponseError extends Error {
+  constructor() {
+    super('statsigSDK::dataAdapter> Failed to retrieve a valid config specs response from network');
+
+    Object.setPrototypeOf(this, StatsigInvalidConfigSpecsResponseError.prototype);
   }
 }

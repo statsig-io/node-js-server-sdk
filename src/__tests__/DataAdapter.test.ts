@@ -416,7 +416,7 @@ describe('DataAdapter', () => {
 
       const evaluator = StatsigTestUtils.getEvaluator();
       evaluator.store.rulesetsSyncInterval = 1000;
-      evaluator.store.idListSyncInterval = 1000;
+      evaluator.store.idListsSyncInterval = 1000;
       evaluator.store.rulesetsSyncTimer = null;
       evaluator.store.idListsSyncTimer = null;
       evaluator.store.pollForUpdates();

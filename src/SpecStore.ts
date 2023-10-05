@@ -2,7 +2,11 @@ import { ConfigSpec } from './ConfigSpec';
 import Diagnostics, { ContextType, MAX_SAMPLING_RATE } from './Diagnostics';
 import {
   StatsigInitializeFromNetworkError,
+  StatsigInitializeIDListsError,
   StatsigInvalidBootstrapValuesError,
+  StatsigInvalidConfigSpecsResponseError,
+  StatsigInvalidDataAdapterValuesError,
+  StatsigInvalidIDListsResponseError,
   StatsigLocalModeNetworkError,
 } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
@@ -10,7 +14,6 @@ import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
-import { getStatsigMetadata } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -43,7 +46,7 @@ export default class SpecStore {
   private lastUpdateTime: number;
   private store: ConfigStore;
   private rulesetsSyncInterval: number;
-  private idListSyncInterval: number;
+  private idListsSyncInterval: number;
   private initialized: boolean;
   private rulesetsSyncTimer: NodeJS.Timeout | null;
   private idListsSyncTimer: NodeJS.Timeout | null;
@@ -53,7 +56,8 @@ export default class SpecStore {
   private idListsSyncPromise: () => Promise<void> = () => Promise.resolve();
   private fetcher: StatsigFetcher;
   private dataAdapter: IDataAdapter | null;
-  private syncFailureCount = 0;
+  private rulesetsSyncFailureCount = 0;
+  private idListsSyncFailureCount = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
   private samplingRates: SDKConstants = {
@@ -79,7 +83,7 @@ export default class SpecStore {
       experimentToLayer: {},
     };
     this.rulesetsSyncInterval = options.rulesetsSyncIntervalMs;
-    this.idListSyncInterval = options.idListsSyncIntervalMs;
+    this.idListsSyncInterval = options.idListsSyncIntervalMs;
     this.initialized = false;
     this.rulesetsSyncTimer = null;
     this.idListsSyncTimer = null;
@@ -169,9 +173,9 @@ export default class SpecStore {
     }
 
     if (this.initReason === 'Uninitialized') {
-      const { failed } = await this._fetchConfigSpecsFromServer();
-      if (failed) {
-        OutputLogger.error(new StatsigInitializeFromNetworkError());
+      const { error } = await this._fetchConfigSpecsFromServer();
+      if (error) {
+        OutputLogger.error(new StatsigInitializeFromNetworkError(error));
       }
     }
 
@@ -190,12 +194,21 @@ export default class SpecStore {
   }
 
   private async _initIDLists(): Promise<void> {
-    const adapter = this.dataAdapter;
-    const bootstrapIdLists = await adapter?.get(DataAdapterKey.IDLists);
-    if (adapter && typeof bootstrapIdLists?.result === 'string') {
-      await this.syncIdListsFromDataAdapter(adapter, bootstrapIdLists.result);
-    } else {
-      await this.syncIdListsFromNetwork();
+    const { error } = this.dataAdapter
+      ? await this.syncIdListsFromDataAdapter()
+      : await this.syncIdListsFromNetwork();
+    if (error) {
+      if (this.dataAdapter) {
+        OutputLogger.debug(
+          'Failed to initialize ID lists with data adapter. Retrying with network',
+        );
+        const { error } = await this.syncIdListsFromNetwork();
+        if (error) {
+          OutputLogger.error(new StatsigInitializeIDListsError(error));
+        }
+      } else {
+        OutputLogger.error(new StatsigInitializeIDListsError(error));
+      }
     }
   }
 
@@ -205,7 +218,7 @@ export default class SpecStore {
       Date.now() - Math.max(SYNC_OUTDATED_MAX, this.rulesetsSyncInterval);
     const idListsSyncTimerInactive =
       this.idListsSyncTimerLastActiveTime <
-      Date.now() - Math.max(SYNC_OUTDATED_MAX, this.idListSyncInterval);
+      Date.now() - Math.max(SYNC_OUTDATED_MAX, this.idListsSyncInterval);
     if (!rulesetsSyncTimerInactive && !idListsSyncTimerInactive) {
       return null;
     }
@@ -236,7 +249,7 @@ export default class SpecStore {
 
   private async _fetchConfigSpecsFromServer(): Promise<{
     synced: boolean;
-    failed: boolean;
+    error?: Error;
   }> {
     try {
       let response: Response | undefined = undefined;
@@ -246,7 +259,10 @@ export default class SpecStore {
       Diagnostics.mark.downloadConfigSpecs.process.start({});
       const specsString = await response.text();
       if (!this._process(JSON.parse(specsString))) {
-        return { synced: false, failed: true };
+        return {
+          synced: false,
+          error: new StatsigInvalidConfigSpecsResponseError(),
+        };
       }
       this.initReason = 'Network';
       if (
@@ -259,23 +275,23 @@ export default class SpecStore {
       Diagnostics.mark.downloadConfigSpecs.process.end({
         success: this.initReason === 'Network',
       });
-      return { synced: true, failed: false };
+      return { synced: true };
     } catch (e) {
       if (e instanceof StatsigLocalModeNetworkError) {
-        return { synced: false, failed: false };
+        return { synced: false };
+      } else {
+        return { synced: false, error: e as Error };
       }
-      OutputLogger.warn(e as Error);
-      return { synced: false, failed: true };
     }
   }
 
   private async _fetchConfigSpecsFromAdapter(): Promise<{
     synced: boolean;
-    failed: boolean;
+    error?: Error;
   }> {
     try {
       if (!this.dataAdapter) {
-        return { synced: false, failed: false };
+        return { synced: false };
       }
       const { result, error } = await this.dataAdapter.get(
         DataAdapterKey.Rulesets,
@@ -284,13 +300,17 @@ export default class SpecStore {
         const configSpecs = JSON.parse(result);
         if (this._process(configSpecs)) {
           this.initReason = 'DataAdapter';
-          return { synced: true, failed: false };
+          return { synced: true };
         }
       }
-      return { synced: false, failed: true };
+      return {
+        synced: false,
+        error: new StatsigInvalidDataAdapterValuesError(
+          DataAdapterKey.Rulesets,
+        ),
+      };
     } catch (e) {
-      OutputLogger.warn(e as Error);
-      return { synced: false, failed: true };
+      return { synced: false, error: e as Error };
     }
   }
 
@@ -326,7 +346,7 @@ export default class SpecStore {
       };
       this.idListsSyncTimer = poll(
         this.idListsSyncPromise,
-        this.idListSyncInterval,
+        this.idListsSyncInterval,
       );
     }
   }
@@ -359,25 +379,26 @@ export default class SpecStore {
     const shouldSyncFromAdapter =
       adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
 
-    const { synced, failed } = shouldSyncFromAdapter
+    const { synced, error } = shouldSyncFromAdapter
       ? await this._fetchConfigSpecsFromAdapter()
       : await this._fetchConfigSpecsFromServer();
     if (synced) {
-      this.syncFailureCount = 0;
-    } else if (failed) {
-      this.syncFailureCount++;
+      this.rulesetsSyncFailureCount = 0;
+    } else if (error) {
+      OutputLogger.debug(error);
+      this.rulesetsSyncFailureCount++;
       if (
-        this.syncFailureCount * this.rulesetsSyncInterval >
+        this.rulesetsSyncFailureCount * this.rulesetsSyncInterval >
         SYNC_OUTDATED_MAX
       ) {
         OutputLogger.warn(
-          `statsigSDK::sync> Syncing the server SDK with ${
-            shouldSyncFromAdapter ? 'the data adapter' : 'statsig'
+          `statsigSDK::sync> Syncing the server SDK from the ${
+            shouldSyncFromAdapter ? 'data adapter' : 'network'
           } has failed for  ${
-            this.syncFailureCount * this.rulesetsSyncInterval
+            this.rulesetsSyncFailureCount * this.rulesetsSyncInterval
           }ms. Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
         );
-        this.syncFailureCount = 0;
+        this.rulesetsSyncFailureCount = 0;
       }
     }
     this.logDiagnostics('config_sync', 'config_spec');
@@ -391,11 +412,35 @@ export default class SpecStore {
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
       adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
-    const adapterIdLists = await adapter?.get(DataAdapterKey.IDLists);
-    if (shouldSyncFromAdapter && typeof adapterIdLists?.result === 'string') {
-      await this.syncIdListsFromDataAdapter(adapter, adapterIdLists.result);
-    } else {
-      await this.syncIdListsFromNetwork();
+
+    let result = shouldSyncFromAdapter
+      ? await this.syncIdListsFromDataAdapter()
+      : await this.syncIdListsFromNetwork();
+    if (shouldSyncFromAdapter && result.error) {
+      OutputLogger.debug(result.error);
+      OutputLogger.debug(
+        'Failed to sync ID lists with data adapter. Retrying with network',
+      );
+      result = await this.syncIdListsFromNetwork();
+    }
+    if (result.synced) {
+      this.idListsSyncFailureCount = 0;
+    } else if (result.error) {
+      OutputLogger.debug(result.error);
+      this.idListsSyncFailureCount++;
+      if (
+        this.idListsSyncFailureCount * this.idListsSyncInterval >
+        SYNC_OUTDATED_MAX
+      ) {
+        OutputLogger.warn(
+          `statsigSDK::sync> Syncing ID lists from the ${
+            shouldSyncFromAdapter ? 'data adapter' : 'network'
+          } has failed for  ${
+            this.idListsSyncFailureCount * this.idListsSyncInterval
+          }ms. The SDK will continue to serve gate/config/experiment definitions that depend on ID lists as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+        );
+        this.idListsSyncFailureCount = 0;
+      }
     }
     this.logDiagnostics('config_sync', 'id_list');
   }
@@ -510,65 +555,102 @@ export default class SpecStore {
     return reverseMapping;
   }
 
-  private async syncIdListsFromDataAdapter(
-    dataAdapter: IDataAdapter,
-    listsLookupString: string,
-  ): Promise<void> {
-    const lookup = IDListUtil.parseBootstrapLookup(listsLookupString);
-    if (!lookup) {
-      return;
+  private async syncIdListsFromDataAdapter(): Promise<{
+    synced: boolean;
+    error?: Error;
+  }> {
+    try {
+      const dataAdapter = this.dataAdapter;
+      if (!dataAdapter) {
+        return { synced: false };
+      }
+      const adapterIdLists = await dataAdapter.get(DataAdapterKey.IDLists);
+      const listsLookupString = adapterIdLists.result;
+      if (!listsLookupString) {
+        return {
+          synced: false,
+          error: new StatsigInvalidDataAdapterValuesError(
+            DataAdapterKey.IDLists,
+          ),
+        };
+      }
+      const lookup = IDListUtil.parseBootstrapLookup(listsLookupString);
+      if (!lookup) {
+        return {
+          synced: false,
+          error: new StatsigInvalidDataAdapterValuesError(
+            DataAdapterKey.IDLists,
+          ),
+        };
+      }
+
+      const tasks: Promise<void>[] = [];
+      for (const name of lookup) {
+        tasks.push(
+          new Promise((resolve, reject) => {
+            dataAdapter
+              .get(IDListUtil.getIdListDataStoreKey(name))
+              .then((data) => {
+                if (!data.result) {
+                  return reject(
+                    new StatsigInvalidDataAdapterValuesError(
+                      IDListUtil.getIdListDataStoreKey(name),
+                    ),
+                  );
+                }
+                this.store.idLists[name] = {
+                  ids: {},
+                  readBytes: 0,
+                  url: 'bootstrap',
+                  fileID: 'bootstrap',
+                  creationTime: 0,
+                };
+
+                IDListUtil.updateIdList(this.store.idLists, name, data.result);
+              })
+              .catch((e) => {
+                OutputLogger.debug(e);
+              })
+              .finally(() => resolve());
+          }),
+        );
+      }
+
+      await Promise.all(tasks);
+      return { synced: true };
+    } catch (e) {
+      return { synced: false, error: e as Error };
     }
-
-    const tasks: Promise<void>[] = [];
-    for (const name of lookup) {
-      tasks.push(
-        new Promise((resolve) => {
-          dataAdapter
-            .get(IDListUtil.getIdListDataStoreKey(name))
-            .then((data) => {
-              if (!data.result) {
-                return;
-              }
-              this.store.idLists[name] = {
-                ids: {},
-                readBytes: 0,
-                url: 'bootstrap',
-                fileID: 'bootstrap',
-                creationTime: 0,
-              };
-
-              IDListUtil.updateIdList(this.store.idLists, name, data.result);
-            })
-            .finally(() => resolve());
-        }),
-      );
-    }
-
-    await Promise.all(tasks);
   }
 
-  private async syncIdListsFromNetwork(): Promise<void> {
+  private async syncIdListsFromNetwork(): Promise<{
+    synced: boolean;
+    error?: Error;
+  }> {
     let response: Response | null = null;
     try {
-      response = await this.fetcher.post(this.api + '/get_id_lists', {
-        statsigMetadata: getStatsigMetadata(),
-      });
+      response = await this.fetcher.post(this.api + '/get_id_lists', {});
     } catch (e) {
-      if (!(e instanceof StatsigLocalModeNetworkError)) {
-        OutputLogger.warn(e as Error);
+      if (e instanceof StatsigLocalModeNetworkError) {
+        return { synced: false };
+      } else {
+        return { synced: false, error: e as Error };
       }
     }
 
     if (!response) {
-      return;
+      return { synced: false };
     }
 
-    let threwError = false;
+    let error: Error | undefined;
     try {
       const json = await response.json();
       const lookup = IDListUtil.parseLookupResponse(json);
       if (!lookup) {
-        return;
+        return {
+          synced: false,
+          error: new StatsigInvalidIDListsResponseError(),
+        };
       }
       Diagnostics.mark.getIDListSources.process.start({
         idListCount: Object.keys(lookup).length,
@@ -623,12 +705,13 @@ export default class SpecStore {
         );
       }
     } catch (e) {
-      threwError = true;
+      error = e as Error;
     } finally {
       Diagnostics.mark.getIDListSources.process.end({
-        success: !threwError,
+        success: !error,
       });
     }
+    return { synced: !error, error };
   }
 
   private async genFetchIDList(
@@ -681,7 +764,7 @@ export default class SpecStore {
         url: url,
       });
     } catch (e) {
-      OutputLogger.warn(e as Error);
+      OutputLogger.debug(e as Error);
       Diagnostics.mark.getIDList.process.end({
         success: false,
         url: url,
