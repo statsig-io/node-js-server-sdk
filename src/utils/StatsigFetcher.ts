@@ -55,7 +55,7 @@ export default class StatsigFetcher {
     url: string,
     options?: RequestOptions,
   ): Promise<Response> {
-    return await this.request('GET', url, options);;
+    return await this.request('GET', url, options);
   }
 
   public async request(
