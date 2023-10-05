@@ -27,6 +27,17 @@ describe('Test local mode with overrides', () => {
     StatsigInstanceUtils.setInstance(null);
   });
 
+  it('initializes fine when localMode is true and wrong secret key is provided', async () => {
+    await statsig.initialize('wrong-key', { localMode: true });
+    expect(hitNetwork).toEqual(false);
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      { userID: 'test' },
+      'any_gate',
+      false,
+    );
+  });
+
   it('initalize resolves and all values are defualts', async () => {
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
@@ -231,9 +242,9 @@ describe('Test local mode with overrides', () => {
       },
     };
 
-    await statsig.initialize('secret-key', { 
+    await statsig.initialize('secret-key', {
       localMode: true,
-      logger: customLogger
+      logger: customLogger,
     });
     expect(hitNetwork).toEqual(false);
 

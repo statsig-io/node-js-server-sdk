@@ -92,9 +92,10 @@ export default class StatsigServer {
           return Promise.resolve();
         }
         if (
-          typeof this._secretKey !== 'string' ||
-          this._secretKey.length === 0 ||
-          !this._secretKey.startsWith('secret-')
+          !this._options.localMode &&
+          (typeof this._secretKey !== 'string' ||
+            this._secretKey.length === 0 ||
+            !this._secretKey.startsWith('secret-'))
         ) {
           return Promise.reject(
             new StatsigInvalidArgumentError(
