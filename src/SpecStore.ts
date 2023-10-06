@@ -258,7 +258,8 @@ export default class SpecStore {
 
       Diagnostics.mark.downloadConfigSpecs.process.start({});
       const specsString = await response.text();
-      if (!this._process(JSON.parse(specsString))) {
+      const { success, hasUpdates } = this._process(JSON.parse(specsString));
+      if (!success) {
         return {
           synced: false,
           error: new StatsigInvalidConfigSpecsResponseError(),
@@ -271,10 +272,12 @@ export default class SpecStore {
       ) {
         this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
       }
-      this._saveConfigSpecsToAdapter(specsString);
-      Diagnostics.mark.downloadConfigSpecs.process.end({
-        success: this.initReason === 'Network',
-      });
+      if (hasUpdates) {
+        this._saveConfigSpecsToAdapter(specsString);
+        Diagnostics.mark.downloadConfigSpecs.process.end({
+          success: this.initReason === 'Network',
+        });
+      }
       return { synced: true };
     } catch (e) {
       if (e instanceof StatsigLocalModeNetworkError) {
@@ -298,7 +301,8 @@ export default class SpecStore {
       );
       if (result && !error) {
         const configSpecs = JSON.parse(result);
-        if (this._process(configSpecs)) {
+        const { success } = this._process(configSpecs);
+        if (success) {
           this.initReason = 'DataAdapter';
           return { synced: true };
         }
@@ -473,9 +477,12 @@ export default class SpecStore {
   }
 
   // returns a boolean indicating whether specsJSON has was successfully parsed
-  private _process(specsJSON: Record<string, unknown>): boolean {
+  private _process(specsJSON: Record<string, unknown>): {
+    success: boolean;
+    hasUpdates: boolean;
+  } {
     if (!specsJSON?.has_updates) {
-      return true;
+      return { success: true, hasUpdates: false };
     }
 
     const updatedGates: Record<string, ConfigSpec> = {};
@@ -494,7 +501,7 @@ export default class SpecStore {
       !Array.isArray(configArray) ||
       !Array.isArray(layersArray)
     ) {
-      return false;
+      return { success: false, hasUpdates: true };
     }
 
     for (const gateJSON of gateArray) {
@@ -502,7 +509,7 @@ export default class SpecStore {
         const gate = new ConfigSpec(gateJSON);
         updatedGates[gate.name] = gate;
       } catch (e) {
-        return false;
+        return { success: false, hasUpdates: true };
       }
     }
 
@@ -511,7 +518,7 @@ export default class SpecStore {
         const config = new ConfigSpec(configJSON);
         updatedConfigs[config.name] = config;
       } catch (e) {
-        return false;
+        return { success: false, hasUpdates: true };
       }
     }
 
@@ -520,7 +527,7 @@ export default class SpecStore {
         const config = new ConfigSpec(layerJSON);
         updatedLayers[config.name] = config;
       } catch (e) {
-        return false;
+        return { success: false, hasUpdates: true };
       }
     }
 
@@ -534,7 +541,7 @@ export default class SpecStore {
     this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
     this.clientSDKKeyToAppMap = (specsJSON?.sdk_keys_to_app_ids ??
       {}) as Record<string, string>;
-    return true;
+    return { success: true, hasUpdates: true };
   }
 
   /**
