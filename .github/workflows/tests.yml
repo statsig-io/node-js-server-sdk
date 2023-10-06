@@ -39,8 +39,3 @@ jobs:
         - run: npm install
         - name: Lint
           run: npm run lint
-        - name: Commit changes
-          uses: stefanzweifel/git-auto-commit-action@v4.1.2
-          with:
-            commit_message: Lint/Format
-            branch: ${{ github.head_ref }}
