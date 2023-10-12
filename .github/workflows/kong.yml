@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Get KONG
         run: |
-          if -n "${{ inputs.kong-branch }}" ]]; && [[ ${{ github.event_name }} == "workflow_dispatch" then
+          if [[ -n "${{ inputs.kong-branch }}" && ${{ github.event_name }} == "workflow_dispatch" ]]; then
               git clone -b ${{ inputs.kong-branch }} https://oauth2:$repo_pat@github.com/statsig-io/kong.git .
           else
               git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git .
