@@ -3,6 +3,7 @@ import LogEvent from '../LogEvent';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { ExplicitStatsigOptions, OptionsWithDefaults } from '../StatsigOptions';
+import StatsigServer from '../StatsigServer';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 jest.mock('node-fetch', () => jest.fn());
@@ -23,6 +24,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
   let fetcher: StatsigFetcher;
   let logger: LogEventProcessor;
   let store: SpecStore;
+  let server: StatsigServer;
   let events: { eventName: string }[] = [];
   let isInit: boolean;
 
@@ -64,9 +66,14 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
   });
 
   beforeEach(() => {
-    fetcher = new StatsigFetcher('secret-key', options);
-    logger = new LogEventProcessor(fetcher, options);
+    server = new StatsigServer('secret-key', options);
+    // @ts-ignore
+    fetcher = server._fetcher;
+    // @ts-ignore
+    logger = server._logger;
+    // Need to manually create store to bypass OptionsWithDefaults
     store = new SpecStore(fetcher, options);
+
     isInit = true;
   });
 
@@ -88,6 +95,15 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
     logger.log(new LogEvent('LogEventProcessor shutdown async test event'));
     const start = Date.now();
     await logger.shutdown();
+    const end = Date.now();
+    expect(events).toHaveLength(1);
+    expect(end - start).toBeGreaterThanOrEqual(500);
+  });
+
+  test('StatsigServer shutdown async', async () => {
+    logger.log(new LogEvent('StatsigServer shutdown async test event'));
+    const start = Date.now();
+    await server.shutdownAsync();
     const end = Date.now();
     expect(events).toHaveLength(1);
     expect(end - start).toBeGreaterThanOrEqual(500);

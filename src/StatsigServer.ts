@@ -399,17 +399,20 @@ export default class StatsigServer {
    * so the SDK can clean up internal state
    * Ensures any pending promises are resolved and remaining events are flushed.
    */
-   public async shutdownAsync() {
+  public async shutdownAsync() {
     if (this._logger == null) {
       return;
     }
 
-    this._errorBoundary.swallow(async () => {
-      this._ready = false;
-      await this._logger.shutdown();
-      this._fetcher.shutdown();
-      await this._evaluator.shutdownAsync();
-    });
+    await this._errorBoundary.capture(
+      async () => {
+        this._ready = false;
+        await this._logger.shutdown();
+        this._fetcher.shutdown();
+        await this._evaluator.shutdownAsync();
+      },
+      () => Promise.resolve(),
+    );
   }
 
   public async flush(): Promise<void> {
