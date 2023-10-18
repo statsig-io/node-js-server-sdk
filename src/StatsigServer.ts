@@ -415,14 +415,14 @@ export default class StatsigServer {
     );
   }
 
-  public async flush(): Promise<void> {
+  public async flush(signal?: AbortSignal): Promise<void> {
     return this._errorBoundary.capture(
       () => {
         if (this._logger == null) {
           return Promise.resolve();
         }
 
-        return this._logger.flush();
+        return this._logger.flush(false, signal);
       },
       () => Promise.resolve(),
     );

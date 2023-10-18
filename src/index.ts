@@ -363,12 +363,12 @@ export const Statsig = {
   /**
    * Flushes all the events that are currently in the queue to Statsig.
    */
-  flush(): Promise<void> {
+  flush(signal?: AbortSignal): Promise<void> {
     const inst = StatsigInstanceUtils.getInstance();
     if (inst == null) {
       return Promise.resolve();
     }
-    return inst.flush();
+    return inst.flush(signal);
   },
 
   /**

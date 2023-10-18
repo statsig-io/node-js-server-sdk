@@ -76,7 +76,10 @@ export default class LogEventProcessor {
     }
   }
 
-  public async flush(fireAndForget = false): Promise<void> {
+  public async flush(
+    fireAndForget = false,
+    signal?: AbortSignal,
+  ): Promise<void> {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
@@ -90,6 +93,7 @@ export default class LogEventProcessor {
       .post(this.options.api + '/log_event', body, {
         retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
         backoff: this.options.postLogsRetryBackoff,
+        signal,
       })
       .then(() => {
         return Promise.resolve();
@@ -100,6 +104,13 @@ export default class LogEventProcessor {
             error: e?.message || 'log_event_failed',
           });
         }
+
+        if (e instanceof Error && e.name === 'TimeoutError') {
+          this.logStatsigInternal(null, 'log_event_failed', {
+            error: e?.message || 'log_event_failed',
+          });
+        }
+
         return Promise.resolve();
       });
   }

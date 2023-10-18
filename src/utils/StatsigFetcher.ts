@@ -16,6 +16,7 @@ type RequestOptions = Partial<{
   retries: number;
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
+  signal?: AbortSignal;
 }>;
 
 export default class StatsigFetcher {
@@ -115,6 +116,7 @@ export default class StatsigFetcher {
         'STATSIG-SDK-TYPE': getSDKType(),
         'STATSIG-SDK-VERSION': getSDKVersion(),
       },
+      signal: options?.signal,
     };
 
     if (!isRetrying) {
