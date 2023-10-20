@@ -119,7 +119,14 @@ export default class Evaluator {
       );
     }
 
-    return this._evalSpec(user, this.store.getGate(gateName));
+    const gate = this.store.getGate(gateName);
+    if (!gate) {
+      OutputLogger.debug(
+        `statsigSDK> Evaluating a non-existent gate ${gateName}`,
+      );
+      return this.getUnrecognizedEvaluation()
+    }
+    return this._evalSpec(user, gate);
   }
 
   public getConfig(user: StatsigUser, configName: string): ConfigEvaluation {
@@ -140,7 +147,14 @@ export default class Evaluator {
       );
     }
 
-    return this._evalSpec(user, this.store.getConfig(configName));
+    const config = this.store.getConfig(configName);
+    if (!config) {
+      OutputLogger.debug(
+        `statsigSDK> Evaluating a non-existent config ${configName}`,
+      );
+      return this.getUnrecognizedEvaluation()
+    }
+    return this._evalSpec(user, config);
   }
 
   public getLayer(user: StatsigUser, layerName: string): ConfigEvaluation {
@@ -161,7 +175,14 @@ export default class Evaluator {
       );
     }
 
-    return this._evalSpec(user, this.store.getLayer(layerName));
+    const layer = this.store.getLayer(layerName);
+    if (!layer) {
+      OutputLogger.debug(
+        `statsigSDK> Evaluating a non-existent layer ${layerName}`,
+      );
+      return this.getUnrecognizedEvaluation()
+    }
+    return this._evalSpec(user, layer);
   }
 
   public getClientInitializeResponse(
@@ -432,18 +453,17 @@ export default class Evaluator {
     await this.store.shutdownAsync();
   }
 
-  _evalSpec(user: StatsigUser, config: ConfigSpec | null): ConfigEvaluation {
-    if (!config) {
-      OutputLogger.debug('statsigSDK> Evaluating a non-existent gate/config');
-      return new ConfigEvaluation(false, '', null).withEvaluationDetails(
-        EvaluationDetails.make(
-          this.store.getLastUpdateTime(),
-          this.store.getInitialUpdateTime(),
-          'Unrecognized',
-        ),
-      );
-    }
+  private getUnrecognizedEvaluation(): ConfigEvaluation {
+    return new ConfigEvaluation(false, '', null).withEvaluationDetails(
+      EvaluationDetails.make(
+        this.store.getLastUpdateTime(),
+        this.store.getInitialUpdateTime(),
+        'Unrecognized',
+      ),
+    );
+  }
 
+  _evalSpec(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
     const evaulation = this._eval(user, config);
     if (evaulation.evaluation_details) {
       return evaulation;
