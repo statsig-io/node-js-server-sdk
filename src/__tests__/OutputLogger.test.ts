@@ -1,5 +1,5 @@
 import Statsig from '..';
-import { StatsigInitializeIDListsError } from '../Errors';
+import { StatsigInitializeFromNetworkError, StatsigInitializeIDListsError } from '../Errors';
 import LogEvent from '../LogEvent';
 import { LoggerInterface } from '../StatsigOptions';
 
@@ -17,12 +17,14 @@ describe('Output Logger Interface', () => {
       },
       logLevel: level,
     };
-    await Statsig.initialize('secret-key', { logger: customLogger });
+    const secretKey = 'secret-key';
+    await Statsig.initialize(secretKey, { logger: customLogger });
     // @ts-ignore
     Statsig.logEvent({ userID: '123' }, null);
-    expect(errors.length).toBeGreaterThanOrEqual(level === 'error' ? 2 : 0);
+    expect(errors.length).toEqual(level === 'error' ? 3 : 0);
     if (level === 'error') {
       expect(errors).toContainEqual('statsigSDK::logEvent> Must provide a valid string for the eventName.');
+      expect(errors).toContainEqual(new StatsigInitializeFromNetworkError(new Error(`Request to https://api.statsigcdn.com/v1/download_config_specs/${secretKey}.json failed with status 401`)));
       expect(errors).toContainEqual(new StatsigInitializeIDListsError(new Error('Request to https://statsigapi.net/v1/get_id_lists failed with status 401')));
     }
     // @ts-ignore

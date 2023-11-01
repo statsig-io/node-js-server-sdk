@@ -404,12 +404,15 @@ export default class StatsigServer {
       return;
     }
 
-    this._errorBoundary.swallow(async () => {
-      this._ready = false;
-      await this._logger.shutdown(timeout);
-      this._fetcher.shutdown();
-      await this._evaluator.shutdownAsync();
-    });
+    await this._errorBoundary.capture(
+      async () => {
+        this._ready = false;
+        await this._logger.shutdown(timeout);
+        this._fetcher.shutdown();
+        await this._evaluator.shutdownAsync();
+      },
+      () => Promise.resolve(),
+    );
   }
 
   public async flush(): Promise<void> {

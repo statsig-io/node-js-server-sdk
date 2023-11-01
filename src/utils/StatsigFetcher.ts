@@ -20,6 +20,8 @@ type RequestOptions = Partial<{
 }>;
 
 export default class StatsigFetcher {
+  private api: string;
+  private apiForDownloadConfigSpecs: string;
   private sessionID: string;
   private leakyBucket: Record<string, number>;
   private pendingTimers: NodeJS.Timer[];
@@ -28,12 +30,27 @@ export default class StatsigFetcher {
   private sdkKey: string;
 
   public constructor(secretKey: string, options: ExplicitStatsigOptions) {
+    this.api = options.api;
+    this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
     this.sessionID = uuidv4();
     this.leakyBucket = {};
     this.pendingTimers = [];
     this.dispatcher = new Dispatcher(200);
     this.localMode = options.localMode;
     this.sdkKey = secretKey;
+  }
+
+  public async downloadConfigSpecs(sinceTime?: number): Promise<Response> {
+    return await this.get(
+      this.apiForDownloadConfigSpecs +
+        '/download_config_specs' +
+        `/${this.sdkKey}.json` +
+        (sinceTime ? `?sinceTime=${sinceTime}` : ''),
+    );
+  }
+
+  public async getIDLists(sinceTime?: number): Promise<Response> {
+    return await this.post(this.api + '/get_id_lists', {});
   }
 
   public dispatch(
@@ -187,10 +204,10 @@ export default class StatsigFetcher {
     | typeof Diagnostics.mark.downloadConfigSpecs.networkRequest
     | typeof Diagnostics.mark.getIDListSources.networkRequest
     | null {
-    if (url.endsWith('/download_config_specs')) {
+    if (url.includes('/download_config_specs')) {
       return Diagnostics.mark.downloadConfigSpecs.networkRequest;
     }
-    if (url.endsWith('/get_id_lists')) {
+    if (url.includes('/get_id_lists')) {
       return Diagnostics.mark.getIDListSources.networkRequest;
     }
     return null;

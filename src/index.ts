@@ -77,7 +77,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to check this gate value for
    * @param {string} gateName - the name of the gate to check
-   * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
+   * @returns {boolean} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
    */
   checkGateSync(user: StatsigUser, gateName: string): boolean {
@@ -94,7 +94,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to check this gate value for
    * @param {string} gateName - the name of the gate to check
-   * @returns {Promise<boolean>} - The value of the gate for the user.  Gates are off (return false) by default
+   * @returns {boolean} - The value of the gate for the user.  Gates are off (return false) by default
    * @throws Error if initialize() was not called first
    */
   checkGateWithExposureLoggingDisabledSync(
@@ -133,7 +133,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the dyamic config
    * @param {string} configName - the name of the dynamic config to get
-   * @returns {Promise<DynamicConfig>} - the config for the user
+   * @returns {DynamicConfig} - the config for the user
    * @throws Error if initialize() was not called first
    */
   getConfigSync(user: StatsigUser, configName: string): DynamicConfig {
@@ -146,7 +146,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the dyamic config
    * @param {string} configName - the name of the dynamic config to get
-   * @returns {Promise<DynamicConfig>} - the config for the user
+   * @returns {DynamicConfig} - the config for the user
    * @throws Error if initialize() was not called first
    */
   getConfigWithExposureLoggingDisabledSync(
@@ -175,7 +175,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the experiment
    * @param {string} experimentName - the name of the experiment to get
-   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
+   * @returns {DynamicConfig} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
    */
   getExperimentSync(user: StatsigUser, experimentName: string): DynamicConfig {
@@ -188,7 +188,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the experiment
    * @param {string} experimentName - the name of the experiment to get
-   * @returns {Promise<DynamicConfig>} - the experiment for the user, represented by a Dynamic Config object
+   * @returns {DynamicConfig} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
    */
   getExperimentWithExposureLoggingDisabledSync(
@@ -217,7 +217,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the layer
    * @param {string} layerName - the name of the layer to get
-   * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
+   * @returns {Layer} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
    */
   getLayerSync(user: StatsigUser, layerName: string): Layer {
@@ -230,7 +230,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the layer
    * @param {string} layerName - the name of the layer to get
-   * @returns {Promise<Layer>} - the layer for the user, represented by a Layer
+   * @returns {Layer} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
    */

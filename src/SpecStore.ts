@@ -39,8 +39,6 @@ export type SDKConstants = DiagnosticsSamplingRate;
 
 export default class SpecStore {
   private initReason: EvaluationReason;
-  private api: string;
-  private apiForDownloadConfigSpecs: string;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
   private initialUpdateTime: number;
   private lastUpdateTime: number;
@@ -70,8 +68,6 @@ export default class SpecStore {
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
-    this.api = options.api;
-    this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
     this.lastUpdateTime = 0;
     this.initialUpdateTime = 0;
@@ -253,8 +249,7 @@ export default class SpecStore {
   }> {
     try {
       let response: Response | undefined = undefined;
-      const url = this.apiForDownloadConfigSpecs + '/download_config_specs';
-      response = await this.fetcher.get(url);
+      response = await this.fetcher.downloadConfigSpecs(this.lastUpdateTime);
 
       Diagnostics.mark.downloadConfigSpecs.process.start({});
       const specsString = await response.text();
@@ -636,7 +631,7 @@ export default class SpecStore {
   }> {
     let response: Response | null = null;
     try {
-      response = await this.fetcher.post(this.api + '/get_id_lists', {});
+      response = await this.fetcher.getIDLists();
     } catch (e) {
       if (e instanceof StatsigLocalModeNetworkError) {
         return { synced: false };

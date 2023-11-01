@@ -20,7 +20,8 @@ describe('Check custom DCS url', () => {
     apiForDownloadConfigSpecs: customUrl,
     disableDiagnostics: true,
   });
-  const fetcher = new StatsigFetcher('secret-123', options);
+  const secretKey = 'secret-123';
+  const fetcher = new StatsigFetcher(secretKey, options);
   const logger = new LogEventProcessor(fetcher, options);
   const store = new SpecStore(fetcher, options);
   Diagnostics.initialize({ logger });
@@ -34,7 +35,7 @@ describe('Check custom DCS url', () => {
     logger.log(new LogEvent('test'));
     await logger.flush();
 
-    expect(spy).toHaveBeenCalledWith('GET', customUrl + dcsPath, undefined);
+    expect(spy).toHaveBeenCalledWith('GET', customUrl + dcsPath + `/${secretKey}.json`, undefined);
     expect(spy).not.toHaveBeenCalledWith(
       'POST',
       customUrl + '/get_id_lists',
