@@ -381,14 +381,14 @@ export default class StatsigServer {
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state
    */
-  public shutdown() {
+  public shutdown(timeout: number) {
     if (this._logger == null) {
       return;
     }
 
     this._errorBoundary.swallow(() => {
       this._ready = false;
-      this._logger.shutdown();
+      this._logger.shutdown(timeout);
       this._fetcher.shutdown();
       this._evaluator.shutdown();
     });
@@ -399,14 +399,14 @@ export default class StatsigServer {
    * so the SDK can clean up internal state
    * Ensures any pending promises are resolved and remaining events are flushed.
    */
-   public async shutdownAsync() {
+  public async shutdownAsync(timeout: number) {
     if (this._logger == null) {
       return;
     }
 
     this._errorBoundary.swallow(async () => {
       this._ready = false;
-      await this._logger.shutdown();
+      await this._logger.shutdown(timeout);
       this._fetcher.shutdown();
       await this._evaluator.shutdownAsync();
     });

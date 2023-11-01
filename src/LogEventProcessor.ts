@@ -76,7 +76,10 @@ export default class LogEventProcessor {
     }
   }
 
-  public async flush(fireAndForget = false): Promise<void> {
+  public async flush(
+    fireAndForget = false,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
@@ -86,10 +89,12 @@ export default class LogEventProcessor {
       statsigMetadata: getStatsigMetadata(),
       events: oldQueue,
     };
+
     return this.fetcher
       .post(this.options.api + '/log_event', body, {
         retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
         backoff: this.options.postLogsRetryBackoff,
+        signal: abortSignal,
       })
       .then(() => {
         return Promise.resolve();
@@ -104,7 +109,7 @@ export default class LogEventProcessor {
       });
   }
 
-  public async shutdown(): Promise<void> {
+  public async shutdown(timeout: number): Promise<void> {
     if (this.flushTimer != null) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
@@ -113,7 +118,10 @@ export default class LogEventProcessor {
       clearInterval(this.deduperTimer);
       this.deduperTimer = null;
     }
-    return await this.flush(true);
+    const controller = new AbortController();
+    const handle = setTimeout(() => controller.abort(), timeout);
+    await this.flush(true, controller.signal);
+    clearTimeout(handle);
   }
 
   public logStatsigInternal(

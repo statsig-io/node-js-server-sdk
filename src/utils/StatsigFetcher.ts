@@ -16,7 +16,8 @@ type RequestOptions = Partial<{
   retries: number;
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
-}>
+  signal: AbortSignal;
+}>;
 
 export default class StatsigFetcher {
   private sessionID: string;
@@ -51,10 +52,7 @@ export default class StatsigFetcher {
     return await this.request('POST', url, body, options);
   }
 
-  public async get(
-    url: string,
-    options?: RequestOptions,
-  ): Promise<Response> {
+  public async get(url: string, options?: RequestOptions): Promise<Response> {
     return await this.request('GET', url, options);
   }
 
@@ -64,7 +62,12 @@ export default class StatsigFetcher {
     body?: Record<string, unknown>,
     options?: RequestOptions,
   ): Promise<Response> {
-    const { retries = 0, backoff = 1000, isRetrying = false } = options ?? {};
+    const {
+      retries = 0,
+      backoff = 1000,
+      isRetrying = false,
+      signal,
+    } = options ?? {};
     const markDiagnostic = this.getDiagnosticFromURL(url);
     if (this.localMode) {
       return Promise.reject(new StatsigLocalModeNetworkError());
@@ -101,6 +104,7 @@ export default class StatsigFetcher {
         'STATSIG-SDK-TYPE': getSDKType(),
         'STATSIG-SDK-VERSION': getSDKVersion(),
       },
+      signal: signal,
     };
 
     if (!isRetrying) {

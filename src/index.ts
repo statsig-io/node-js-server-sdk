@@ -292,10 +292,11 @@ export const Statsig = {
 
   /**
    * Informs the statsig SDK that the client is closing or shutting down
-   * so the SDK can clean up internal state
+   * so the SDK can clean up internal stat
+   * @param timeout the timeout in milliseconds to wait for pending promises to resolve
    */
-  shutdown(): void {
-    this._enforceServer().shutdown();
+  shutdown(timeout = 5000): void {
+    this._enforceServer().shutdown(timeout);
     OutputLogger.resetLogger();
   },
 
@@ -303,9 +304,10 @@ export const Statsig = {
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state
    * Ensures any pending promises are resolved and remaining events are flushed.
+   * @param timeout the timeout in milliseconds to wait for pending promises to resolve
    */
-  async shutdownAsync(): Promise<void> {
-    await this._enforceServer().shutdownAsync();
+  async shutdownAsync(timeout = 5000): Promise<void> {
+    await this._enforceServer().shutdownAsync(timeout);
     OutputLogger.resetLogger();
   },
 
