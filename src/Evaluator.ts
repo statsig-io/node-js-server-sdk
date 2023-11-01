@@ -174,13 +174,10 @@ export default class Evaluator {
     const hashedClientKeyToAppMap = this.store.getHashedClientKeyToAppMap();
     const clientKeyToAppMap = this.store.getClientKeyToAppMap();
     let targetAppID: string | null = null;
-    if (
-      clientSDKKey != null &&
-      hashedClientKeyToAppMap[djb2Hash(clientSDKKey)] != null
-    ) {
+    if (clientSDKKey != null) {
       targetAppID = hashedClientKeyToAppMap[djb2Hash(clientSDKKey)] ?? null;
     }
-    if (clientSDKKey != null && clientKeyToAppMap[clientSDKKey] != null) {
+    if (clientSDKKey != null && targetAppID == null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
     }
     const filterTargetAppID = (spec: ConfigSpec) => {
