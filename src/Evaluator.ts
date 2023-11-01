@@ -11,6 +11,7 @@ import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
+import { djb2Hash } from './utils/Hashing';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -170,8 +171,15 @@ export default class Evaluator {
     if (!this.store.isServingChecks()) {
       return null;
     }
+    const hashedClientKeyToAppMap = this.store.getHashedClientKeyToAppMap();
     const clientKeyToAppMap = this.store.getClientKeyToAppMap();
     let targetAppID: string | null = null;
+    if (
+      clientSDKKey != null &&
+      hashedClientKeyToAppMap[djb2Hash(clientSDKKey)] != null
+    ) {
+      targetAppID = hashedClientKeyToAppMap[djb2Hash(clientSDKKey)] ?? null;
+    }
     if (clientSDKKey != null && clientKeyToAppMap[clientSDKKey] != null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
     }

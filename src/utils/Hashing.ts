@@ -8,7 +8,7 @@ function fasthash(value: string): number {
   return hash;
 }
 
-function djb2Hash(value: string): string {
+export function djb2Hash(value: string): string {
   return String(fasthash(value) >>> 0);
 }
 
