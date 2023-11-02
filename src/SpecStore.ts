@@ -65,6 +65,7 @@ export default class SpecStore {
     initialize: MAX_SAMPLING_RATE,
   };
   private clientSDKKeyToAppMap: Record<string, string> = {};
+  private hashedClientSDKKeyToAppMap: Record<string, string> = {};
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
@@ -88,6 +89,7 @@ export default class SpecStore {
     this.bootstrapValues = options.bootstrapValues;
     this.initStrategyForIDLists = options.initStrategyForIDLists;
     this.clientSDKKeyToAppMap = {};
+    this.hashedClientSDKKeyToAppMap = {};
   }
 
   public getInitReason() {
@@ -136,6 +138,10 @@ export default class SpecStore {
 
   public getClientKeyToAppMap(): Record<string, string> {
     return this.clientSDKKeyToAppMap;
+  }
+
+  public getHashedClientKeyToAppMap(): Record<string, string> {
+    return this.hashedClientSDKKeyToAppMap;
   }
 
   public async init(): Promise<void> {
@@ -535,6 +541,8 @@ export default class SpecStore {
     this.store.experimentToLayer = updatedExpToLayer;
     this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
     this.clientSDKKeyToAppMap = (specsJSON?.sdk_keys_to_app_ids ??
+      {}) as Record<string, string>;
+    this.hashedClientSDKKeyToAppMap = (specsJSON?.hashed_sdk_keys_to_app_ids ??
       {}) as Record<string, string>;
     return { success: true, hasUpdates: true };
   }
