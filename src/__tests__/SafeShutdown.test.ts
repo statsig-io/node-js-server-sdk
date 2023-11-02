@@ -83,7 +83,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
 
   test('LogEventProcessor shutdown', async () => {
     logger.log(new LogEvent('LogEventProcessor shutdown test event'));
-    logger.shutdown();
+    logger.shutdown(5000);
     expect(events).toHaveLength(0);
     // Wait for pending flush
     await new Promise((r) => setTimeout(r, 500));
@@ -94,7 +94,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
   test('LogEventProcessor shutdown async', async () => {
     logger.log(new LogEvent('LogEventProcessor shutdown async test event'));
     const start = Date.now();
-    await logger.shutdown();
+    await logger.shutdown(5000);
     const end = Date.now();
     expect(events).toHaveLength(1);
     expect(end - start).toBeGreaterThanOrEqual(500);
