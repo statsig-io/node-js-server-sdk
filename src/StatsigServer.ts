@@ -381,7 +381,7 @@ export default class StatsigServer {
    * Informs the statsig SDK that the server is closing or shutting down
    * so the SDK can clean up internal state
    */
-  public shutdown(timeout = 5000) {
+  public shutdown(timeout?: number) {
     if (this._logger == null) {
       return;
     }
@@ -399,7 +399,7 @@ export default class StatsigServer {
    * so the SDK can clean up internal state
    * Ensures any pending promises are resolved and remaining events are flushed.
    */
-  public async shutdownAsync(timeout = 5000) {
+  public async shutdownAsync(timeout?: number) {
     if (this._logger == null) {
       return;
     }
@@ -415,14 +415,24 @@ export default class StatsigServer {
     );
   }
 
-  public async flush(): Promise<void> {
+  public async flush(timeout?: number): Promise<void> {
     return this._errorBoundary.capture(
       () => {
         if (this._logger == null) {
           return Promise.resolve();
         }
 
-        return this._logger.flush();
+        let flushPromise: Promise<void>;
+        if (timeout != null) {
+          const controller = new AbortController();
+          const handle = setTimeout(() => controller.abort(), timeout);
+          flushPromise = this._logger
+            .flush(false, controller.signal)
+            .then(() => clearTimeout(handle));
+        } else {
+          flushPromise = this._logger.flush(false);
+        }
+        return flushPromise;
       },
       () => Promise.resolve(),
     );

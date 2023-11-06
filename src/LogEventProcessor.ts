@@ -3,6 +3,7 @@ import { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
+import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
@@ -100,6 +101,9 @@ export default class LogEventProcessor {
         return Promise.resolve();
       })
       .catch((e) => {
+        if (e?.name === 'AbortError') {
+          OutputLogger.debug('Request to log_event aborted');
+        }
         if (!fireAndForget && !(e instanceof StatsigLocalModeNetworkError)) {
           this.logStatsigInternal(null, 'log_event_failed', {
             error: e?.message || 'log_event_failed',
@@ -109,7 +113,7 @@ export default class LogEventProcessor {
       });
   }
 
-  public async shutdown(timeout: number): Promise<void> {
+  public async shutdown(timeout?: number): Promise<void> {
     if (this.flushTimer != null) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
@@ -118,10 +122,14 @@ export default class LogEventProcessor {
       clearInterval(this.deduperTimer);
       this.deduperTimer = null;
     }
-    const controller = new AbortController();
-    const handle = setTimeout(() => controller.abort(), timeout);
-    await this.flush(true, controller.signal);
-    clearTimeout(handle);
+    if (timeout != null) {
+      const controller = new AbortController();
+      const handle = setTimeout(() => controller.abort(), timeout);
+      await this.flush(true, controller.signal);
+      clearTimeout(handle);
+    } else {
+      await this.flush(true);
+    }
   }
 
   public logStatsigInternal(

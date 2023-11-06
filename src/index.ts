@@ -300,7 +300,7 @@ export const Statsig = {
    * so the SDK can clean up internal stat
    * @param timeout the timeout in milliseconds to wait for pending promises to resolve
    */
-  shutdown(timeout = 5000): void {
+  shutdown(timeout?: number): void {
     this._enforceServer().shutdown(timeout);
     OutputLogger.resetLogger();
   },
@@ -311,7 +311,7 @@ export const Statsig = {
    * Ensures any pending promises are resolved and remaining events are flushed.
    * @param timeout the timeout in milliseconds to wait for pending promises to resolve
    */
-  async shutdownAsync(timeout = 5000): Promise<void> {
+  async shutdownAsync(timeout?: number): Promise<void> {
     await this._enforceServer().shutdownAsync(timeout);
     OutputLogger.resetLogger();
   },
@@ -370,12 +370,12 @@ export const Statsig = {
   /**
    * Flushes all the events that are currently in the queue to Statsig.
    */
-  flush(): Promise<void> {
+  flush(timeout?: number): Promise<void> {
     const inst = StatsigInstanceUtils.getInstance();
     if (inst == null) {
       return Promise.resolve();
     }
-    return inst.flush();
+    return inst.flush(timeout);
   },
 
   /**
