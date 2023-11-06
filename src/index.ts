@@ -6,7 +6,11 @@ import {
   StatsigUninitializedError,
 } from './Errors';
 import { FeatureGate } from './FeatureGate';
-import { AdapterResponse, IDataAdapter } from './interfaces/IDataAdapter';
+import {
+  AdapterResponse,
+  DataAdapterKey,
+  IDataAdapter,
+} from './interfaces/IDataAdapter';
 import Layer from './Layer';
 import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
@@ -21,6 +25,7 @@ import { StatsigUser } from './StatsigUser';
 
 export type {
   AdapterResponse,
+  DataAdapterKey,
   InitStrategy,
   LogEventObject,
   RulesUpdatedCallback,
