@@ -201,9 +201,6 @@ export default class SpecStore {
       : await this.syncIdListsFromNetwork();
     if (error) {
       if (this.dataAdapter) {
-        OutputLogger.debug(
-          'Failed to initialize ID lists with data adapter. Retrying with network',
-        );
         const { error } = await this.syncIdListsFromNetwork();
         if (error) {
           OutputLogger.error(new StatsigInitializeIDListsError(error));
