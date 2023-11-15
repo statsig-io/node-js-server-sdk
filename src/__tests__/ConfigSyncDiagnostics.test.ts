@@ -4,7 +4,7 @@ import { MAX_SAMPLING_RATE } from '../Diagnostics';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import exampleConfigSpecs from './jest.setup';
-import StatsigTestUtils, { assertMarkerEqual } from './StatsigTestUtils';
+import StatsigTestUtils, { assertMarkerEqual, getDecodedBody } from './StatsigTestUtils';
 
 jest.mock('../utils/safeFetch', () => jest.fn());
 
@@ -47,7 +47,7 @@ describe('ConfigSyncDiagnostics', () => {
     }
 
     if (url.includes('log_event')) {
-      events = events.concat(JSON.parse(params.body)['events']);
+      events = events.concat(getDecodedBody(params)['events']);
       return Promise.resolve({
         ok: true,
       });

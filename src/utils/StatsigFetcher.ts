@@ -8,6 +8,7 @@ import {
 import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
+import getCompressionFunc from './getCompressionFunc';
 import safeFetch from './safeFetch';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
@@ -17,6 +18,7 @@ type RequestOptions = Partial<{
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
   signal: AbortSignal;
+  compress?: boolean;
 }>;
 
 export default class StatsigFetcher {
@@ -84,6 +86,7 @@ export default class StatsigFetcher {
       backoff = 1000,
       isRetrying = false,
       signal,
+      compress = false,
     } = options ?? {};
     const markDiagnostic = this.getDiagnosticFromURL(url);
     if (this.localMode) {
@@ -110,17 +113,28 @@ export default class StatsigFetcher {
         ? applyBackoffMultiplier(backoff)
         : backoff(retries);
 
+    const headers = {
+      'Content-type': 'application/json; charset=UTF-8',
+      'STATSIG-API-KEY': this.sdkKey,
+      'STATSIG-CLIENT-TIME': Date.now(),
+      'STATSIG-SERVER-SESSION-ID': this.sessionID,
+      'STATSIG-SDK-TYPE': getSDKType(),
+      'STATSIG-SDK-VERSION': getSDKVersion(),
+    } as Record<string, string | number>;
+    
+    let contents: BodyInit | undefined = undefined;
+    const gzipSync = getCompressionFunc();
+
+    if (compress && body && gzipSync) {
+      headers['Content-Encoding'] = 'gzip';
+      contents = gzipSync(JSON.stringify(body));
+    } else if (body) {
+      contents = JSON.stringify(body);
+    }
     const params = {
       method: method,
-      body: body ? JSON.stringify(body) : undefined,
-      headers: {
-        'Content-type': 'application/json; charset=UTF-8',
-        'STATSIG-API-KEY': this.sdkKey,
-        'STATSIG-CLIENT-TIME': Date.now(),
-        'STATSIG-SERVER-SESSION-ID': this.sessionID,
-        'STATSIG-SDK-TYPE': getSDKType(),
-        'STATSIG-SDK-VERSION': getSDKVersion(),
-      },
+      body: contents,
+      headers,
       signal: signal,
     };
 

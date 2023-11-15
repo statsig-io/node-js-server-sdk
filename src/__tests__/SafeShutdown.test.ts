@@ -5,6 +5,7 @@ import SpecStore from '../SpecStore';
 import { ExplicitStatsigOptions, OptionsWithDefaults } from '../StatsigOptions';
 import StatsigServer from '../StatsigServer';
 import StatsigFetcher from '../utils/StatsigFetcher';
+import { getDecodedBody } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -47,7 +48,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
 
       if (url.includes('log_event')) {
         await new Promise((r) => setTimeout(r, 500));
-        events = events.concat(JSON.parse(params.body)['events']);
+        events = events.concat(getDecodedBody(params)['events']);
         return Promise.resolve({
           ok: true,
         });

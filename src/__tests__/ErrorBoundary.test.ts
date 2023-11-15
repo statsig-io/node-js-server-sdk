@@ -5,6 +5,7 @@ import {
   StatsigUninitializedError,
 } from '../Errors';
 import { getStatsigMetadata } from '../utils/core';
+import { getDecodedBody } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
 
 describe('ErrorBoundary', () => {
@@ -64,7 +65,7 @@ describe('ErrorBoundary', () => {
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
 
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
         exception: 'URIError',
         info: err.stack,
@@ -79,7 +80,7 @@ describe('ErrorBoundary', () => {
     });
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
         exception: 'No Name',
         info: JSON.stringify(err),
@@ -108,7 +109,7 @@ describe('ErrorBoundary', () => {
       throw new Error();
     });
 
-    expect(JSON.parse(requests[0].params.body.toString())).toEqual(
+    expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
         statsigMetadata: getStatsigMetadata(),
       }),

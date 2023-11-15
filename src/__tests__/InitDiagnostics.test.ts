@@ -9,7 +9,7 @@ import { DataAdapterKey } from '../interfaces/IDataAdapter';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
 import exampleConfigSpecs from './jest.setup';
-import { assertMarkerEqual } from './StatsigTestUtils';
+import { assertMarkerEqual, getDecodedBody } from './StatsigTestUtils';
 import { TestSyncingDataAdapter } from './TestDataAdapter';
 
 jest.mock('node-fetch', () => jest.fn());
@@ -50,7 +50,7 @@ describe('InitDiagnostics', () => {
       }
 
       if (url.includes('log_event')) {
-        events = events.concat(JSON.parse(params.body)['events']);
+        events = events.concat(getDecodedBody(params)['events']);
         return Promise.resolve({
           ok: true,
         });

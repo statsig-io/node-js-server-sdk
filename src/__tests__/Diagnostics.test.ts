@@ -6,6 +6,7 @@ import Diagnostics, {
 import LogEventProcessor from '../LogEventProcessor';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
+import { getDecodedBody } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -29,7 +30,7 @@ describe('Diagnostics', () => {
     const fetch = require('node-fetch');
     fetch.mockImplementation((url: string, params) => {
       if (url.includes('log_event')) {
-        events = events.concat(JSON.parse(params.body)['events']);
+        events = events.concat(getDecodedBody(params)['events']);
         return Promise.resolve({
           ok: true,
         });

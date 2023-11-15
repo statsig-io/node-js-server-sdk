@@ -1,6 +1,6 @@
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { assertMarkerEqual } from './StatsigTestUtils';
+import { assertMarkerEqual, getDecodedBody } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -43,7 +43,7 @@ describe('InitStrategy', () => {
       }
 
       if (url.includes('log_event')) {
-        events = events.concat(JSON.parse(params.body)['events']);
+        events = events.concat(getDecodedBody(params)['events']);
         return Promise.resolve({
           ok: true,
         });

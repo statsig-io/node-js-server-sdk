@@ -8,7 +8,7 @@ import Statsig from '../index';
 import LogEvent from '../LogEvent';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
-import StatsigTestUtils from './StatsigTestUtils';
+import StatsigTestUtils, { getDecodedBody } from './StatsigTestUtils';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -47,7 +47,7 @@ fetch.mockImplementation((url, params) => {
   } else if (url.includes('log_event') || url.includes('rgstr')) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const events = JSON.parse(params.body).events;
+        const events = getDecodedBody(params).events;
         flushedEventCount += events.length;
         resolve({
           ok: true,
