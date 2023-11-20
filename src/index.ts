@@ -20,7 +20,10 @@ import {
   StatsigEnvironment,
   StatsigOptions,
 } from './StatsigOptions';
-import StatsigServer, { LogEventObject } from './StatsigServer';
+import StatsigServer, {
+  ClientInitializeResponseOptions,
+  LogEventObject,
+} from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
 
 export type {
@@ -325,10 +328,12 @@ export const Statsig = {
   getClientInitializeResponse(
     user: StatsigUser,
     clientSDKKey?: string,
+    options?: ClientInitializeResponseOptions,
   ): Record<string, unknown> | null {
     return this._enforceServer().getClientInitializeResponse(
       user,
       clientSDKKey,
+      options,
     );
   },
 

@@ -1,5 +1,4 @@
 import ip3country from 'ip3country';
-import shajs from 'sha.js';
 
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
@@ -7,9 +6,10 @@ import { EvaluationDetails } from './EvaluationDetails';
 import OutputLogger from './OutputLogger';
 import SpecStore from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
+import { ClientInitializeResponseOptions } from './StatsigServer';
 import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
-import { djb2Hash } from './utils/Hashing';
+import { djb2Hash, hashString, hashUnitIDForIDList, sha256Hash, sha256HashBase64 } from './utils/Hashing';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
 
@@ -124,7 +124,7 @@ export default class Evaluator {
       OutputLogger.debug(
         `statsigSDK> Evaluating a non-existent gate ${gateName}`,
       );
-      return this.getUnrecognizedEvaluation()
+      return this.getUnrecognizedEvaluation();
     }
     return this._evalSpec(user, gate);
   }
@@ -152,7 +152,7 @@ export default class Evaluator {
       OutputLogger.debug(
         `statsigSDK> Evaluating a non-existent config ${configName}`,
       );
-      return this.getUnrecognizedEvaluation()
+      return this.getUnrecognizedEvaluation();
     }
     return this._evalSpec(user, config);
   }
@@ -180,7 +180,7 @@ export default class Evaluator {
       OutputLogger.debug(
         `statsigSDK> Evaluating a non-existent layer ${layerName}`,
       );
-      return this.getUnrecognizedEvaluation()
+      return this.getUnrecognizedEvaluation();
     }
     return this._evalSpec(user, layer);
   }
@@ -188,6 +188,7 @@ export default class Evaluator {
   public getClientInitializeResponse(
     user: StatsigUser,
     clientSDKKey?: string,
+    options?: ClientInitializeResponseOptions,
   ): Record<string, unknown> | null {
     if (!this.store.isServingChecks()) {
       return null;
@@ -218,9 +219,12 @@ export default class Evaluator {
         return filterTargetAppID(spec);
       })
       .map(([gate, spec]) => {
-        const res = this._eval(user, spec);
+        const localOverride = options?.includeLocalOverrides
+          ? this.lookupGateOverride(user, spec.name)
+          : null;
+        const res = localOverride ?? this._eval(user, spec);
         return {
-          name: getHashedName(gate),
+          name: hashString(gate, options?.hash),
           value: res.unsupported ? false : res.value,
           rule_id: res.rule_id,
           secondary_exposures: this._cleanExposures(res.secondary_exposures),
@@ -230,7 +234,10 @@ export default class Evaluator {
     const configs = Object.entries(this.store.getAllConfigs())
       .filter(([, spec]) => filterTargetAppID(spec))
       .map(([, spec]) => {
-        const res = this._eval(user, spec);
+        const localOverride = options?.includeLocalOverrides
+          ? this.lookupConfigOverride(user, spec.name)
+          : null;
+        const res = localOverride ?? this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
@@ -264,12 +271,18 @@ export default class Evaluator {
     const layers = Object.entries(this.store.getAllLayers())
       .filter(([, spec]) => filterTargetAppID(spec))
       .map(([, spec]) => {
-        const res = this._eval(user, spec);
+        const localOverride = options?.includeLocalOverrides
+          ? this.lookupLayerOverride(user, spec.name)
+          : null;
+        const res = localOverride ?? this._eval(user, spec);
         const format = this._specToInitializeResponse(spec, res);
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
           const delegateSpec = this.store.getConfig(res.config_delegate);
-          format.allocated_experiment_name = getHashedName(res.config_delegate);
+          format.allocated_experiment_name = hashString(
+            res.config_delegate,
+            options?.hash,
+          );
 
           format.is_experiment_active = this._isExperimentActive(delegateSpec);
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
@@ -413,7 +426,7 @@ export default class Evaluator {
     res: ConfigEvaluation,
   ): InitializeResponse {
     const output: InitializeResponse = {
-      name: getHashedName(spec.name),
+      name: sha256HashBase64(spec.name),
       value: res.unsupported ? {} : res.json_value,
       group: res.rule_id,
       rule_id: res.rule_id,
@@ -948,7 +961,7 @@ function computeUserHash(userHash: string) {
   }
 
   let hash: bigint;
-  const buffer = shajs('sha256').update(userHash).digest();
+  const buffer = sha256Hash(userHash);
   if (buffer.readBigUInt64BE) {
     hash = buffer.readBigUInt64BE();
   }
@@ -968,17 +981,6 @@ function computeUserHash(userHash: string) {
 
   hashLookupTable.set(userHash, hash);
   return hash;
-}
-
-function getHashedName(name: string) {
-  return shajs('sha256').update(name).digest('base64');
-}
-
-function hashUnitIDForIDList(unitID: string) {
-  if (typeof unitID !== 'string' || unitID == null) {
-    return '';
-  }
-  return getHashedName(unitID).substr(0, 8);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
