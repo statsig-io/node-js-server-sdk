@@ -703,7 +703,7 @@ export default class SpecStore {
 
       IDListUtil.removeOldIdLists(this.store.idLists, lookup);
 
-      await Promise.allSettled(promises);
+      await Promise.all(promises.map((p) => p.catch()));
 
       if (this.dataAdapter) {
         await IDListUtil.saveToDataAdapter(
