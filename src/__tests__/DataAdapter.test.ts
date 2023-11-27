@@ -301,6 +301,47 @@ describe('DataAdapter', () => {
       });
     });
 
+    it('updates config specs from adapter when manually sync', async () => {
+      // Initialize without network
+      await statsig.initialize('secret-key', {
+        localMode: true,
+        dataAdapter: syncingDataAdapter,
+        environment: { tier: 'staging' },
+        disableRulesetsSync: true,
+        disableIdListsSync: true,
+      });
+
+      // Check gates
+      const passesGate1 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate1).toEqual(false);
+
+      // Check configs
+      const config1 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config1.getValue('seahawks', null)).toEqual(null);
+
+      await loadStore(syncingDataAdapter);
+
+      // Manually sync store
+      await statsig.syncConfigSpecs();
+
+      // Check gates after syncing
+      const passesGate2 = await statsig.checkGate(user, 'nfl_gate');
+      expect(passesGate2).toEqual(true);
+
+      // Check configs after syncing
+      const config2 = await statsig.getConfig(
+        user,
+        exampleConfigSpecs.config.name,
+      );
+      expect(config2.getValue('seahawks', null)).toEqual({
+        name: 'Seattle Seahawks',
+        yearFounded: 1974,
+      });
+    });
+
     it('still initializes id lists from the network', async () => {
       isNetworkEnabled = true;
       const time = Date.now();

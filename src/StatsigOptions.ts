@@ -49,6 +49,8 @@ export type ExplicitStatsigOptions = {
   initStrategyForIDLists: InitStrategy;
   postLogsRetryLimit: number;
   postLogsRetryBackoff: RetryBackoffFunc | number;
+  disableRulesetsSync: boolean;
+  disableIdListsSync: boolean;
 };
 
 /**
@@ -63,13 +65,14 @@ export function OptionsWithDefaults(
     api: normalizeUrl(
       getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
     ) as string,
-    apiForDownloadConfigSpecs: normalizeUrl(
-      getString(
-        opts,
-        'apiForDownloadConfigSpecs',
-        DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
-      ),
-    ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+    apiForDownloadConfigSpecs:
+      normalizeUrl(
+        getString(
+          opts,
+          'apiForDownloadConfigSpecs',
+          DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+        ),
+      ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)
@@ -122,6 +125,8 @@ export function OptionsWithDefaults(
     ),
     postLogsRetryBackoff:
       opts.postLogsRetryBackoff ?? DEFAULT_POST_LOGS_RETRY_BACKOFF,
+    disableRulesetsSync: opts.disableRulesetsSync ?? false,
+    disableIdListsSync: opts.disableIdListsSync ?? false,
   };
 }
 

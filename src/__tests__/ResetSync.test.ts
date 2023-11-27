@@ -101,4 +101,27 @@ describe('Verify sync intervals reset', () => {
     expect(gate).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  test('Verify timers dont reset if syncing is disabled', async () => {
+    await statsig.initialize(secretKey, {
+      disableRulesetsSync: true,
+      disableIdListsSync: true,
+    });
+    const now = Date.now();
+
+    const evaluator = StatsigTestUtils.getEvaluator();
+    const spyRulesetsSync = jest.spyOn(evaluator['store'], 'syncConfigSpecs');
+    const spyIdListsSync = jest.spyOn(evaluator['store'], 'syncIdLists');
+
+    jest
+      .spyOn(global.Date, 'now')
+      .mockImplementation(() => now + (2 * 60 * 1000 + 1));
+    const gate = await statsig.checkGate(
+      { userID: '123', email: 'tore@packers.com' },
+      'nfl_gate',
+    );
+    expect(gate).toBe(true);
+    expect(spyRulesetsSync).toHaveBeenCalledTimes(0);
+    expect(spyIdListsSync).toHaveBeenCalledTimes(0);
+  });
 });

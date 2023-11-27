@@ -45,6 +45,8 @@ export default class SpecStore {
   private store: ConfigStore;
   private rulesetsSyncInterval: number;
   private idListsSyncInterval: number;
+  private disableRulesetsSync: boolean;
+  private disableIdListsSync: boolean;
   private initialized: boolean;
   private rulesetsSyncTimer: NodeJS.Timeout | null;
   private idListsSyncTimer: NodeJS.Timeout | null;
@@ -81,6 +83,8 @@ export default class SpecStore {
     };
     this.rulesetsSyncInterval = options.rulesetsSyncIntervalMs;
     this.idListsSyncInterval = options.idListsSyncIntervalMs;
+    this.disableRulesetsSync = options.disableRulesetsSync;
+    this.disableIdListsSync = options.disableIdListsSync;
     this.initialized = false;
     this.rulesetsSyncTimer = null;
     this.idListsSyncTimer = null;
@@ -222,7 +226,7 @@ export default class SpecStore {
       return null;
     }
     let message = '';
-    if (rulesetsSyncTimerInactive) {
+    if (rulesetsSyncTimerInactive && !this.disableRulesetsSync) {
       this.clearRulesetsSyncTimer();
       message = message.concat(
         `Force reset sync timer. Last update time: ${
@@ -230,7 +234,7 @@ export default class SpecStore {
         }, now: ${Date.now()}`,
       );
     }
-    if (idListsSyncTimerInactive) {
+    if (idListsSyncTimerInactive && !this.disableIdListsSync) {
       this.clearIdListsSyncTimer();
       message = message.concat(
         `Force reset id list sync timer. Last update time: ${
@@ -328,11 +332,11 @@ export default class SpecStore {
   }
 
   private pollForUpdates() {
-    if (this.rulesetsSyncTimer == null) {
+    if (this.rulesetsSyncTimer == null && !this.disableRulesetsSync) {
       this.rulesetsSyncTimerLastActiveTime = Date.now();
       this.rulesetsSyncPromise = async () => {
         this.rulesetsSyncTimerLastActiveTime = Date.now();
-        await this._syncConfigSpecs();
+        await this.syncConfigSpecs();
       };
       this.rulesetsSyncTimer = poll(
         this.rulesetsSyncPromise,
@@ -340,11 +344,11 @@ export default class SpecStore {
       );
     }
 
-    if (this.idListsSyncTimer == null) {
+    if (this.idListsSyncTimer == null && !this.disableIdListsSync) {
       this.idListsSyncTimerLastActiveTime = Date.now();
       this.idListsSyncPromise = async () => {
         this.idListsSyncTimerLastActiveTime = Date.now();
-        await this._syncIdLists();
+        await this.syncIdLists();
       };
       this.idListsSyncTimer = poll(
         this.idListsSyncPromise,
@@ -376,7 +380,7 @@ export default class SpecStore {
     }
   }
 
-  private async _syncConfigSpecs(): Promise<void> {
+  public async syncConfigSpecs(): Promise<void> {
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
       adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
@@ -406,7 +410,7 @@ export default class SpecStore {
     this.logDiagnostics('config_sync', 'config_spec');
   }
 
-  private async _syncIdLists(): Promise<void> {
+  public async syncIdLists(): Promise<void> {
     if (this.initStrategyForIDLists === 'none') {
       return;
     }
