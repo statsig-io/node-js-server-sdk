@@ -9,7 +9,14 @@ import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
 import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
 import { notEmpty } from './utils/core';
-import { djb2Hash, hashString, hashUnitIDForIDList, sha256Hash, sha256HashBase64 } from './utils/Hashing';
+import {
+  djb2Hash,
+  HashingAlgorithm,
+  hashString,
+  hashUnitIDForIDList,
+  sha256Hash,
+  sha256HashBase64,
+} from './utils/Hashing';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
 
@@ -238,7 +245,7 @@ export default class Evaluator {
           ? this.lookupConfigOverride(user, spec.name)
           : null;
         const res = localOverride ?? this._eval(user, spec);
-        const format = this._specToInitializeResponse(spec, res);
+        const format = this._specToInitializeResponse(spec, res, options?.hash);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,
@@ -275,7 +282,7 @@ export default class Evaluator {
           ? this.lookupLayerOverride(user, spec.name)
           : null;
         const res = localOverride ?? this._eval(user, spec);
-        const format = this._specToInitializeResponse(spec, res);
+        const format = this._specToInitializeResponse(spec, res, options?.hash);
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
           const delegateSpec = this.store.getConfig(res.config_delegate);
@@ -432,9 +439,10 @@ export default class Evaluator {
   private _specToInitializeResponse(
     spec: ConfigSpec,
     res: ConfigEvaluation,
+    hash?: HashingAlgorithm,
   ): InitializeResponse {
     const output: InitializeResponse = {
-      name: sha256HashBase64(spec.name),
+      name: hashString(spec.name, hash),
       value: res.unsupported ? {} : res.json_value,
       group: res.rule_id,
       rule_id: res.rule_id,
