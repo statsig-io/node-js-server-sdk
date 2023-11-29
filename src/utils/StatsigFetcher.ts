@@ -9,6 +9,7 @@ import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import getCompressionFunc from './getCompressionFunc';
+import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
@@ -40,6 +41,10 @@ export default class StatsigFetcher {
     this.dispatcher = new Dispatcher(200);
     this.localMode = options.localMode;
     this.sdkKey = secretKey;
+  }
+
+  public validateSDKKeyUsed(hashedSDKKeyUsed: string): boolean {
+    return hashedSDKKeyUsed === djb2Hash(this.sdkKey);
   }
 
   public async downloadConfigSpecs(sinceTime?: number): Promise<Response> {
@@ -121,7 +126,7 @@ export default class StatsigFetcher {
       'STATSIG-SDK-TYPE': getSDKType(),
       'STATSIG-SDK-VERSION': getSDKVersion(),
     } as Record<string, string | number>;
-    
+
     let contents: BodyInit | undefined = undefined;
     const gzipSync = getCompressionFunc();
 

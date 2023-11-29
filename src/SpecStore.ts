@@ -483,6 +483,13 @@ export default class SpecStore {
     success: boolean;
     hasUpdates: boolean;
   } {
+    const hashedSDKKeyUsed = specsJSON.hashed_sdk_key_used;
+    if (hashedSDKKeyUsed != null && typeof hashedSDKKeyUsed === 'string') {
+      if (!this.fetcher.validateSDKKeyUsed(hashedSDKKeyUsed)) {
+        return { success: false, hasUpdates: true };
+      }
+    }
+
     if (!specsJSON?.has_updates) {
       return { success: true, hasUpdates: false };
     }
