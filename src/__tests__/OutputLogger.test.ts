@@ -23,7 +23,7 @@ describe('Output Logger Interface', () => {
     Statsig.logEvent({ userID: '123' }, null);
     expect(errors.length).toEqual(level === 'error' ? 3 : 0);
     if (level === 'error') {
-      expect(errors).toContainEqual('statsigSDK::logEvent> Must provide a valid string for the eventName.');
+      expect(errors).toContainEqual('statsigSDK> EventName needs to be a string of non-zero length.');
       expect(errors).toContainEqual(new StatsigInitializeFromNetworkError(new Error(`Request to https://api.statsigcdn.com/v1/download_config_specs/${secretKey}.json failed with status 401`)));
       expect(errors).toContainEqual(new StatsigInitializeIDListsError(new Error('Request to https://statsigapi.net/v1/get_id_lists failed with status 401')));
     }

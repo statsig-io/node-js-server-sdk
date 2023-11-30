@@ -63,8 +63,6 @@ fetch.mockImplementation((url, params) => {
 
 describe('Verify behavior of top level index functions', () => {
   const secretKey = 'secret-key';
-  const str_64 =
-    '1234567890123456789012345678901234567890123456789012345678901234';
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -916,40 +914,6 @@ describe('Verify behavior of top level index functions', () => {
       // @ts-ignore
       Statsig.logEvent({ userID: 12345 }, 'event', 1, { price: '2' });
       expect(spy).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  test('Verify big user object and log event are getting trimmed', async () => {
-    expect.assertions(2);
-    let str_1k = str_64;
-    // create a 1k long string
-    for (let i = 0; i < 5; i++) {
-      str_1k += str_1k;
-    }
-    expect(str_1k.length).toBe(2048);
-    return Statsig.initialize(secretKey).then(() => {
-      const bigUser = {
-        userID: str_64 + 'more',
-        email: 'jest@Statsig.com',
-        custom: { extradata: str_1k },
-      };
-
-      const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
-      Statsig.logEvent(bigUser, str_64 + 'extra', str_64 + 'extra', {
-        extradata: str_1k,
-      });
-
-      const trimmedEvent = new LogEvent(str_64.substring(0, 64));
-      trimmedEvent.setUser({
-        userID: str_64,
-        email: 'jest@Statsig.com',
-        custom: {
-          statsig_error: 'User object length too large',
-        },
-      });
-      trimmedEvent.setValue(str_64.substring(0, 64));
-      trimmedEvent.setMetadata({ statsig_error: 'Metadata length too large' });
-      expect(spy).toBeCalledWith(trimmedEvent);
     });
   });
 

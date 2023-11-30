@@ -16,6 +16,8 @@ describe('ExposureLogging', () => {
   let events: {
     eventName: string;
     metadata: { gate?: string; config?: string; isManualExposure?: string };
+    user: StatsigUser | null;
+    value: string | number | null;
   }[] = [];
 
   beforeEach(async () => {
@@ -129,6 +131,58 @@ describe('ExposureLogging', () => {
       );
       layer.get('a_bool', false);
       expect(events.length).toBe(0);
+    });
+  });
+
+  describe('logging with bad inputs', () => {
+    it('event with invalid event name does not get logged', async () => {
+      const user: StatsigUser = { userID: '123' };
+      Statsig.logEvent(user, '');
+      expect(events.length).toBe(0);
+    });
+    it('null user gets logged as empty user', async () => {
+      //@ts-ignore
+      const user: StatsigUser = null;
+      Statsig.logEvent(user, 'foo');
+      expect(events.length).toBe(1);
+      expect(events[0].user).toEqual({
+        customIDs: {},
+        privateAttributes: null,
+      });
+    });
+    it('invalid user object gets logged as null', async () => {
+      //@ts-ignore
+      const user: StatsigUser = 'user';
+      Statsig.logEvent(user, 'foo');
+      expect(events.length).toBe(1);
+      expect(events[0].user).toEqual(null);
+    });
+    it('user object too large still logged', async () => {
+      const user: StatsigUser = {
+        userID: '1'.repeat(4096),
+      };
+      Statsig.logEvent(user, 'foo');
+      expect(events.length).toBe(1);
+      expect(events[0].user).toEqual({
+        ...user,
+        privateAttributes: null,
+      });
+    });
+    it('metadata object too large still logged', async () => {
+      const user: StatsigUser = { userID: '123' };
+      const metadata = {
+        bigString: '1'.repeat(4096),
+      };
+      Statsig.logEvent(user, 'foo', undefined, metadata);
+      expect(events.length).toBe(1);
+      expect(events[0].metadata).toEqual(metadata);
+    });
+    it('value too large still logged', async () => {
+      const user: StatsigUser = { userID: '123' };
+      const value = '1'.repeat(4096);
+      Statsig.logEvent(user, 'foo', value);
+      expect(events.length).toBe(1);
+      expect(events[0].value).toEqual(value);
     });
   });
 
