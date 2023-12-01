@@ -332,6 +332,7 @@ export default class Evaluator {
       generator: 'statsig-node-sdk',
       time: 0, // set the time to 0 so this doesnt interfere with polling,
       evaluated_keys: evaluatedKeys,
+      hash_used: options?.hash ?? 'sha256',
       user_hash: getUserHashWithoutStableID(user),
     };
   }
