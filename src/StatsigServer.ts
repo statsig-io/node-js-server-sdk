@@ -25,11 +25,9 @@ import { StatsigUser } from './StatsigUser';
 import asyncify from './utils/asyncify';
 import { isUserIdentifiable } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
+import LogEventValidator from './utils/LogEventValidator';
 import StatsigFetcher from './utils/StatsigFetcher';
 
-const MAX_VALUE_SIZE = 64;
-const MAX_OBJ_SIZE = 2048;
-const MAX_USER_SIZE = 2048;
 let hasLoggedNoUserIdWarning = false;
 
 enum ExposureLogging {
@@ -328,19 +326,16 @@ export default class StatsigServer {
 
   public logEventObject(eventObject: LogEventObject) {
     return this._errorBoundary.swallow(() => {
-      let eventName = eventObject.eventName;
+      const eventName = eventObject.eventName;
       let user = eventObject.user ?? null;
-      let value = eventObject.value ?? null;
-      let metadata = eventObject.metadata ?? null;
+      const value = eventObject.value ?? null;
+      const metadata = eventObject.metadata ?? null;
       const time = eventObject.time ?? null;
 
       if (!(this._ready === true && this._logger != null)) {
         throw new StatsigUninitializedError();
       }
-      if (typeof eventName !== 'string' || eventName.length === 0) {
-        OutputLogger.error(
-          'statsigSDK::logEvent> Must provide a valid string for the eventName.',
-        );
+      if (LogEventValidator.validateEventName(eventName) == null) {
         return;
       }
       if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
@@ -350,29 +345,6 @@ export default class StatsigServer {
         );
       }
       user = normalizeUser(user, this._options);
-      if (shouldTrimParam(eventName, MAX_VALUE_SIZE)) {
-        OutputLogger.warn(
-          'statsigSDK::logEvent> eventName is too long, trimming to ' +
-            MAX_VALUE_SIZE +
-            '.',
-        );
-        eventName = eventName.substring(0, MAX_VALUE_SIZE);
-      }
-      if (typeof value === 'string' && shouldTrimParam(value, MAX_VALUE_SIZE)) {
-        OutputLogger.warn(
-          'statsigSDK::logEvent> value is too long, trimming to ' +
-            MAX_VALUE_SIZE +
-            '.',
-        );
-        value = value.substring(0, MAX_VALUE_SIZE);
-      }
-
-      if (shouldTrimParam(metadata, MAX_OBJ_SIZE)) {
-        OutputLogger.warn(
-          'statsigSDK::logEvent> metadata is too big. Dropping the metadata.',
-        );
-        metadata = { statsig_error: 'Metadata length too large' };
-      }
 
       const event = new LogEvent(eventName);
       event.setUser(user);
@@ -874,69 +846,15 @@ export default class StatsigServer {
   }
 }
 
-function shouldTrimParam(
-  param: object | string | number | null | unknown,
-  size: number,
-): boolean {
-  if (param == null) return false;
-  if (typeof param === 'string') return param.length > size;
-  if (typeof param === 'object') {
-    return approximateObjectSize(param) > size;
-  }
-  if (typeof param === 'number') return param.toString().length > size;
-  return false;
-}
-
-function approximateObjectSize(x: object): number {
-  let size = 0;
-  const entries = Object.entries(x);
-  for (let i = 0; i < entries.length; i++) {
-    const key = entries[i][0];
-    const value = entries[i][1] as unknown;
-    if (typeof value === 'object' && value !== null) {
-      size += approximateObjectSize(value);
-    } else {
-      size += String(value).length;
-    }
-    size += key.length;
-  }
-  return size;
-}
-
 function normalizeUser(
   user: StatsigUser,
   options: ExplicitStatsigOptions,
 ): StatsigUser {
-  user = trimUserObjIfNeeded(user);
-  user = JSON.parse(JSON.stringify(user));
+  if (user == null) {
+    user = { customIDs: {} }; // Being defensive here
+  }
   if (options?.environment != null) {
     user['statsigEnvironment'] = options?.environment;
-  }
-  return user;
-}
-
-function trimUserObjIfNeeded(user: StatsigUser): StatsigUser {
-  if (user == null) return { customIDs: {} }; // Being defensive here
-
-  if (user.userID != null && shouldTrimParam(user.userID, MAX_VALUE_SIZE)) {
-    OutputLogger.warn(
-      'statsigSDK> User ID is too large, trimming to ' + MAX_VALUE_SIZE,
-    );
-    user.userID = user.userID.toString().substring(0, MAX_VALUE_SIZE);
-  }
-
-  if (shouldTrimParam(user, MAX_USER_SIZE)) {
-    user.custom = { statsig_error: 'User object length too large' };
-    if (shouldTrimParam(user, MAX_USER_SIZE)) {
-      OutputLogger.warn(
-        'statsigSDK> User object is too large, only keeping the user ID.',
-      );
-      user = { userID: user.userID, customIDs: user.customIDs ?? {} };
-    } else {
-      OutputLogger.warn(
-        'statsigSDK> User object is too large, dropping the custom property.',
-      );
-    }
   }
   return user;
 }

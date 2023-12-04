@@ -1,6 +1,6 @@
-import OutputLogger from './OutputLogger';
 import { StatsigUser } from './StatsigUser';
 import { clone } from './utils/core';
+import LogEventValidator from './utils/LogEventValidator';
 
 export type LogEventData = {
   time: number;
@@ -20,61 +20,44 @@ export default class LogEvent {
   private secondaryExposures: Record<string, unknown>[] = [];
 
   public constructor(eventName: string) {
-    if (eventName == null || typeof eventName !== 'string') {
-      OutputLogger.error('statsigSDK> EventName needs to be a string.');
-      eventName = 'invalid_event';
-    }
     this.time = Date.now();
-    this.eventName = eventName;
+    this.eventName =
+      LogEventValidator.validateEventName(eventName) ?? 'invalid_event';
   }
 
   public setUser(user: StatsigUser) {
-    if (user != null && typeof user !== 'object') {
-      OutputLogger.warn(
-        'statsigSDK> User is not set because it needs to be an object.',
-      );
+    const validatedUser = LogEventValidator.validateUserObject(user);
+    if (validatedUser == null) {
       return;
     }
-    this.user = clone(user);
+    this.user = clone(validatedUser);
     if (this.user != null) {
       this.user.privateAttributes = null;
     }
   }
 
   public setValue(value: string | number | null) {
-    if (value == null) {
+    const validatedValue = LogEventValidator.validateEventValue(value);
+    if (validatedValue == null) {
       return;
     }
-    if (typeof value === 'object') {
-      this.value = JSON.stringify(value);
-    } else if (typeof value === 'number') {
-      this.value = value;
-    } else {
-      this.value = value.toString();
-    }
+    this.value = validatedValue;
   }
 
   public setMetadata(metadata: Record<string, unknown> | null) {
-    if (metadata == null) {
+    const validatedMetadata = LogEventValidator.validateEventMetadata(metadata);
+    if (validatedMetadata == null) {
       return;
     }
-    if (metadata != null && typeof metadata !== 'object') {
-      OutputLogger.warn(
-        'statsigSDK> Metadata is not set because it needs to be an object.',
-      );
-      return;
-    }
-    this.metadata = clone(metadata);
+    this.metadata = clone(validatedMetadata);
   }
 
   public setTime(time: number) {
-    if (time != null && typeof time !== 'number') {
-      OutputLogger.warn(
-        'statsigSDK> Timestamp is not set because it needs to be a number.',
-      );
+    const validatedTime = LogEventValidator.validateEventTime(time);
+    if (validatedTime == null) {
       return;
     }
-    this.time = time;
+    this.time = validatedTime;
   }
 
   public setSecondaryExposures(exposures: Record<string, unknown>[]) {

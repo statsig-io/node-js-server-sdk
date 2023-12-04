@@ -65,14 +65,13 @@ export function OptionsWithDefaults(
     api: normalizeUrl(
       getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
     ) as string,
-    apiForDownloadConfigSpecs:
-      normalizeUrl(
-        getString(
-          opts,
-          'apiForDownloadConfigSpecs',
-          DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
-        ),
-      ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+    apiForDownloadConfigSpecs: normalizeUrl(
+      getString(
+        opts,
+        'apiForDownloadConfigSpecs',
+        opts.api ?? null,
+      ),
+    ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)

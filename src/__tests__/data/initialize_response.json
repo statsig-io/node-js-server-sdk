@@ -113,6 +113,7 @@
   },
   "sdkParams": {},
   "has_updates": true,
+  "hash_used": "sha256",
   "time": 0,
   "generator": "statsig-node-sdk",
   "evaluated_keys": {
