@@ -1,14 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import Diagnostics from '../Diagnostics';
+import ErrorBoundary from '../ErrorBoundary';
 import {
   StatsigLocalModeNetworkError,
+  StatsigSDKKeyMismatchError,
   StatsigTooManyRequestsError,
 } from '../Errors';
 import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import getCompressionFunc from './getCompressionFunc';
+import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
@@ -30,8 +33,13 @@ export default class StatsigFetcher {
   private dispatcher: Dispatcher;
   private localMode: boolean;
   private sdkKey: string;
+  private errorBoundry: ErrorBoundary;
 
-  public constructor(secretKey: string, options: ExplicitStatsigOptions) {
+  public constructor(
+    secretKey: string,
+    options: ExplicitStatsigOptions,
+    errorBoundry: ErrorBoundary,
+  ) {
     this.api = options.api;
     this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
     this.sessionID = uuidv4();
@@ -40,6 +48,15 @@ export default class StatsigFetcher {
     this.dispatcher = new Dispatcher(200);
     this.localMode = options.localMode;
     this.sdkKey = secretKey;
+    this.errorBoundry = errorBoundry;
+  }
+
+  public validateSDKKeyUsed(hashedSDKKeyUsed: string): boolean {
+    const matched = hashedSDKKeyUsed === djb2Hash(this.sdkKey);
+    if (!matched) {
+      this.errorBoundry.logError(new StatsigSDKKeyMismatchError());
+    }
+    return matched;
   }
 
   public async downloadConfigSpecs(sinceTime?: number): Promise<Response> {
@@ -121,7 +138,7 @@ export default class StatsigFetcher {
       'STATSIG-SDK-TYPE': getSDKType(),
       'STATSIG-SDK-VERSION': getSDKVersion(),
     } as Record<string, string | number>;
-    
+
     let contents: BodyInit | undefined = undefined;
     const gzipSync = getCompressionFunc();
 

@@ -71,14 +71,18 @@ export default class StatsigServer {
     this._options = OptionsWithDefaults(options);
     this._pendingInitPromise = null;
     this._ready = false;
-    this._fetcher = new StatsigFetcher(this._secretKey, this._options);
+    this._errorBoundary = new ErrorBoundary(secretKey);
+    this._fetcher = new StatsigFetcher(
+      this._secretKey,
+      this._options,
+      this._errorBoundary,
+    );
     this._logger = new LogEventProcessor(this._fetcher, this._options);
     Diagnostics.initialize({
       logger: this._logger,
       options: this._options,
     });
     this._evaluator = new Evaluator(this._fetcher, this._options);
-    this._errorBoundary = new ErrorBoundary(secretKey);
   }
 
   /**
