@@ -4,6 +4,10 @@ let nodeFetch: (...args) => Promise<Response> = null;
 if (typeof EdgeRuntime !== 'string') {
   try {
     nodeFetch = require('node-fetch');
+    const nfDefault = (nodeFetch as any).default;
+    if (nfDefault && typeof nfDefault === 'function') {
+      nodeFetch = nfDefault;
+    }
   } catch (err) {
     // Ignore
   }
