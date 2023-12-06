@@ -222,7 +222,10 @@ export default class SpecStore {
     const idListsSyncTimerInactive =
       this.idListsSyncTimerLastActiveTime <
       Date.now() - Math.max(SYNC_OUTDATED_MAX, this.idListsSyncInterval);
-    if (!rulesetsSyncTimerInactive && !idListsSyncTimerInactive) {
+    if (
+      (!rulesetsSyncTimerInactive || this.disableRulesetsSync) &&
+      (!idListsSyncTimerInactive || this.disableIdListsSync)
+    ) {
       return null;
     }
     let message = '';
