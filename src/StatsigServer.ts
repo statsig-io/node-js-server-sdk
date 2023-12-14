@@ -504,8 +504,20 @@ export default class StatsigServer {
     return this._evaluator.getFeatureGateList();
   }
 
+  public getDynamicConfigList(): string[] {
+    return this._evaluator.getConfigsList('dynamic_config');
+  }
+
   public getExperimentList(): string[] {
-    return this._evaluator.getExperimentList();
+    return this._evaluator.getConfigsList('experiment');
+  }
+
+  public getAutotuneList(): string[] {
+    return this._evaluator.getConfigsList('autotune');
+  }
+
+  public getLayerList(): string[] {
+    return this._evaluator.getLayerList();
   }
 
   //#region Deprecated Async Methods

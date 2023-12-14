@@ -349,28 +349,23 @@ export default class Evaluator {
     await this.store.syncIdLists();
   }
 
-  public getExperimentList(): string[] {
-    const configs = this.store.getAllConfigs();
-    const list = [];
-    for (const configName in configs) {
-      const config = configs[configName];
-      if (config.entity === 'experiment') {
-        list.push(configName);
-      }
-    }
-    return list;
-  }
-
   public getFeatureGateList(): string[] {
     const gates = this.store.getAllGates();
-    const list = [];
-    for (const gateName in gates) {
-      const gate = gates[gateName];
-      if (gate.entity === 'feature_gate') {
-        list.push(gateName);
-      }
-    }
-    return list;
+    return Object.entries(gates).map(([name, _]) => name);
+  }
+
+  public getConfigsList(
+    entityType: 'experiment' | 'dynamic_config' | 'autotune',
+  ): string[] {
+    const configs = this.store.getAllConfigs();
+    return Object.entries(configs)
+      .filter(([_, config]) => config.entity === entityType)
+      .map(([name, _]) => name);
+  }
+
+  public getLayerList(): string[] {
+    const layers = this.store.getAllLayers();
+    return Object.entries(layers).map(([name, _]) => name);
   }
 
   private lookupGateOverride(

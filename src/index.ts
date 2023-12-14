@@ -384,6 +384,24 @@ export const Statsig = {
   },
 
   /**
+   * Gets all Feature Gate names
+   *
+   * @returns {string[]}
+   */
+  getFeatureGateList(): string[] {
+    return this._enforceServer().getFeatureGateList();
+  },
+
+  /**
+   * Gets all Dynamic Config names
+   *
+   * @returns {string[]}
+   */
+  getDynamicConfigList(): string[] {
+    return this._enforceServer().getDynamicConfigList();
+  },
+
+  /**
    * Gets all Experiment names
    *
    * @returns {string[]}
@@ -393,12 +411,21 @@ export const Statsig = {
   },
 
   /**
-   * Gets all Feature Gate names
+   * Gets all Autotune names
    *
    * @returns {string[]}
    */
-  getFeatureGateList(): string[] {
-    return this._enforceServer().getFeatureGateList();
+  getAutotuneList(): string[] {
+    return this._enforceServer().getAutotuneList();
+  },
+
+  /**
+   * Gets all Layer names
+   *
+   * @returns {string[]}
+   */
+  getLayerList(): string[] {
+    return this._enforceServer().getLayerList();
   },
 
   syncConfigSpecs(): Promise<void> {

@@ -1,4 +1,5 @@
 import * as statsigsdk from '../index';
+import type { LogEventData } from '../LogEvent';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { getDecodedBody } from './StatsigTestUtils';
 // @ts-ignore
@@ -8,8 +9,12 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./data/download_config_spec.json'),
 );
 
+type NonNullableNested<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
 const INIT_RESPONSE = require('./data/initialize_response.json');
-let postedLogs = {
+let postedLogs: { events: NonNullableNested<LogEventData>[] } = {
   events: [],
 };
 
@@ -309,5 +314,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(postedLogs.events[0].user.userID).toEqual('123');
     expect(postedLogs.events[0].user.email).toEqual('testuser@statsig.com');
+  });
+
+  test('Verify list APIs', async () => {
+    await statsig.initialize('secret-123', { disableDiagnostics: true });
+    expect(statsig.getFeatureGateList()).toContain("always_on_gate");
+    expect(statsig.getDynamicConfigList()).toContain("test_config");
+    expect(statsig.getExperimentList()).toContain("sample_experiment");
+    expect(statsig.getAutotuneList()).toContain("test_autotune");
+    expect(statsig.getLayerList()).toContain("statsig::test_layer");
+    statsig.shutdown();
   });
 });
