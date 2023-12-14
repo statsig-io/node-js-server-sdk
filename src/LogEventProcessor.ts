@@ -96,7 +96,7 @@ export default class LogEventProcessor {
         retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
         backoff: this.options.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: true,
+        compress: false,
       })
       .then(() => {
         return Promise.resolve();
