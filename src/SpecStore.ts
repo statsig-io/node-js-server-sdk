@@ -12,6 +12,7 @@ import {
 import { EvaluationReason } from './EvaluationReason';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
+import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
@@ -542,6 +543,8 @@ export default class SpecStore {
         return { success: false, hasUpdates: true };
       }
     }
+
+    SDKFlags.setFlags(specsJSON?.sdk_flags);
 
     const updatedExpToLayer: Record<string, string> =
       this._reverseLayerExperimentMapping(layerToExperimentMap);

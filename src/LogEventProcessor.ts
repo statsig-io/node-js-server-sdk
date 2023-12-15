@@ -4,6 +4,7 @@ import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
 import OutputLogger from './OutputLogger';
+import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
@@ -91,12 +92,14 @@ export default class LogEventProcessor {
       events: oldQueue,
     };
 
+    const isCompressionDisabled = SDKFlags.on('stop_log_event_compression');
+
     return this.fetcher
       .post(this.options.api + '/log_event', body, {
         retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
         backoff: this.options.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: false,
+        compress: !isCompressionDisabled,
       })
       .then(() => {
         return Promise.resolve();
