@@ -42,6 +42,11 @@ enum ExposureCause {
   Manual = 'manual_exposure',
 }
 
+type NormalizedEvaluation = {
+  evaluation: ConfigEvaluation,
+  user: StatsigUser,
+}
+
 export type LogEventObject = {
   eventName: string;
   user: StatsigUser;
@@ -199,9 +204,13 @@ export default class StatsigServer {
     );
   }
 
-  public logGateExposure(user: StatsigUser, gateName: string) {
-    const evaluation = this._evaluator.checkGate(user, gateName);
-    this.logGateExposureImpl(user, gateName, evaluation, ExposureCause.Manual);
+  public logGateExposure(inputUser: StatsigUser, gateName: string) {
+    return this._errorBoundary.swallow(
+      () => {
+        const { evaluation, user } = this.evalGate(inputUser, gateName);
+        this.logGateExposureImpl(user, gateName, evaluation, ExposureCause.Manual);
+      },
+    );
   }
 
   //#endregion
@@ -229,14 +238,16 @@ export default class StatsigServer {
     );
   }
 
-  public logConfigExposure(user: StatsigUser, configName: string) {
-    const evaluation = this._evaluator.getConfig(user, configName);
-    this.logConfigExposureImpl(
-      user,
-      configName,
-      evaluation,
-      ExposureCause.Manual,
-    );
+  public logConfigExposure(inputUser: StatsigUser, experimentName: string) {
+    this._errorBoundary.swallow(() => {
+      const { evaluation, user } = this.evalConfig(inputUser, experimentName);
+      this.logConfigExposureImpl(
+        user,
+        experimentName,
+        evaluation,
+        ExposureCause.Manual,
+      );
+    });
   }
 
   //#endregion
@@ -270,14 +281,16 @@ export default class StatsigServer {
     );
   }
 
-  public logExperimentExposure(user: StatsigUser, experimentName: string) {
-    const evaluation = this._evaluator.getConfig(user, experimentName);
-    this.logConfigExposureImpl(
-      user,
-      experimentName,
-      evaluation,
-      ExposureCause.Manual,
-    );
+  public logExperimentExposure(inputUser: StatsigUser, experimentName: string) {
+    this._errorBoundary.swallow(() => {
+      const { evaluation, user } = this.evalConfig(inputUser, experimentName);
+      this.logConfigExposureImpl(
+        user,
+        experimentName,
+        evaluation,
+        ExposureCause.Manual,
+      );
+    });
   }
 
   //#endregion
@@ -312,18 +325,21 @@ export default class StatsigServer {
   }
 
   public logLayerParameterExposure(
-    user: StatsigUser,
+    inputUser: StatsigUser,
     layerName: string,
     parameterName: string,
   ) {
-    const evaluation = this._evaluator.getLayer(user, layerName);
-    this.logLayerParameterExposureImpl(
-      user,
-      layerName,
-      parameterName,
-      evaluation,
-      ExposureCause.Manual,
-    );
+    this._errorBoundary.swallow(() => {
+      const { evaluation, user } = this.evalLayer(inputUser, layerName);
+      this.logLayerParameterExposureImpl(
+        user,
+        layerName,
+        parameterName,
+        evaluation,
+        ExposureCause.Manual,
+      );
+    })
+    
   }
 
   //#endregion
@@ -701,11 +717,10 @@ export default class StatsigServer {
     );
   }
 
-  private getGateImpl(
+  private evalGate(
     inputUser: StatsigUser,
     gateName: string,
-    exposureLogging: ExposureLogging,
-  ): FeatureGate {
+  ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
       gateName,
@@ -715,7 +730,18 @@ export default class StatsigServer {
       throw error;
     }
 
-    const evaluation = this._evaluator.checkGate(user, gateName);
+    return {
+      evaluation: this._evaluator.checkGate(user, gateName),
+      user: user,
+    };
+  }
+
+  private getGateImpl(
+    inputUser: StatsigUser,
+    gateName: string,
+    exposureLogging: ExposureLogging,
+  ): FeatureGate {
+    const { evaluation, user } = this.evalGate(inputUser, gateName);
     if (exposureLogging !== ExposureLogging.Disabled) {
       this.logGateExposureImpl(
         user,
@@ -747,11 +773,10 @@ export default class StatsigServer {
     );
   }
 
-  private getConfigImpl(
+  private evalConfig(
     inputUser: StatsigUser,
     configName: string,
-    exposureLogging: ExposureLogging,
-  ): DynamicConfig {
+  ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
       configName,
@@ -762,6 +787,18 @@ export default class StatsigServer {
     }
 
     const evaluation = this._evaluator.getConfig(user, configName);
+    return {
+      evaluation,
+      user
+    }
+  }
+
+  private getConfigImpl(
+    inputUser: StatsigUser,
+    configName: string,
+    exposureLogging: ExposureLogging,
+  ): DynamicConfig {
+    const {evaluation, user} = this.evalConfig(inputUser, configName);
     const config = new DynamicConfig(
       configName,
       evaluation.json_value as Record<string, unknown>,
@@ -785,11 +822,10 @@ export default class StatsigServer {
     return config;
   }
 
-  private getLayerImpl(
+  private evalLayer(
     inputUser: StatsigUser,
     layerName: string,
-    exposureLogging: ExposureLogging,
-  ): Layer {
+  ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
       layerName,
@@ -799,23 +835,35 @@ export default class StatsigServer {
       throw error;
     }
 
-    const ret = this._evaluator.getLayer(user, layerName);
+    const evaluation = this._evaluator.getLayer(user, layerName);
+    return {
+      evaluation: evaluation,
+      user: user,
+    };
+  }
+
+  private getLayerImpl(
+    inputUser: StatsigUser,
+    layerName: string,
+    exposureLogging: ExposureLogging,
+  ): Layer {
+    const { evaluation, user } = this.evalLayer(inputUser, layerName);
     const logFunc = (layer: Layer, parameterName: string) => {
       this.logLayerParameterExposureImpl(
         user,
         layerName,
         parameterName,
-        ret,
+        evaluation,
         ExposureCause.Automatic,
       );
     };
 
     return new Layer(
       layerName,
-      ret?.json_value as Record<string, unknown>,
-      ret?.rule_id,
-      ret?.group_name,
-      ret?.config_delegate,
+      evaluation?.json_value as Record<string, unknown>,
+      evaluation?.rule_id,
+      evaluation?.group_name,
+      evaluation?.config_delegate,
       exposureLogging === ExposureLogging.Disabled ? null : logFunc,
     );
   }
