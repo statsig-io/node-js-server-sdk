@@ -29,14 +29,6 @@ export type ConfigStore = {
   experimentToLayer: Record<string, string>;
 };
 
-export type DiagnosticsSamplingRate = {
-  dcs: number;
-  log: number;
-  idlist: number;
-  initialize: number;
-};
-
-export type SDKConstants = DiagnosticsSamplingRate;
 
 export default class SpecStore {
   private initReason: EvaluationReason;
@@ -61,12 +53,6 @@ export default class SpecStore {
   private idListsSyncFailureCount = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
-  private samplingRates: SDKConstants = {
-    dcs: 0,
-    log: 0,
-    idlist: 0,
-    initialize: MAX_SAMPLING_RATE,
-  };
   private clientSDKKeyToAppMap: Record<string, string> = {};
   private hashedClientSDKKeyToAppMap: Record<string, string> = {};
 
@@ -372,13 +358,11 @@ export default class SpecStore {
       case 'config_sync':
         Diagnostics.logDiagnostics('config_sync', {
           type,
-          samplingRates: this.samplingRates,
         });
         break;
       case 'initialize':
         Diagnostics.logDiagnostics('initialize', {
           type: 'initialize',
-          samplingRates: this.samplingRates,
         });
         break;
     }
@@ -455,33 +439,6 @@ export default class SpecStore {
     this.logDiagnostics('config_sync', 'id_list');
   }
 
-  private updateSamplingRates(obj: any) {
-    if (!obj || typeof obj !== 'object') {
-      return;
-    }
-    this.safeSet(this.samplingRates, 'dcs', obj['dcs']);
-    this.safeSet(this.samplingRates, 'idlist', obj['idlist']);
-    this.safeSet(this.samplingRates, 'initialize', obj['initialize']);
-    this.safeSet(this.samplingRates, 'log', obj['log']);
-  }
-
-  private safeSet(
-    samplingRates: DiagnosticsSamplingRate,
-    key: keyof DiagnosticsSamplingRate,
-    value: unknown,
-  ) {
-    if (typeof value !== 'number') {
-      return;
-    }
-    if (value < 0) {
-      samplingRates[key] = 0;
-    } else if (value > MAX_SAMPLING_RATE) {
-      samplingRates[key] = MAX_SAMPLING_RATE;
-    } else {
-      samplingRates[key] = value;
-    }
-  }
-
   // returns a boolean indicating whether specsJSON has was successfully parsed
   private _process(specsJSON: Record<string, unknown>): {
     success: boolean;
@@ -507,7 +464,7 @@ export default class SpecStore {
     const layerToExperimentMap = specsJSON?.layers;
     const samplingRates = specsJSON?.diagnostics;
 
-    this.updateSamplingRates(samplingRates);
+    Diagnostics.instance.setSamplingRate(samplingRates);
 
     if (
       !Array.isArray(gateArray) ||

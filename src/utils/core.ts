@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
-
 import { StatsigUser } from '../StatsigUser';
 
 function getSDKVersion(): string {
@@ -20,10 +18,6 @@ function getSDKType(): string {
 
 function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
   return value !== null && value !== undefined;
-}
-
-function generateID(): string {
-  return uuidv4();
 }
 
 function clone<T>(obj: T | null): T | null {
@@ -61,6 +55,7 @@ export type StatsigMetadata = {
   sdkType: string;
   sdkVersion: string;
   languageVersion: string;
+  sessionID?: string;
 };
 
 function getStatsigMetadata(
@@ -108,7 +103,6 @@ function getTypeOf(value: unknown) {
 
 export {
   clone,
-  generateID,
   getBoolValue,
   getNumericValue,
   getSDKVersion,

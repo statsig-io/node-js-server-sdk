@@ -1,6 +1,6 @@
 import Statsig, { DynamicConfig, StatsigUser } from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -31,7 +31,7 @@ describe('On Default Value Fallback', () => {
       }
 
       if (url.includes('log_event')) {
-        events = events.concat(getDecodedBody(params)['events']);
+        events = events.concat(parseLogEvents(params)['events']);
         return Promise.resolve({
           ok: true,
         });
@@ -44,7 +44,7 @@ describe('On Default Value Fallback', () => {
     });
 
     StatsigInstanceUtils.setInstance(null);
-    await Statsig.initialize('secret-key');
+    await Statsig.initialize('secret-key', {disableDiagnostics: true});
 
     const inst = StatsigInstanceUtils.getInstance();
     if (inst != null) {

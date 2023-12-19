@@ -12,7 +12,7 @@ import Statsig, {
 } from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -48,7 +48,7 @@ describe('Backward Compatibility', () => {
       }
 
       if (url.includes('log_event')) {
-        logs.push(...getDecodedBody(params)['events']);
+        logs.push(...parseLogEvents(params)['events']);
       }
 
       return Promise.resolve({

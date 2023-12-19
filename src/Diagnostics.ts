@@ -1,10 +1,10 @@
 import LogEventProcessor from './LogEventProcessor';
-import { DiagnosticsSamplingRate } from './SpecStore';
 import { StatsigOptions } from './StatsigOptions';
 import { ExhaustSwitchError } from './utils/core';
 
 export const MAX_SAMPLING_RATE = 10000;
 export interface Marker {
+  markerID?: string;
   key: KeyType;
   action: ActionType;
   timestamp: number;
@@ -16,7 +16,17 @@ export interface Marker {
   idListCount?: number;
   reason?: 'timeout';
   sdkRegion?: string | null;
+  configName?: string;
 }
+export type DiagnosticsSamplingRate = {
+  dcs: number;
+  log: number;
+  idlist: number;
+  initialize: number;
+  api_call: number;
+};
+
+export type SDKConstants = DiagnosticsSamplingRate;
 
 export type ContextType = 'initialize' | 'config_sync' | 'event_logging' | 'api_call';
 export type KeyType =
@@ -24,6 +34,10 @@ export type KeyType =
   | 'bootstrap'
   | 'get_id_list'
   | 'get_id_list_sources'
+  | 'get_config'
+  | 'get_experiment'
+  | 'check_gate'
+  | 'get_layer'
   | 'overall';
 export type StepType = 'process' | 'network_request';
 export type ActionType = 'start' | 'end';
@@ -44,6 +58,19 @@ export class DiagnosticsImpl {
     getIDListSources: this.selectStep<GetIdListSourcesDataType>(
       'get_id_list_sources',
     ),
+    api_call: (tag: string) => {
+      switch (tag) {
+        case 'getConfig':
+          return this.selectAction<ApiCallDataType>('get_config');
+        case 'getExperiment':
+          return this.selectAction<ApiCallDataType>('get_experiment');
+        case 'checkGate':
+          return this.selectAction<ApiCallDataType>('check_gate');
+        case 'getLayer':
+          return this.selectAction<ApiCallDataType>('get_layer');
+      }
+      return null;
+    },
   };
 
   private readonly markers: DiagnosticsMarkers = {
@@ -53,11 +80,17 @@ export class DiagnosticsImpl {
     api_call: [],
   };
 
-  private disabled: boolean;
-  private options: StatsigOptions;
+  private disabledCoreAPI: boolean;
   private logger: LogEventProcessor;
   private context: ContextType = 'initialize';
-
+  private samplingRates: SDKConstants = {
+    dcs: 0,
+    log: 0,
+    idlist: 0,
+    initialize: MAX_SAMPLING_RATE,
+    api_call: 0,
+  };
+  
   constructor(args: {
     logger: LogEventProcessor;
     options?: StatsigOptions;
@@ -70,12 +103,15 @@ export class DiagnosticsImpl {
       api_call: [],
     };
     this.logger = args.logger;
-    this.options = args.options ?? {};
-    this.disabled = args.options?.disableDiagnostics ?? false;
+    this.disabledCoreAPI = args.options?.disableDiagnostics ?? false;
   }
 
   setContext(context: ContextType) {
     this.context = context;
+  }
+
+  setSamplingRate(samplingRate: unknown) {
+    this.updateSamplingRates(samplingRate)
   }
 
   selectAction<ActionType extends RequiredStepTags>(
@@ -126,21 +162,33 @@ export class DiagnosticsImpl {
     };
   }
 
-  addMarker(marker: Marker, context?: ContextType) {
-    if (this.disabled) {
+  addMarker(marker: Marker, overrideContext?: ContextType) {
+    const context = overrideContext ?? this.context
+    if (this.disabledCoreAPI && context == 'api_call') {
       return;
     }
-    this.markers[context ?? this.context].push(marker);
+    this.markers[context].push(marker);
+  }
+  
+  getMarker(context: ContextType) {
+    return this.markers[context]
+  } 
+
+  clearMarker(context: ContextType) {
+    this.markers[context] = []
+  }
+
+  getMarkerCount(context: ContextType) {
+    return this.markers[context].length;
   }
 
   logDiagnostics(
     context: ContextType,
     optionalArgs?: {
-      type: 'id_list' | 'config_spec' | 'initialize';
-      samplingRates: DiagnosticsSamplingRate;
+      type: 'id_list' | 'config_spec' | 'initialize' | 'api_call';
     },
   ) {
-    if (this.disabled) {
+    if (this.disabledCoreAPI && context == 'api_call') {
       return;
     }
 
@@ -148,31 +196,58 @@ export class DiagnosticsImpl {
       ? true
       : this.getShouldLogDiagnostics(
         optionalArgs.type,
-        optionalArgs.samplingRates,
       );
 
     if (shouldLog) {
       this.logger.logDiagnosticsEvent({
         context,
         markers: this.markers[context],
-        initTimeoutMs: this.options.initTimeoutMs,
       });
     }
     this.markers[context] = [];
   }
 
-  private getShouldLogDiagnostics(
-    type: 'id_list' | 'config_spec' | 'initialize',
+  private updateSamplingRates(obj: any) {
+    if (!obj || typeof obj !== 'object') {
+      return;
+    }
+    this.safeSet(this.samplingRates, 'dcs', obj['dcs']);
+    this.safeSet(this.samplingRates, 'idlist', obj['idlist']);
+    this.safeSet(this.samplingRates, 'initialize', obj['initialize']);
+    this.safeSet(this.samplingRates, 'log', obj['log']);
+    this.safeSet(this.samplingRates, 'api_call', obj['api_call']);
+  }
+
+  private safeSet(
     samplingRates: DiagnosticsSamplingRate,
+    key: keyof DiagnosticsSamplingRate,
+    value: unknown,
+  ) {
+    if (typeof value !== 'number') {
+      return;
+    }
+    if (value < 0) {
+      samplingRates[key] = 0;
+    } else if (value > MAX_SAMPLING_RATE) {
+      samplingRates[key] = MAX_SAMPLING_RATE;
+    } else {
+      samplingRates[key] = value;
+    }
+  }
+
+  getShouldLogDiagnostics(
+    type: 'id_list' | 'config_spec' | 'initialize'|'api_call',
   ): boolean {
     const rand = Math.random() * MAX_SAMPLING_RATE;
     switch (type) {
       case 'id_list':
-        return rand < samplingRates.idlist;
+        return rand < this.samplingRates.idlist;
       case 'config_spec':
-        return rand < samplingRates.dcs;
+        return rand < this.samplingRates.dcs;
       case 'initialize':
-        return rand < samplingRates.initialize;
+        return rand < this.samplingRates.initialize;
+      case 'api_call':
+        return rand < this.samplingRates.api_call
       default:
         throw new ExhaustSwitchError(type);
     }
@@ -181,7 +256,7 @@ export class DiagnosticsImpl {
 
 export default abstract class Diagnostics {
   public static mark: DiagnosticsImpl['mark'];
-  private static instance: DiagnosticsImpl;
+  public static instance: DiagnosticsImpl;
 
   static initialize(args: {
     logger: LogEventProcessor;
@@ -195,8 +270,7 @@ export default abstract class Diagnostics {
   static logDiagnostics(
     context: ContextType,
     optionalArgs?: {
-      type: 'id_list' | 'config_spec' | 'initialize';
-      samplingRates: DiagnosticsSamplingRate;
+      type: 'id_list' | 'config_spec' | 'initialize' | 'api_call';
     },
   ) {
     this.instance.logDiagnostics(context, optionalArgs);
@@ -215,7 +289,11 @@ export default abstract class Diagnostics {
       name: safeGetField(e, 'name'),
       message: safeGetField(e, 'message'),
     };
-  }  
+  }
+
+  static getMarkerCount(context: ContextType) {
+    return this.instance.getMarkerCount(context);
+  }
 }
 
 function safeGetField(data: object, field: string): unknown | undefined {
@@ -315,6 +393,19 @@ interface BootstrapDataType extends RequiredMarkerTags {
     start: Record<string, never>;
     end: {
       success: boolean;
+    };
+  };
+}
+
+interface ApiCallDataType extends RequiredStepTags {
+  errorBoundary: {
+    start: {
+      markerID: string;
+    };
+    end: {
+      markerID: string;
+      success: boolean;
+      configName: string;
     };
   };
 }

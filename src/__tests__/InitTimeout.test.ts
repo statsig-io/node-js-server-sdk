@@ -86,9 +86,9 @@ describe('Test local mode with overrides', () => {
     ).resolves.toBe(false);
 
     statsig.shutdown();
-    expect(events).toHaveLength(2); // 1 for init, 1 for gate check
+    expect(events).toHaveLength(3); // 1 for init, 1 for gate check and 1 for diag core api
     const event = events.find((e) => e.eventName === 'statsig::diagnostics');
-    expect(event?.metadata['initTimeoutMs']).toBe(250);
+    expect(event?.metadata['statsigOptions']['initTimeoutMs']).toBe(250);
 
     const markers = event?.metadata['markers'];
     expect(markers).toHaveLength(3);
@@ -100,6 +100,7 @@ describe('Test local mode with overrides', () => {
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 3000,
+      disableDiagnostics: true
     });
     const now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now + 1200);

@@ -4,7 +4,7 @@ import Diagnostics, {
   KeyType,
 } from '../Diagnostics';
 import LogEventProcessor from '../LogEventProcessor';
-import { OptionsWithDefaults } from '../StatsigOptions';
+import { OptionsLoggingCopy, OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
 import { getDecodedBody } from './StatsigTestUtils';
 
@@ -15,10 +15,12 @@ function getMarkers(): DiagnosticsImpl['markers'] {
 }
 
 describe('Diagnostics', () => {
-  const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
+  const options = { loggingMaxBufferSize: 1 }
   const logger = new LogEventProcessor(
     new StatsigFetcher('secret-asdf1234', options),
-    options,
+    OptionsWithDefaults(options),
+    OptionsLoggingCopy(options),
+    'sessionID'
   );
 
   let events: {
@@ -43,6 +45,13 @@ describe('Diagnostics', () => {
 
     events = [];
     Diagnostics.initialize({ logger });
+    Diagnostics.instance.setSamplingRate({
+      dcs: 5000,
+      log: 5000,
+      idlist: 5000,
+      initialize: 5000,
+      api_call: 5000
+    })
   });
 
   it.each(['initialize', 'config_sync', 'event_logging'] as ContextType[])(
@@ -81,12 +90,20 @@ describe('Diagnostics', () => {
       expectedTime: number,
     ) => {
       Diagnostics.logDiagnostics(context);
+      logger.flush()
       expect(events).toHaveLength(1);
       expect(events[0].eventName).toBe('statsig::diagnostics');
       expect(events[0].metadata['context']).toEqual(context);
       expect(events[0].metadata['markers'][0]['timestamp']).toEqual(
         expectedTime,
       );
+      if(context == "initialize") {
+        expect(events[0].metadata['statsigOptions']).toEqual({
+          loggingMaxBufferSize: 1
+        })
+      } else {
+        expect(events[0].metadata['statsigOptions']).toBeUndefined()
+      }
       events = [];
     };
 
@@ -94,23 +111,17 @@ describe('Diagnostics', () => {
     assertLogDiagnostics('config_sync', 2);
   });
 
-  const types = ['initialize', 'id_list', 'config_spec'] as const;
-  const samplingRates = {
-    dcs: 5000,
-    log: 5000,
-    idlist: 5000,
-    initialize: 5000,
-  };
+  const types = ['initialize', 'id_list', 'config_spec', 'api_call'] as const;
   it.each(types)('test sampling rate for %s', async (type) => {
     const context: ContextType =
-      type === 'initialize' ? 'initialize' : 'config_sync';
+      type ==='api_call'? 'api_call': (type === 'initialize' ? 'initialize' : 'config_sync');
     for (let i = 0; i < 1000; i++) {
       Diagnostics.mark.downloadConfigSpecs.networkRequest.start({}, context);
       Diagnostics.logDiagnostics(context, {
         type: type,
-        samplingRates,
       });
     }
+    logger.flush()
     expect(events.length).toBeGreaterThan(400);
     expect(events.length).toBeLessThan(600);
   });

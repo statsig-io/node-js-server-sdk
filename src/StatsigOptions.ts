@@ -129,6 +129,42 @@ export function OptionsWithDefaults(
   };
 }
 
+export function OptionsLoggingCopy(options: Record<string, unknown>): StatsigOptions {
+  const loggingCopy: Record<string, unknown> = {}
+    Object.entries(options).forEach(([option,value]) => {
+      const valueType = typeof value
+      switch (valueType) {
+        case "number":
+        case "bigint":
+        case "boolean":
+          loggingCopy[String(option)] = value
+          break
+        case "string":
+          if((value as string).length < 50) {
+            loggingCopy[String(option)] = value
+          } else {
+            loggingCopy[String(option)] = "set"
+          }
+          break
+        case "object":
+          if(option === "environment") {
+            loggingCopy["environment"] = value
+          } else {
+            loggingCopy[String(option)] = (value != null) ? "set" : "unset"
+          }
+          break
+        case "function": 
+          if(option === "dataAdapter") {
+            loggingCopy[String(option)] = "set"
+          }
+          break
+        default:
+        // Ignore other fields
+      }
+    })
+    return loggingCopy
+}
+
 function getBoolean(
   inputOptions: Record<string, unknown>,
   index: string,

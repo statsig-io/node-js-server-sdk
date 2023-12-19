@@ -1,6 +1,6 @@
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -20,7 +20,7 @@ fetch.mockImplementation((url, params) => {
   }
 
   if (url.includes('log_event')) {
-    logs = getDecodedBody(params);
+    logs = parseLogEvents(params);
     return Promise.resolve({
       ok: true,
     });
@@ -49,8 +49,7 @@ describe('Layer Exposure Logging', () => {
     const layer = await statsig.getLayer(user, 'unallocated_layer');
     layer.get('an_int', 'err');
     statsig.shutdown();
-
-    expect(logs).toEqual({});
+    expect(logs).toEqual({events:[]});
   });
 
   describe.each([['getValue'], ['get']])('with method "%s"', (method) => {
@@ -179,7 +178,7 @@ describe('Layer Exposure Logging', () => {
       await statsig.getLayer(user, 'unallocated_layer');
       statsig.shutdown();
 
-      expect(logs).toEqual({});
+      expect(logs).toEqual({events:[]});
     });
 
     it('does not log when shutdown', async () => {
@@ -190,7 +189,7 @@ describe('Layer Exposure Logging', () => {
 
       layer[method]('an_int', 0);
 
-      expect(logs).toEqual({});
+      expect(logs).toEqual({events:[]});
     });
 
     it('does not log non existent keys', async () => {
@@ -200,7 +199,7 @@ describe('Layer Exposure Logging', () => {
       layer[method]('a_string', 'err');
       statsig.shutdown();
 
-      expect(logs).toEqual({});
+      expect(logs).toEqual({events:[]});
     });
   });
 });

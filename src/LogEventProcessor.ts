@@ -1,11 +1,11 @@
 import ConfigEvaluation from './ConfigEvaluation';
-import { Marker } from './Diagnostics';
+import Diagnostics, { Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
 import OutputLogger from './OutputLogger';
 import SDKFlags from './SDKFlags';
-import { ExplicitStatsigOptions } from './StatsigOptions';
+import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -27,7 +27,8 @@ const ignoredMetadataKeys = new Set([
 ]);
 
 export default class LogEventProcessor {
-  private options: ExplicitStatsigOptions;
+  private explicitOptions: ExplicitStatsigOptions;
+  private optionsLoggiingCopy: StatsigOptions;
   private fetcher: StatsigFetcher;
 
   private queue: LogEventData[];
@@ -36,10 +37,13 @@ export default class LogEventProcessor {
   private loggedErrors: Set<string>;
   private deduper: Set<string>;
   private deduperTimer: NodeJS.Timer | null;
+  private sessionID: string;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
-    this.options = options;
+  public constructor(fetcher: StatsigFetcher, explicitOptions: ExplicitStatsigOptions, optionsLoggiingCopy: StatsigOptions, sessionID: string) {
+    this.explicitOptions = explicitOptions;
+    this.optionsLoggiingCopy = optionsLoggiingCopy;
     this.fetcher = fetcher;
+    this.sessionID = sessionID
 
     this.queue = [];
     this.deduper = new Set();
@@ -47,14 +51,14 @@ export default class LogEventProcessor {
 
     this.flushTimer = poll(() => {
       this.flush();
-    }, options.loggingIntervalMs);
+    }, explicitOptions.loggingIntervalMs);
     this.deduperTimer = poll(() => {
       this.deduper.clear();
     }, deduperInterval);
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
-    if (this.options.localMode) {
+    if (this.explicitOptions.localMode) {
       return;
     }
     if (!(event instanceof LogEvent)) {
@@ -73,7 +77,7 @@ export default class LogEventProcessor {
     }
 
     this.queue.push(event.toObject());
-    if (this.queue.length >= this.options.loggingMaxBufferSize) {
+    if (this.queue.length >= this.explicitOptions.loggingMaxBufferSize) {
       this.flush();
     }
   }
@@ -82,22 +86,23 @@ export default class LogEventProcessor {
     fireAndForget = false,
     abortSignal?: AbortSignal,
   ): Promise<void> {
+    this.addAPICallDiagnostics()
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
     const oldQueue = this.queue;
     this.queue = [];
     const body = {
-      statsigMetadata: getStatsigMetadata(),
+      statsigMetadata: {...getStatsigMetadata(), sessionID: this.sessionID},
       events: oldQueue,
     };
 
     const isCompressionDisabled = SDKFlags.on('stop_log_event_compression');
 
     return this.fetcher
-      .post(this.options.api + '/log_event', body, {
-        retries: fireAndForget ? 0 : this.options.postLogsRetryLimit,
-        backoff: this.options.postLogsRetryBackoff,
+      .post(this.explicitOptions.api + '/log_event', body, {
+        retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
+        backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
         compress: !isCompressionDisabled,
       })
@@ -146,7 +151,6 @@ export default class LogEventProcessor {
     if (!this.isUniqueExposure(user, eventName, metadata)) {
       return;
     }
-
     const event = new LogEvent(INTERNAL_EVENT_PREFIX + eventName);
     if (user != null) {
       event.setUser(user);
@@ -335,13 +339,27 @@ export default class LogEventProcessor {
     diagnostics: {
       context: string;
       markers: Marker[];
-      initTimeoutMs?: number;
     },
     user: StatsigUser | null = null,
   ) {
-    if (diagnostics.markers.length === 0) {
+    if (diagnostics.markers.length === 0 || this.explicitOptions.localMode) {
       return;
     }
-    this.logStatsigInternal(user, DIAGNOSTIC_EVENT, diagnostics);
+    const metadata = {...diagnostics, "statsigOptions": diagnostics.context === 'initialize'? this.optionsLoggiingCopy : undefined}
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + DIAGNOSTIC_EVENT)
+    event.setMetadata(metadata)
+    if (user != null) {
+      event.setUser(user);
+    }
+    this.queue.push(event.toObject())
+  }
+
+  private addAPICallDiagnostics() {
+    if(Diagnostics.instance.getShouldLogDiagnostics('api_call')) {
+      return
+    }
+    const markers = Diagnostics.instance.getMarker('api_call')
+    this.logDiagnosticsEvent({context: 'api_call', markers})
+    Diagnostics.instance.clearMarker('api_call')
   }
 }

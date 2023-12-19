@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
-
 import Diagnostics from '../Diagnostics';
 import ErrorBoundary from '../ErrorBoundary';
 import {
@@ -39,10 +37,11 @@ export default class StatsigFetcher {
     secretKey: string,
     options: ExplicitStatsigOptions,
     errorBoundry: ErrorBoundary,
+    sessionID: string,
   ) {
     this.api = options.api;
     this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
-    this.sessionID = uuidv4();
+    this.sessionID = sessionID;
     this.leakyBucket = {};
     this.pendingTimers = [];
     this.dispatcher = new Dispatcher(200);

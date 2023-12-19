@@ -1,7 +1,7 @@
 import * as statsigsdk from '../index';
 import type { LogEventData } from '../LogEvent';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -30,7 +30,7 @@ fetch.mockImplementation((url, params) => {
     });
   }
   if (url.includes('log_event')) {
-    postedLogs = getDecodedBody(params);
+    postedLogs = parseLogEvents(params, false);
     return Promise.resolve({
       ok: true,
     });
@@ -100,29 +100,30 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(unsupportedGate).toEqual(false);
 
     statsig.shutdown();
-    expect(postedLogs.events.length).toEqual(4);
-    expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[0].metadata['gate']).toEqual('always_on_gate');
-    expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
-    expect(postedLogs.events[0].metadata['ruleID']).toEqual(
-      '2DWuOvXQZWKvoaNm27dqcs',
-    );
-
+    expect(postedLogs.events.length).toEqual(5);
+    expect(postedLogs.events[0].eventName).toEqual('statsig::diagnostics');
     expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[1].metadata['gate']).toEqual(
-      'on_for_statsig_email',
-    );
+    expect(postedLogs.events[1].metadata['gate']).toEqual('always_on_gate');
     expect(postedLogs.events[1].metadata['gateValue']).toEqual('true');
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
-      '3jdTW54SQWbbxFFZJe7wYZ',
+      '2DWuOvXQZWKvoaNm27dqcs',
     );
 
     expect(postedLogs.events[2].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[2].metadata['gate']).toEqual(
       'on_for_statsig_email',
     );
-    expect(postedLogs.events[2].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[2].metadata['ruleID']).toEqual('default');
+    expect(postedLogs.events[2].metadata['gateValue']).toEqual('true');
+    expect(postedLogs.events[2].metadata['ruleID']).toEqual(
+      '3jdTW54SQWbbxFFZJe7wYZ',
+    );
+
+    expect(postedLogs.events[3].eventName).toEqual('statsig::gate_exposure');
+    expect(postedLogs.events[3].metadata['gate']).toEqual(
+      'on_for_statsig_email',
+    );
+    expect(postedLogs.events[3].metadata['gateValue']).toEqual('false');
+    expect(postedLogs.events[3].metadata['ruleID']).toEqual('default');
   });
 
   test('Verify checkGateWithoutServerFallback and exposure logs', async () => {
@@ -166,37 +167,38 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(unsupportedGate).toEqual(false);
 
     statsig.shutdown();
-    expect(postedLogs.events.length).toEqual(4);
-    expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[0].metadata['gate']).toEqual('always_on_gate');
-    expect(postedLogs.events[0].metadata['gateValue']).toEqual('true');
-    expect(postedLogs.events[0].metadata['ruleID']).toEqual(
-      '2DWuOvXQZWKvoaNm27dqcs',
-    );
-
+    expect(postedLogs.events.length).toEqual(5);
+    expect(postedLogs.events[0].eventName).toEqual('statsig::diagnostics');
     expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[1].metadata['gate']).toEqual(
-      'on_for_statsig_email',
-    );
+    expect(postedLogs.events[1].metadata['gate']).toEqual('always_on_gate');
     expect(postedLogs.events[1].metadata['gateValue']).toEqual('true');
     expect(postedLogs.events[1].metadata['ruleID']).toEqual(
-      '3jdTW54SQWbbxFFZJe7wYZ',
+      '2DWuOvXQZWKvoaNm27dqcs',
     );
 
     expect(postedLogs.events[2].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[2].metadata['gate']).toEqual(
       'on_for_statsig_email',
     );
-    expect(postedLogs.events[2].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[2].metadata['ruleID']).toEqual('default');
+    expect(postedLogs.events[2].metadata['gateValue']).toEqual('true');
+    expect(postedLogs.events[2].metadata['ruleID']).toEqual(
+      '3jdTW54SQWbbxFFZJe7wYZ',
+    );
 
     expect(postedLogs.events[3].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[3].metadata['gate']).toEqual(
-      'unsupported_condition_type',
+      'on_for_statsig_email',
     );
     expect(postedLogs.events[3].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[3].metadata['ruleID']).toEqual('');
-    expect(postedLogs.events[3].metadata['reason']).toEqual('Unsupported');
+    expect(postedLogs.events[3].metadata['ruleID']).toEqual('default');
+
+    expect(postedLogs.events[4].eventName).toEqual('statsig::gate_exposure');
+    expect(postedLogs.events[4].metadata['gate']).toEqual(
+      'unsupported_condition_type',
+    );
+    expect(postedLogs.events[4].metadata['gateValue']).toEqual('false');
+    expect(postedLogs.events[4].metadata['ruleID']).toEqual('');
+    expect(postedLogs.events[4].metadata['reason']).toEqual('Unsupported');
   });
 
   test('Verify getConfig and exposure logs', async () => {
@@ -221,6 +223,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.value).toEqual({});
 
     statsig.shutdown();
+    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
     expect(postedLogs.events.length).toEqual(3);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual('test_config');
@@ -254,6 +257,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
     statsig.shutdown();
+    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
     expect(postedLogs.events.length).toEqual(2);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual(
@@ -294,6 +298,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     statsig.shutdown();
     // fallback does not log an exposure, so nothing gets set here
+    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
     expect(postedLogs.events).toEqual([]);
   });
 
@@ -304,7 +309,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       item_name: 'diet_coke_48_pack',
     });
     statsig.shutdown();
-
+    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
     expect(postedLogs.events.length).toEqual(1);
     expect(postedLogs.events[0].eventName).toEqual('add_to_cart');
     expect(postedLogs.events[0].value).toEqual('SKU_12345');

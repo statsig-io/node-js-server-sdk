@@ -90,6 +90,7 @@ describe('InitDiagnostics', () => {
     StatsigInstanceUtils.setInstance(null);
   });
 
+  // Always initialization data even when diagnostics disabled
   it.each([true, false])(
     'test network init success',
     async (disableDiagnostics) => {
@@ -97,13 +98,8 @@ describe('InitDiagnostics', () => {
         loggingMaxBufferSize: 1,
         disableDiagnostics,
       });
-
+      
       Statsig.shutdown();
-
-      if (disableDiagnostics) {
-        expect(events.length).toBe(0);
-        return;
-      }
 
       expect(events.length).toBe(1);
       const event = events[0];

@@ -1,6 +1,6 @@
 import Statsig, { StatsigUser } from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -31,7 +31,7 @@ describe('ExposureLogging', () => {
       }
 
       if (url.includes('log_event')) {
-        events = events.concat(getDecodedBody(params)['events']);
+        events = events.concat(parseLogEvents(params)['events']);
         return Promise.resolve({
           ok: true,
         });

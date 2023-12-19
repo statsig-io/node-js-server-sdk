@@ -4,7 +4,7 @@
 
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { getDecodedBody } from './StatsigTestUtils';
+import {  parseLogEvents } from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -29,7 +29,7 @@ fetch.mockImplementation((url, params) => {
     });
   }
   if (url.includes('log_event')) {
-    postedLogs = getDecodedBody(params);
+    postedLogs = parseLogEvents(params);
     return Promise.resolve({
       ok: true,
     });

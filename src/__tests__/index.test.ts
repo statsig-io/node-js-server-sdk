@@ -8,7 +8,7 @@ import Statsig from '../index';
 import LogEvent from '../LogEvent';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
-import StatsigTestUtils, { getDecodedBody } from './StatsigTestUtils';
+import StatsigTestUtils, { parseLogEvents } from './StatsigTestUtils';
 
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -47,7 +47,7 @@ fetch.mockImplementation((url, params) => {
   } else if (url.includes('log_event') || url.includes('rgstr')) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const events = getDecodedBody(params).events;
+        const events = parseLogEvents(params).events;
         flushedEventCount += events.length;
         resolve({
           ok: true,
@@ -352,7 +352,7 @@ describe('Verify behavior of top level index functions', () => {
   });
 
   test('Verify cannot call getConfig() with invalid config name', async () => {
-    expect.assertions(3);
+    expect.assertions(4);
 
     await Statsig.initialize(secretKey, { disableDiagnostics: true });
 
@@ -364,7 +364,8 @@ describe('Verify behavior of top level index functions', () => {
     expect(Statsig.getExperiment({ userID: '123' }, false)).rejects.toEqual(
       new Error('Lookup key must be a non-empty string'),
     );
-    expect(StatsigTestUtils.getLogger().queue).toHaveLength(0);
+    expect(StatsigTestUtils.getLogger().queue).toHaveLength(1); // Has only diagnostics initialize
+    expect(StatsigTestUtils.getLogger().queue[0].eventName).toBe("statsig::diagnostics")
   });
 
   test(
@@ -386,8 +387,8 @@ describe('Verify behavior of top level index functions', () => {
 
       const res = await Statsig.checkGate(user, 'gate_server');
       expect(res).toStrictEqual(false);
-      expect(StatsigTestUtils.getLogger().queue).toHaveLength(1);
-      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+      expect(StatsigTestUtils.getLogger().queue).toHaveLength(2);
+      expect(StatsigTestUtils.getLogger().queue[1]).toMatchObject({
         eventName: 'statsig::gate_exposure',
         metadata: {
           configSyncTime: -1,
@@ -420,8 +421,8 @@ describe('Verify behavior of top level index functions', () => {
         Statsig.checkGateWithoutServerFallback(user, gateName),
       ).toStrictEqual(false);
 
-      expect(StatsigTestUtils.getLogger().queue).toHaveLength(1);
-      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+      expect(StatsigTestUtils.getLogger().queue).toHaveLength(2);
+      expect(StatsigTestUtils.getLogger().queue[1]).toMatchObject({
         eventName: 'statsig::gate_exposure',
         metadata: {
           configSyncTime: -1,
@@ -640,7 +641,7 @@ describe('Verify behavior of top level index functions', () => {
       data = await Statsig.getExperiment(user, configName);
       expect(data.value).toEqual({});
 
-      expect(StatsigTestUtils.getLogger().queue[0]).toMatchObject({
+      expect(StatsigTestUtils.getLogger().queue[1]).toMatchObject({
         eventName: 'statsig::config_exposure',
         metadata: expect.objectContaining({
           config: 'config_server',

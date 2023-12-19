@@ -114,11 +114,6 @@ describe('ConfigSyncDiagnostics', () => {
       Statsig.shutdown();
       events = events.filter((e) => e['metadata']['context'] !== 'initialize');
 
-      if (disableDiagnostics) {
-        expect(events.length).toBe(0);
-        return;
-      }
-
       expect(events.length).toBe(1);
       const event = events[0];
       expect(event['eventName']).toBe('statsig::diagnostics');
@@ -304,12 +299,7 @@ describe('ConfigSyncDiagnostics', () => {
       await runSync('getIDList');
       Statsig.shutdown();
       events = events.filter((e) => e['metadata']['context'] !== 'initialize');
-
-      if (disableDiagnostics) {
-        expect(events.length).toBe(0);
-        return;
-      }
-
+      // Disable diagnostics only disable api_call, so not affecting config_sync
       expect(events.length).toBe(1);
       const event = events[0];
       expect(event['eventName']).toBe('statsig::diagnostics');

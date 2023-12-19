@@ -512,7 +512,7 @@ export const Statsig = {
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    return this._enforceServer().getConfig(user, experimentName);
+    return this._enforceServer().getExperiment(user, experimentName);
   },
 
   /**
@@ -523,7 +523,7 @@ export const Statsig = {
     user: StatsigUser,
     experimentName: string,
   ): Promise<DynamicConfig> {
-    return this._enforceServer().getConfigWithExposureLoggingDisabled(
+    return this._enforceServer().getExperimentWithExposureLoggingDisabled(
       user,
       experimentName,
     );

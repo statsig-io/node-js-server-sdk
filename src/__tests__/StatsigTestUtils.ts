@@ -19,6 +19,14 @@ export function assertMarkerEqual(marker: any, expected: any) {
   });
 }
 
+export function parseLogEvents(request: any, filterDiagnosticsEvent: boolean = true) {
+  const logs = getDecodedBody(request)
+  if(filterDiagnosticsEvent) {
+    return {events:logs.events.filter(log => log.eventName !== 'statsig::diagnostics')}
+  }
+  return logs
+}
+
 export function getDecodedBody(request: any) {
   const body = request.body;
   if (typeof body === 'string') {

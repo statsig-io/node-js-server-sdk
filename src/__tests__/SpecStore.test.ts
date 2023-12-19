@@ -1,20 +1,13 @@
 import { ConfigSpec } from '../ConfigSpec';
-import Diagnostics, { MAX_SAMPLING_RATE } from '../Diagnostics';
+import Diagnostics, { MAX_SAMPLING_RATE, SDKConstants } from '../Diagnostics';
 import LogEventProcessor from '../LogEventProcessor';
-import SpecStore, { SDKConstants } from '../SpecStore';
+import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 const exampleConfigSpecs = require('./jest.setup');
 
 const now = Date.now();
-
-const updatedSamplingRates: SDKConstants = {
-  dcs: 11,
-  log: 12,
-  idlist: 13,
-  initialize: 14,
-};
 
 const jsonResponse = {
   time: now,
@@ -134,12 +127,6 @@ describe('Verify behavior of SpecStore', () => {
     expect(store.lastUpdateTime).toBeGreaterThanOrEqual(latest - 1);
     expect(store.initialized).toEqual(true);
     expect(store.rulesetsSyncTimer).toBeTruthy();
-    expect(store.samplingRates).toEqual({
-      dcs: 0,
-      log: 0,
-      idlist: 0,
-      initialize: MAX_SAMPLING_RATE,
-    });
 
     // first sync gives updated values
     const modifiedGate = JSON.parse(JSON.stringify(exampleConfigSpecs.gate));
@@ -157,7 +144,6 @@ describe('Verify behavior of SpecStore', () => {
       layer_configs: [exampleConfigSpecs.allocated_layer],
       id_lists: { list_1: true, list_2: true },
       has_updates: true,
-      diagnostics: updatedSamplingRates,
     };
 
     fetch.mockImplementation((url, params) => {
@@ -245,7 +231,6 @@ describe('Verify behavior of SpecStore', () => {
     expect(store.lastUpdateTime).toEqual(timeAfterFirstSync);
     expect(store.initialized).toEqual(true);
     expect(store.rulesetsSyncTimer).toBeTruthy();
-    expect(store.samplingRates).toEqual(updatedSamplingRates);
 
     // second sync gives no updates to rulesets, but changes the url for id list
     fetch.mockImplementation((url, params) => {
@@ -310,7 +295,6 @@ describe('Verify behavior of SpecStore', () => {
         },
       }),
     );
-    expect(store.samplingRates).toEqual(updatedSamplingRates);
 
     // now returns a content that does not start with - or +; SDK should reset the list and re-sync after another cycle
     fetch.mockImplementation((url, params) => {

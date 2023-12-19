@@ -1,7 +1,7 @@
 import { EvaluationReason } from '../EvaluationReason';
 import StatsigServer from '../StatsigServer';
 import { StatsigUser } from '../StatsigUser';
-import { getDecodedBody } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
@@ -46,7 +46,7 @@ describe('Evaluation Details', () => {
       }
 
       if (url.includes('log_event')) {
-        events = events.concat(getDecodedBody(params)['events']);
+        events = events.concat(parseLogEvents(params)['events']);
         return Promise.resolve({
           ok: true,
         });

@@ -1,19 +1,43 @@
+import { AdapterResponse, IDataAdapter } from 'statsig-node';
 import ErrorBoundary, { ExceptionEndpoint } from '../ErrorBoundary';
 import {
   StatsigInvalidArgumentError,
   StatsigTooManyRequestsError,
   StatsigUninitializedError,
 } from '../Errors';
+import { InitStrategy, OptionsLoggingCopy } from '../StatsigOptions';
 import { getStatsigMetadata } from '../utils/core';
 import { getDecodedBody } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
+const TestDataAdapter: IDataAdapter = {
+  get(key: string): Promise<AdapterResponse> {
+    return new Promise<AdapterResponse>(() => {})
+  },
+  set(key: string, value: string, time?: number): Promise<void> {
+    return new Promise(() => {})
+  },
+  shutdown(): Promise<void> {
+    return new Promise(() => {})
 
+  },
+  initialize(): Promise<void>{
+    return new Promise(() => {})
+  }
+}
 describe('ErrorBoundary', () => {
   let boundary: ErrorBoundary;
   let requests: { url: RequestInfo; params: RequestInit }[] = [];
 
   beforeEach(() => {
-    boundary = new ErrorBoundary('secret-key');
+    const options = {
+      environment: {tier: "staging"},
+      initStrategyForIP3Country: 'await' as InitStrategy,
+      rulesetsSyncIntervalMs: 30000,
+      dataAdapter: TestDataAdapter,
+      api: "www.google.com",
+      disableDiagnostics: true
+    }
+    boundary = new ErrorBoundary('secret-key', OptionsLoggingCopy(options), 'sessionID');
     requests = [];
 
     const fetch = require('node-fetch');
@@ -104,14 +128,27 @@ describe('ErrorBoundary', () => {
     );
   });
 
-  it('logs statsig metadata', () => {
+  it('logs statsig metadata and options', () => {
     boundary.swallow(() => {
       throw new Error();
     });
 
     expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
-        statsigMetadata: getStatsigMetadata(),
+        statsigMetadata: {...getStatsigMetadata(), sessionID: "sessionID"},
+      }),
+    );
+
+    expect(getDecodedBody(requests[0].params)).toEqual(
+      expect.objectContaining({
+        statsigOptions: {
+          environment: {tier: "staging"},
+          initStrategyForIP3Country: 'await',
+          rulesetsSyncIntervalMs: 30000,
+          dataAdapter: "set",
+          api: "www.google.com",
+          disableDiagnostics: true
+        },
       }),
     );
   });
