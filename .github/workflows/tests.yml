@@ -38,4 +38,4 @@ jobs:
             key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
         - run: npm install
         - name: Lint
-          run: npm run lint
+          run: npm run lint:github

@@ -7,7 +7,8 @@
     "prepare": "rm -rf dist/ && tsc",
     "test": "npm run prepare && jest",
     "docs": "jsdoc2md src/index.js src/typedefs.js src/DynamicConfig.js > docs/generated.md",
-    "lint": "eslint '*/**/*.{ts,tsx}' --fix --max-warnings 0 --cache --cache-strategy content && git status"
+    "lint": "eslint '*/**/*.{ts,tsx}' --fix --max-warnings 0 --cache --cache-strategy content && git status",
+    "lint:github": "eslint '*/**/*.{ts,tsx}' --max-warnings 0 --cache --cache-strategy content && git status"
   },
   "keywords": [
     "feature gate",
@@ -49,10 +50,13 @@
     "@typescript-eslint/parser": "^5.59.7",
     "babel-jest": "^26.6.3",
     "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.2",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jsdoc-to-markdown": "^7.1.1",
+    "prettier": "^3.1.1",
     "typescript": "^4.7.4"
   },
   "importSort": {
