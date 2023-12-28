@@ -28,7 +28,6 @@ import { StatsigUser } from './StatsigUser';
 
 export type {
   AdapterResponse,
-  DataAdapterKey,
   InitStrategy,
   LogEventObject,
   RulesUpdatedCallback,
@@ -37,7 +36,7 @@ export type {
   StatsigUser,
 };
 
-export { DynamicConfig, IDataAdapter, Layer, StatsigServer };
+export { DynamicConfig, IDataAdapter, DataAdapterKey, Layer, StatsigServer };
 
 // These need to be exported, and we currently export a top level Statsig object
 // So in order to not make a breaking change, they must be exported as members of
