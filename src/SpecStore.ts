@@ -29,7 +29,6 @@ export type ConfigStore = {
   experimentToLayer: Record<string, string>;
 };
 
-
 export default class SpecStore {
   private initReason: EvaluationReason;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;

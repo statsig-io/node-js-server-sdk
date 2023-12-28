@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+
 import ConfigEvaluation from './ConfigEvaluation';
 import Diagnostics from './Diagnostics';
 import DynamicConfig, { OnDefaultValueFallback } from './DynamicConfig';
@@ -19,13 +20,13 @@ import LogEventProcessor from './LogEventProcessor';
 import OutputLogger from './OutputLogger';
 import {
   ExplicitStatsigOptions,
-  OptionsWithDefaults,
   OptionsLoggingCopy,
+  OptionsWithDefaults,
   StatsigOptions,
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import asyncify from './utils/asyncify';
-import { getStatsigMetadata, isUserIdentifiable } from './utils/core';
+import { isUserIdentifiable } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -43,9 +44,9 @@ enum ExposureCause {
 }
 
 type NormalizedEvaluation = {
-  evaluation: ConfigEvaluation,
-  user: StatsigUser,
-}
+  evaluation: ConfigEvaluation;
+  user: StatsigUser;
+};
 
 export type LogEventObject = {
   eventName: string;
@@ -75,20 +76,29 @@ export default class StatsigServer {
   private _sessionID: string;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
-    const optionsLoggingcopy = OptionsLoggingCopy(options)
-    this._sessionID = uuidv4()
+    const optionsLoggingcopy = OptionsLoggingCopy(options);
+    this._sessionID = uuidv4();
     this._secretKey = secretKey;
     this._options = OptionsWithDefaults(options);
     this._pendingInitPromise = null;
     this._ready = false;
-    this._errorBoundary = new ErrorBoundary(secretKey, optionsLoggingcopy, this._sessionID);
+    this._errorBoundary = new ErrorBoundary(
+      secretKey,
+      optionsLoggingcopy,
+      this._sessionID,
+    );
     this._fetcher = new StatsigFetcher(
       this._secretKey,
       this._options,
       this._errorBoundary,
-      this._sessionID
+      this._sessionID,
     );
-    this._logger = new LogEventProcessor(this._fetcher, this._options, optionsLoggingcopy, this._sessionID);
+    this._logger = new LogEventProcessor(
+      this._fetcher,
+      this._options,
+      optionsLoggingcopy,
+      this._sessionID,
+    );
     Diagnostics.initialize({
       logger: this._logger,
       options: this._options,
@@ -138,7 +148,7 @@ export default class StatsigServer {
         ) {
           this._pendingInitPromise = Promise.race([
             initPromise,
-            new Promise((resolve) => {
+            new Promise<void>((resolve) => {
               setTimeout(() => {
                 Diagnostics.mark.overall.end({
                   success: false,
@@ -150,19 +160,19 @@ export default class StatsigServer {
                 this._pendingInitPromise = null;
                 resolve();
               }, this._options.initTimeoutMs);
-            }) as Promise<void>,
+            }),
           ]);
         } else {
           this._pendingInitPromise = initPromise;
         }
-        return this._pendingInitPromise;
+        return this._pendingInitPromise ?? Promise.resolve();
       },
       () => {
         this._ready = true;
         this._pendingInitPromise = null;
         return Promise.resolve();
       },
-      {tag: "initializeAsync"}
+      { tag: 'initializeAsync' },
     );
   }
 
@@ -181,7 +191,7 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getGateImpl(user, gateName, ExposureLogging.Enabled),
       () => makeEmptyFeatureGate(gateName),
-      {configName: gateName, tag: "checkGate"}
+      { configName: gateName, tag: 'checkGate' },
     );
   }
 
@@ -200,17 +210,23 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getGateImpl(user, gateName, ExposureLogging.Disabled),
       () => makeEmptyFeatureGate(gateName),
-      {configName: gateName, tag: "getFeatureGateWithExposureLoggingDisabled"}
+      {
+        configName: gateName,
+        tag: 'getFeatureGateWithExposureLoggingDisabled',
+      },
     );
   }
 
   public logGateExposure(inputUser: StatsigUser, gateName: string) {
-    return this._errorBoundary.swallow(
-      () => {
-        const { evaluation, user } = this.evalGate(inputUser, gateName);
-        this.logGateExposureImpl(user, gateName, evaluation, ExposureCause.Manual);
-      },
-    );
+    return this._errorBoundary.swallow(() => {
+      const { evaluation, user } = this.evalGate(inputUser, gateName);
+      this.logGateExposureImpl(
+        user,
+        gateName,
+        evaluation,
+        ExposureCause.Manual,
+      );
+    });
   }
 
   //#endregion
@@ -223,7 +239,7 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getConfigImpl(user, configName, ExposureLogging.Enabled),
       () => new DynamicConfig(configName),
-      {configName, tag: "getConfig"}
+      { configName, tag: 'getConfig' },
     );
   }
 
@@ -234,7 +250,7 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getConfigImpl(user, configName, ExposureLogging.Disabled),
       () => new DynamicConfig(configName),
-      {configName, tag: "getConfigWithExposureLoggingDisabled"}
+      { configName, tag: 'getConfigWithExposureLoggingDisabled' },
     );
   }
 
@@ -266,7 +282,7 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getConfigImpl(user, experimentName, ExposureLogging.Enabled),
       () => new DynamicConfig(experimentName),
-      {configName: experimentName, tag: "getExperiment"}
+      { configName: experimentName, tag: 'getExperiment' },
     );
   }
 
@@ -277,7 +293,10 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getConfigImpl(user, experimentName, ExposureLogging.Disabled),
       () => new DynamicConfig(experimentName),
-      {configName: experimentName, tag: "getExperimentWithExposureLoggingDisabled"}
+      {
+        configName: experimentName,
+        tag: 'getExperimentWithExposureLoggingDisabled',
+      },
     );
   }
 
@@ -308,8 +327,8 @@ export default class StatsigServer {
       () => new Layer(layerName),
       {
         configName: layerName,
-        tag: "getLayer"
-      }
+        tag: 'getLayer',
+      },
     );
   }
 
@@ -320,7 +339,7 @@ export default class StatsigServer {
     return this._errorBoundary.capture(
       () => this.getLayerImpl(user, layerName, ExposureLogging.Disabled),
       () => new Layer(layerName),
-      {configName: layerName, tag: "getLayerWithExposureLoggingDisabled"}
+      { configName: layerName, tag: 'getLayerWithExposureLoggingDisabled' },
     );
   }
 
@@ -338,8 +357,7 @@ export default class StatsigServer {
         evaluation,
         ExposureCause.Manual,
       );
-    })
-    
+    });
   }
 
   //#endregion
@@ -354,14 +372,15 @@ export default class StatsigServer {
     value: string | number | null = null,
     metadata: Record<string, unknown> | null = null,
   ) {
-    return this._errorBoundary.swallow(() =>
-      this.logEventObject({
-        eventName: eventName,
-        user: user,
-        value: value,
-        metadata: metadata,
-      }),
-      {tag: "logEvent"}
+    return this._errorBoundary.swallow(
+      () =>
+        this.logEventObject({
+          eventName: eventName,
+          user: user,
+          value: value,
+          metadata: metadata,
+        }),
+      { tag: 'logEvent' },
     );
   }
 
@@ -409,14 +428,17 @@ export default class StatsigServer {
       return;
     }
 
-    this._errorBoundary.swallow(() => {
-      this._ready = false;
-      this._logger.shutdown(timeout);
-      this._fetcher.shutdown();
-      this._evaluator.shutdown();
-    }, {
-      tag: "shutdown"
-    });
+    this._errorBoundary.swallow(
+      () => {
+        this._ready = false;
+        this._logger.shutdown(timeout);
+        this._fetcher.shutdown();
+        this._evaluator.shutdown();
+      },
+      {
+        tag: 'shutdown',
+      },
+    );
   }
 
   /**
@@ -437,7 +459,7 @@ export default class StatsigServer {
         await this._evaluator.shutdownAsync();
       },
       () => Promise.resolve(),
-      {tag: "shutdownAsync"}
+      { tag: 'shutdownAsync' },
     );
   }
 
@@ -461,7 +483,7 @@ export default class StatsigServer {
         return flushPromise;
       },
       () => Promise.resolve(),
-      {tag: "flush"}
+      { tag: 'flush' },
     );
   }
 
@@ -494,7 +516,7 @@ export default class StatsigServer {
         );
       },
       () => null,
-      {tag: "getClientInitializeResponse"}
+      { tag: 'getClientInitializeResponse' },
     );
   }
 
@@ -519,16 +541,18 @@ export default class StatsigServer {
     value: Record<string, unknown>,
     userID: string | null = '',
   ) {
-    this._errorBoundary.swallow(() => {
-      if (typeof value !== 'object') {
-        OutputLogger.warn(
-          'statsigSDK> Attempted to override a config with a non object value',
-        );
-        return;
-      }
-      this._evaluator.overrideConfig(configName, value, userID);
-    },
-    {tag: "overrideConfig"});
+    this._errorBoundary.swallow(
+      () => {
+        if (typeof value !== 'object') {
+          OutputLogger.warn(
+            'statsigSDK> Attempted to override a config with a non object value',
+          );
+          return;
+        }
+        this._evaluator.overrideConfig(configName, value, userID);
+      },
+      { tag: 'overrideConfig' },
+    );
   }
 
   public overrideLayer(
@@ -536,15 +560,18 @@ export default class StatsigServer {
     value: Record<string, unknown>,
     userID: string | null = '',
   ) {
-    this._errorBoundary.swallow(() => {
-      if (typeof value !== 'object') {
-        OutputLogger.warn(
-          'statsigSDK> Attempted to override a layer with a non object value',
-        );
-        return;
-      }
-      this._evaluator.overrideLayer(layerName, value, userID);
-    },{tag: "overrideConfig"});
+    this._errorBoundary.swallow(
+      () => {
+        if (typeof value !== 'object') {
+          OutputLogger.warn(
+            'statsigSDK> Attempted to override a layer with a non object value',
+          );
+          return;
+        }
+        this._evaluator.overrideLayer(layerName, value, userID);
+      },
+      { tag: 'overrideConfig' },
+    );
   }
 
   public getFeatureGateList(): string[] {
@@ -660,8 +687,8 @@ export default class StatsigServer {
     experimentName: string,
   ): Promise<DynamicConfig> {
     return asyncify(() =>
-    this.getExperimentWithExposureLoggingDisabledSync(user, experimentName),
-  );
+      this.getExperimentWithExposureLoggingDisabledSync(user, experimentName),
+    );
   }
 
   /**
@@ -789,8 +816,8 @@ export default class StatsigServer {
     const evaluation = this._evaluator.getConfig(user, configName);
     return {
       evaluation,
-      user
-    }
+      user,
+    };
   }
 
   private getConfigImpl(
@@ -798,10 +825,10 @@ export default class StatsigServer {
     configName: string,
     exposureLogging: ExposureLogging,
   ): DynamicConfig {
-    const {evaluation, user} = this.evalConfig(inputUser, configName);
+    const { evaluation, user } = this.evalConfig(inputUser, configName);
     const config = new DynamicConfig(
       configName,
-      evaluation.json_value as Record<string, unknown>,
+      evaluation.json_value,
       evaluation.rule_id,
       evaluation.group_name,
       evaluation.secondary_exposures,
@@ -860,7 +887,7 @@ export default class StatsigServer {
 
     return new Layer(
       layerName,
-      evaluation?.json_value as Record<string, unknown>,
+      evaluation?.json_value,
       evaluation?.rule_id,
       evaluation?.group_name,
       evaluation?.config_delegate,

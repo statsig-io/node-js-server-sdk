@@ -28,7 +28,11 @@ export type DiagnosticsSamplingRate = {
 
 export type SDKConstants = DiagnosticsSamplingRate;
 
-export type ContextType = 'initialize' | 'config_sync' | 'event_logging' | 'api_call';
+export type ContextType =
+  | 'initialize'
+  | 'config_sync'
+  | 'event_logging'
+  | 'api_call';
 export type KeyType =
   | 'download_config_specs'
   | 'bootstrap'
@@ -90,7 +94,7 @@ export class DiagnosticsImpl {
     initialize: MAX_SAMPLING_RATE,
     api_call: 0,
   };
-  
+
   constructor(args: {
     logger: LogEventProcessor;
     options?: StatsigOptions;
@@ -111,7 +115,7 @@ export class DiagnosticsImpl {
   }
 
   setSamplingRate(samplingRate: unknown) {
-    this.updateSamplingRates(samplingRate)
+    this.updateSamplingRates(samplingRate);
   }
 
   selectAction<ActionType extends RequiredStepTags>(
@@ -163,19 +167,19 @@ export class DiagnosticsImpl {
   }
 
   addMarker(marker: Marker, overrideContext?: ContextType) {
-    const context = overrideContext ?? this.context
+    const context = overrideContext ?? this.context;
     if (this.disabledCoreAPI && context == 'api_call') {
       return;
     }
     this.markers[context].push(marker);
   }
-  
+
   getMarker(context: ContextType) {
-    return this.markers[context]
-  } 
+    return this.markers[context];
+  }
 
   clearMarker(context: ContextType) {
-    this.markers[context] = []
+    this.markers[context] = [];
   }
 
   getMarkerCount(context: ContextType) {
@@ -194,9 +198,7 @@ export class DiagnosticsImpl {
 
     const shouldLog = !optionalArgs
       ? true
-      : this.getShouldLogDiagnostics(
-        optionalArgs.type,
-      );
+      : this.getShouldLogDiagnostics(optionalArgs.type);
 
     if (shouldLog) {
       this.logger.logDiagnosticsEvent({
@@ -236,7 +238,7 @@ export class DiagnosticsImpl {
   }
 
   getShouldLogDiagnostics(
-    type: 'id_list' | 'config_spec' | 'initialize'|'api_call',
+    type: 'id_list' | 'config_spec' | 'initialize' | 'api_call',
   ): boolean {
     const rand = Math.random() * MAX_SAMPLING_RATE;
     switch (type) {
@@ -247,7 +249,7 @@ export class DiagnosticsImpl {
       case 'initialize':
         return rand < this.samplingRates.initialize;
       case 'api_call':
-        return rand < this.samplingRates.api_call
+        return rand < this.samplingRates.api_call;
       default:
         throw new ExhaustSwitchError(type);
     }
@@ -302,7 +304,6 @@ function safeGetField(data: object, field: string): unknown | undefined {
   }
   return undefined;
 }
-
 
 type RequiredActionTags = {
   [K in keyof Marker]?: Marker[K];

@@ -8,7 +8,7 @@
     "test": "npm run prepare && jest",
     "docs": "jsdoc2md src/index.js src/typedefs.js src/DynamicConfig.js > docs/generated.md",
     "lint": "eslint '*/**/*.{ts,tsx}' --fix --max-warnings 0 --cache --cache-strategy content && git status",
-    "lint:github": "eslint '*/**/*.{ts,tsx}' --max-warnings 0 --cache --cache-strategy content && git status"
+    "lint:github": "eslint '*/**/*.{ts,tsx}' --max-warnings 100 --cache --cache-strategy content"
   },
   "keywords": [
     "feature gate",

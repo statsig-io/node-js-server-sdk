@@ -12,7 +12,7 @@ import safeFetch from './utils/safeFetch';
 
 export const ExceptionEndpoint = 'https://statsigapi.net/v1/sdk_exception';
 
-type ExtraArgs = Partial<{configName: string, tag: string}>
+type ExtraArgs = Partial<{ configName: string; tag: string }>;
 
 export default class ErrorBoundary {
   private sdkKey: string;
@@ -20,32 +20,44 @@ export default class ErrorBoundary {
   private statsigMetadata = getStatsigMetadata();
   private seen = new Set<string>();
 
-  constructor(sdkKey: string, optionsLoggingCopy: StatsigOptions, sessionID: string) {
+  constructor(
+    sdkKey: string,
+    optionsLoggingCopy: StatsigOptions,
+    sessionID: string,
+  ) {
     this.sdkKey = sdkKey;
-    this.optionsLoggingCopy = optionsLoggingCopy
-    this.statsigMetadata['sessionID'] = sessionID
+    this.optionsLoggingCopy = optionsLoggingCopy;
+    this.statsigMetadata['sessionID'] = sessionID;
   }
 
   swallow<T>(task: () => T, extra: ExtraArgs = {}) {
-    this.capture(task, () => {
-      return undefined;
-    }, extra);
+    this.capture(
+      task,
+      () => {
+        return undefined;
+      },
+      extra,
+    );
   }
 
-  capture<T>(task: () => T, recover: (e: unknown) => T, extra: ExtraArgs = {}): T {
-    let markerID: string | null = null
+  capture<T>(
+    task: () => T,
+    recover: (e: unknown) => T,
+    extra: ExtraArgs = {},
+  ): T {
+    let markerID: string | null = null;
     try {
-      markerID = this.beginMarker(extra.tag, extra.configName)
+      markerID = this.beginMarker(extra.tag, extra.configName);
       const result = task();
       if (result instanceof Promise) {
         return (result as any).catch((e: unknown) => {
           return this.onCaught(e, recover, extra);
         });
       }
-      this.endMarker(extra.tag, true, markerID, extra.configName)
+      this.endMarker(extra.tag, true, markerID, extra.configName);
       return result;
     } catch (error) {
-      this.endMarker(extra.tag, false, markerID, extra.configName)
+      this.endMarker(extra.tag, false, markerID, extra.configName);
       return this.onCaught(error, recover);
     }
   }
@@ -54,7 +66,11 @@ export default class ErrorBoundary {
     this.sdkKey = sdkKey;
   }
 
-  private onCaught<T>(error: unknown, recover: (e: unknown) => T, extra: ExtraArgs = {}): T {
+  private onCaught<T>(
+    error: unknown,
+    recover: (e: unknown) => T,
+    extra: ExtraArgs = {},
+  ): T {
     if (
       error instanceof StatsigUninitializedError ||
       error instanceof StatsigInvalidArgumentError ||
@@ -82,7 +98,7 @@ export default class ErrorBoundary {
         return;
       }
 
-      const unwrapped = (error ?? Error('[Statsig] Error was empty'));
+      const unwrapped = error ?? Error('[Statsig] Error was empty');
       const isError = unwrapped instanceof Error;
       const name = isError && unwrapped.name ? unwrapped.name : 'No Name';
       if (this.seen.has(name) || (key != null && this.seen.has(key))) {
@@ -97,7 +113,7 @@ export default class ErrorBoundary {
         statsigMetadata: this.statsigMetadata ?? {},
         configName: extra.configName,
         statsigOptions: this.optionsLoggingCopy,
-        tag: extra.tag
+        tag: extra.tag,
       });
       safeFetch(ExceptionEndpoint, {
         method: 'POST',
@@ -108,9 +124,11 @@ export default class ErrorBoundary {
           'Content-Type': 'application/json',
         },
         body,
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
-    } catch {/* noop */}
+    } catch {
+      /* noop */
+    }
   }
 
   private getDescription(obj: unknown): string {
@@ -121,8 +139,11 @@ export default class ErrorBoundary {
     }
   }
 
-  private beginMarker(key: string | undefined, configName: string | undefined): string | null {
-    if(key == null) {
+  private beginMarker(
+    key: string | undefined,
+    configName: string | undefined,
+  ): string | null {
+    if (key == null) {
       return null;
     }
     const diagnostics = Diagnostics.mark.api_call(key);
@@ -134,21 +155,21 @@ export default class ErrorBoundary {
     diagnostics.start(
       {
         markerID,
-        configName
+        configName,
       },
       'api_call',
     );
-    return markerID
+    return markerID;
   }
 
   private endMarker(
-    key: string |  undefined,
+    key: string | undefined,
     wasSuccessful: boolean,
     markerID: string | null,
     configName?: string,
   ): void {
-    if(key == null) {
-      return 
+    if (key == null) {
+      return;
     }
     const diagnostics = Diagnostics.mark.api_call(key);
     if (!markerID || !diagnostics) {

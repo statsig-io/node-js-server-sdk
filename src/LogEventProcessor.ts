@@ -39,11 +39,16 @@ export default class LogEventProcessor {
   private deduperTimer: NodeJS.Timer | null;
   private sessionID: string;
 
-  public constructor(fetcher: StatsigFetcher, explicitOptions: ExplicitStatsigOptions, optionsLoggiingCopy: StatsigOptions, sessionID: string) {
+  public constructor(
+    fetcher: StatsigFetcher,
+    explicitOptions: ExplicitStatsigOptions,
+    optionsLoggiingCopy: StatsigOptions,
+    sessionID: string,
+  ) {
     this.explicitOptions = explicitOptions;
     this.optionsLoggiingCopy = optionsLoggiingCopy;
     this.fetcher = fetcher;
-    this.sessionID = sessionID
+    this.sessionID = sessionID;
 
     this.queue = [];
     this.deduper = new Set();
@@ -86,14 +91,14 @@ export default class LogEventProcessor {
     fireAndForget = false,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    this.addAPICallDiagnostics()
+    this.addAPICallDiagnostics();
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
     const oldQueue = this.queue;
     this.queue = [];
     const body = {
-      statsigMetadata: {...getStatsigMetadata(), sessionID: this.sessionID},
+      statsigMetadata: { ...getStatsigMetadata(), sessionID: this.sessionID },
       events: oldQueue,
     };
 
@@ -345,21 +350,27 @@ export default class LogEventProcessor {
     if (diagnostics.markers.length === 0 || this.explicitOptions.localMode) {
       return;
     }
-    const metadata = {...diagnostics, "statsigOptions": diagnostics.context === 'initialize'? this.optionsLoggiingCopy : undefined}
-    const event = new LogEvent(INTERNAL_EVENT_PREFIX + DIAGNOSTIC_EVENT)
-    event.setMetadata(metadata)
+    const metadata = {
+      ...diagnostics,
+      statsigOptions:
+        diagnostics.context === 'initialize'
+          ? this.optionsLoggiingCopy
+          : undefined,
+    };
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + DIAGNOSTIC_EVENT);
+    event.setMetadata(metadata);
     if (user != null) {
       event.setUser(user);
     }
-    this.queue.push(event.toObject())
+    this.queue.push(event.toObject());
   }
 
   private addAPICallDiagnostics() {
-    if(Diagnostics.instance.getShouldLogDiagnostics('api_call')) {
-      return
+    if (Diagnostics.instance.getShouldLogDiagnostics('api_call')) {
+      return;
     }
-    const markers = Diagnostics.instance.getMarker('api_call')
-    this.logDiagnosticsEvent({context: 'api_call', markers})
-    Diagnostics.instance.clearMarker('api_call')
+    const markers = Diagnostics.instance.getMarker('api_call');
+    this.logDiagnosticsEvent({ context: 'api_call', markers });
+    Diagnostics.instance.clearMarker('api_call');
   }
 }

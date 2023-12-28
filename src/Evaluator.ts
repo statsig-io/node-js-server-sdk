@@ -66,11 +66,11 @@ export default class Evaluator {
     await this.store.init();
     try {
       if (this.initStrategyForIP3Country === 'lazy') {
-        setTimeout(async () => {
-          await ip3country.init();
+        setTimeout(() => {
+          ip3country.init();
         }, 0);
       } else if (this.initStrategyForIP3Country !== 'none') {
-        await ip3country.init();
+        ip3country.init();
       }
     } catch (err) {
       // Ignore: this is optional
@@ -691,7 +691,7 @@ export default class Evaluator {
         let value = false;
         let exposures: Record<string, string>[] = [];
         for (const gateName of gateNames) {
-          const gateResult = this.checkGate(user, gateName as string);
+          const gateResult = this.checkGate(user, gateName);
           if (gateResult?.unsupported) {
             return { passes: false, unsupported: true };
           }
