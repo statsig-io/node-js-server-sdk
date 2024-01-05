@@ -15,7 +15,6 @@ import {
   hashString,
   hashUnitIDForIDList,
   sha256Hash,
-  sha256HashBase64,
 } from './utils/Hashing';
 import parseUserAgent from './utils/parseUserAgent';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -972,20 +971,7 @@ function computeUserHash(userHash: string) {
     return existingHash;
   }
 
-  let hash: bigint;
-  const buffer = sha256Hash(userHash);
-  if (buffer.readBigUInt64BE) {
-    hash = buffer.readBigUInt64BE();
-  }
-
-  const ab = new ArrayBuffer(buffer.length);
-  const view = new Uint8Array(ab);
-  for (let ii = 0; ii < buffer.length; ii++) {
-    view[ii] = buffer[ii];
-  }
-
-  const dv = new DataView(ab);
-  hash = dv.getBigUint64(0, false);
+  const hash = sha256Hash(userHash).getBigUint64(0, false);
 
   if (hashLookupTable.size > 100000) {
     hashLookupTable.clear();

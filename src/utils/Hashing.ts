@@ -1,4 +1,5 @@
-import shajs from 'sha.js';
+import { Base64 } from './Base64';
+import { SHA256 } from './Sha256';
 
 export type HashingAlgorithm = 'sha256' | 'djb2' | 'none';
 
@@ -23,11 +24,12 @@ export function djb2HashForObject(
 }
 
 export function sha256HashBase64(name: string) {
-  return shajs('sha256').update(name).digest('base64');
+  const buffer = SHA256(name);
+  return Base64.encodeArrayBuffer(buffer.arrayBuffer());
 }
 
-export function sha256Hash(name: string) {
-  return shajs('sha256').update(name).digest();
+export function sha256Hash(name: string): DataView {
+  return SHA256(name).dataView();
 }
 
 export function hashString(
