@@ -102,14 +102,12 @@ export default class LogEventProcessor {
       events: oldQueue,
     };
 
-    const isCompressionDisabled = SDKFlags.on('stop_log_event_compression');
-
     return this.fetcher
       .post(this.explicitOptions.api + '/log_event', body, {
         retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: !isCompressionDisabled,
+        compress: false,
       })
       .then(() => {
         return Promise.resolve();
