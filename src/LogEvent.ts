@@ -1,6 +1,8 @@
+import { Marker } from './Diagnostics';
+import { ExplicitStatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { clone } from './utils/core';
-import LogEventValidator from './utils/LogEventValidator';
+import LogEventValidator, { MAX_OBJ_SIZE } from './utils/LogEventValidator';
 
 export type LogEventData = {
   time: number;
@@ -50,6 +52,38 @@ export default class LogEvent {
       return;
     }
     this.metadata = clone(validatedMetadata);
+  }
+
+  public setDiagnosticsMetadata(metadata: {
+    context: string;
+    markers: Marker[];
+    statsigOptions: unknown;
+  }) {
+    const metadataSize = LogEventValidator.approximateObjectSize(metadata);
+    let optionSize = 0;
+    const metadataCopy = clone(metadata) as {
+      context: string;
+      markers: unknown;
+      statsigOptions: unknown;
+    };
+    if (metadataSize > MAX_OBJ_SIZE) {
+      if (metadata.statsigOptions) {
+        optionSize = LogEventValidator.approximateObjectSize(
+          metadata.statsigOptions,
+        );
+        metadataCopy.statsigOptions = 'dropped';
+      }
+      if (metadataSize - optionSize > MAX_OBJ_SIZE) {
+        if (metadata.context === 'initialize') {
+          metadataCopy.markers = metadata.markers.filter(
+            (marker) => marker.key === 'overall',
+          );
+        } else {
+          metadataCopy.markers = 'dropped';
+        }
+      }
+    }
+    this.metadata = metadataCopy;
   }
 
   public setTime(time: number) {

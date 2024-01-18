@@ -349,23 +349,22 @@ interface DCSDataType extends RequiredMarkerTags {
 
 interface GetIDListDataType extends RequiredMarkerTags {
   process: {
-    start: {
-      url: string;
-    };
+    start: { markerID: string };
     end: {
       success: boolean;
-      url: string;
+      markerID: string;
     };
   };
   networkRequest: {
     start: {
       url: string;
+      markerID: string;
     };
     end: {
       success: boolean;
-      url: string;
       statusCode?: number;
       sdkRegion?: string | null;
+      markerID: string;
     };
   };
 }

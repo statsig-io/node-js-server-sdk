@@ -50,6 +50,7 @@ export default class SpecStore {
   private dataAdapter: IDataAdapter | null;
   private rulesetsSyncFailureCount = 0;
   private idListsSyncFailureCount = 0;
+  private getIDListCallCount = 0;
   private bootstrapValues: string | null;
   private initStrategyForIDLists: InitStrategy;
   private clientSDKKeyToAppMap: Record<string, string> = {};
@@ -701,9 +702,15 @@ export default class SpecStore {
   ): Promise<void> {
     let threwNetworkError = false;
     let res: Response | null = null;
+    ++this.getIDListCallCount;
+    const markerID = String(this.getIDListCallCount);
+    // Log 1 idlist every 50 getIDList call
+    const shouldLog = this.getIDListCallCount % 50 === 1;
+    const diagnostics = shouldLog ? Diagnostics.mark.getIDList : null;
     try {
-      Diagnostics.mark.getIDList.networkRequest.start({
+      diagnostics?.networkRequest.start({
         url: url,
+        markerID,
       });
       res = await safeFetch(url, {
         method: 'GET',
@@ -714,19 +721,17 @@ export default class SpecStore {
     } catch (e) {
       threwNetworkError = true;
     } finally {
-      Diagnostics.mark.getIDList.networkRequest.end({
+      diagnostics?.networkRequest.end({
         statusCode: res?.status,
         success: res?.ok ?? false,
-        url: url,
+        markerID,
       });
     }
     if (threwNetworkError || !res) {
       return;
     }
     try {
-      Diagnostics.mark.getIDList.process.start({
-        url: url,
-      });
+      diagnostics?.process.start({ markerID });
       const contentLength = res.headers.get('content-length');
       if (contentLength == null) {
         throw new Error('Content-Length for the id list is invalid.');
@@ -739,15 +744,15 @@ export default class SpecStore {
         throw new Error('Content-Length for the id list is invalid.');
       }
       IDListUtil.updateIdList(this.store.idLists, name, await res.text());
-      Diagnostics.mark.getIDList.process.end({
+      diagnostics?.process.end({
         success: true,
-        url: url,
+        markerID,
       });
     } catch (e) {
       OutputLogger.debug(e as Error);
-      Diagnostics.mark.getIDList.process.end({
+      diagnostics?.process.end({
         success: false,
-        url: url,
+        markerID,
       });
     }
   }

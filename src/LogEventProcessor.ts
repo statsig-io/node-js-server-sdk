@@ -4,7 +4,6 @@ import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
 import OutputLogger from './OutputLogger';
-import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
@@ -356,7 +355,7 @@ export default class LogEventProcessor {
           : undefined,
     };
     const event = new LogEvent(INTERNAL_EVENT_PREFIX + DIAGNOSTIC_EVENT);
-    event.setMetadata(metadata);
+    event.setDiagnosticsMetadata(metadata);
     if (user != null) {
       event.setUser(user);
     }

@@ -126,7 +126,6 @@ describe('InitDiagnostics', () => {
       expect(events.length).toBe(2);
       expect(events[1].metadata['context']).toBe('api_call')
       const markers = events[1].metadata.markers
-      console.log(markers)
       expect(markers.length).toBe(8)
       assertMarkerEqual(markers[0], {
         key: 'check_gate',

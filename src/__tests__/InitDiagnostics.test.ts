@@ -294,6 +294,7 @@ describe('InitDiagnostics', () => {
       action: 'start',
       step: 'network_request',
       url: 'https://id_list_content/list_1',
+      markerID: "1"
     });
     assertMarkerEqual(markers[9], {
       key: 'get_id_list',
@@ -301,20 +302,20 @@ describe('InitDiagnostics', () => {
       step: 'network_request',
       statusCode: 200,
       success: true,
-      url: 'https://id_list_content/list_1',
+      markerID: "1"
     });
     assertMarkerEqual(markers[10], {
       key: 'get_id_list',
       action: 'start',
       step: 'process',
-      url: 'https://id_list_content/list_1',
+      markerID: "1"
     });
     assertMarkerEqual(markers[11], {
       key: 'get_id_list',
       action: 'end',
       step: 'process',
       success: true,
-      url: 'https://id_list_content/list_1',
+      markerID: "1"
     });
     assertMarkerEqual(markers[12], {
       key: 'get_id_list_sources',

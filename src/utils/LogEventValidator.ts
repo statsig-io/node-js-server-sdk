@@ -2,7 +2,7 @@ import OutputLogger from '../OutputLogger';
 import { StatsigUser } from '../StatsigUser';
 
 const MAX_VALUE_SIZE = 128;
-const MAX_OBJ_SIZE = 4096;
+export const MAX_OBJ_SIZE = 4096;
 const MAX_USER_SIZE = 4096;
 
 export default class LogEventValidator {
@@ -117,7 +117,7 @@ export default class LogEventValidator {
     return false;
   }
 
-  private static approximateObjectSize(x: object): number {
+  public static approximateObjectSize(x: object): number {
     let size = 0;
     const entries = Object.entries(x);
     for (let i = 0; i < entries.length; i++) {

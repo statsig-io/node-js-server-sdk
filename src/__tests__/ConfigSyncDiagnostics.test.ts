@@ -332,57 +332,30 @@ describe('ConfigSyncDiagnostics', () => {
         action: 'start',
         step: 'network_request',
         url: 'https://id_list_content/list_1',
+        markerID: "1"
       });
       assertMarkerEqual(markers[4], {
         key: 'get_id_list',
-        action: 'start',
+        action: 'end',
         step: 'network_request',
-        url: 'https://id_list_content/list_2',
+        statusCode: 200,
+        success: true,
+        markerID: "1"
       });
       assertMarkerEqual(markers[5], {
         key: 'get_id_list',
-        action: 'end',
-        step: 'network_request',
-        statusCode: 200,
-        success: true,
-        url: 'https://id_list_content/list_1',
+        action: 'start',
+        step: 'process',
+        markerID: "1"
       });
       assertMarkerEqual(markers[6], {
         key: 'get_id_list',
-        action: 'start',
+        action: 'end',
         step: 'process',
-        url: 'https://id_list_content/list_1',
+        success: true,
+        markerID: "1"
       });
       assertMarkerEqual(markers[7], {
-        key: 'get_id_list',
-        action: 'end',
-        step: 'network_request',
-        statusCode: 200,
-        success: true,
-        url: 'https://id_list_content/list_2',
-      });
-      assertMarkerEqual(markers[8], {
-        key: 'get_id_list',
-        action: 'start',
-        step: 'process',
-        url: 'https://id_list_content/list_2',
-      });
-      
-      assertMarkerEqual(markers[9], {
-        key: 'get_id_list',
-        action: 'end',
-        step: 'process',
-        success: true,
-        url: 'https://id_list_content/list_1',
-      });
-      assertMarkerEqual(markers[10], {
-        key: 'get_id_list',
-        action: 'end',
-        step: 'process',
-        success: true,
-        url: 'https://id_list_content/list_2',
-      });
-      assertMarkerEqual(markers[11], {
         key: 'get_id_list_sources',
         action: 'end',
         step: 'process',
@@ -390,7 +363,7 @@ describe('ConfigSyncDiagnostics', () => {
       });
       
 
-      expect(markers.length).toBe(12);
+      expect(markers.length).toBe(8);
     },
   );
 });
