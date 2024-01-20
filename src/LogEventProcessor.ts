@@ -364,10 +364,9 @@ export default class LogEventProcessor {
 
   private addAPICallDiagnostics() {
     if (Diagnostics.instance.getShouldLogDiagnostics('api_call')) {
-      return;
+      const markers = Diagnostics.instance.getMarker('api_call');
+      this.logDiagnosticsEvent({ context: 'api_call', markers });
     }
-    const markers = Diagnostics.instance.getMarker('api_call');
-    this.logDiagnosticsEvent({ context: 'api_call', markers });
     Diagnostics.instance.clearMarker('api_call');
   }
 }

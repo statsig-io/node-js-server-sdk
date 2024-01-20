@@ -1,6 +1,6 @@
 import { FetchError } from 'node-fetch';
 
-import { MAX_SAMPLING_RATE } from '../Diagnostics';
+import { MAX_MARKER_COUNT, MAX_SAMPLING_RATE } from '../Diagnostics';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import exampleConfigSpecs from './jest.setup';
@@ -19,6 +19,7 @@ const jsonResponse = {
     log: MAX_SAMPLING_RATE,
     idlist: MAX_SAMPLING_RATE,
     initialize: MAX_SAMPLING_RATE,
+    api_call: MAX_SAMPLING_RATE,
   },
 };
 
@@ -371,7 +372,7 @@ describe('ConfigSyncDiagnostics', () => {
 // @ts-ignore
 const statsig = Statsig.default;
 
-async function runSync(type: 'getIDList' | 'getConfigSpecs') {
+async function runSync(type: 'getIDList' | 'getConfigSpecs'): Promise<void> {
   const evaluator = StatsigTestUtils.getEvaluator();
   if (type === 'getConfigSpecs') {
     await evaluator['store'].syncConfigSpecs();

@@ -86,7 +86,7 @@ describe('Test local mode with overrides', () => {
     ).resolves.toBe(false);
 
     statsig.shutdown();
-    expect(events).toHaveLength(3); // 1 for init, 1 for gate check and 1 for diag core api
+    expect(events).toHaveLength(2); // 1 for init and 1 for gate check
     const event = events.find((e) => e.eventName === 'statsig::diagnostics');
     expect(event?.metadata['statsigOptions']['initTimeoutMs']).toBe(250);
 

@@ -1,17 +1,8 @@
-// ID list
-// network init success
-// network init failure
-// bootstrap init
-// dataadapter init
-
-import { MAX_SAMPLING_RATE } from '../Diagnostics';
-import Statsig, { StatsigUser } from '../index';
-import { DataAdapterKey } from '../interfaces/IDataAdapter';
+import { MAX_MARKER_COUNT, MAX_SAMPLING_RATE } from '../Diagnostics';
+import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
 import exampleConfigSpecs from './jest.setup';
 import { assertMarkerEqual, getDecodedBody } from './StatsigTestUtils';
-import { TestSyncingDataAdapter } from './TestDataAdapter';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -30,7 +21,7 @@ const CONFIG_SPEC_RESPONSE = {
     },
   };
 
-describe('InitDiagnostics', () => {
+describe('CoreAPIDiagnostics', () => {
   let events: {
     eventName: string;
     metadata: { gate?: string; config?: string; isManualExposure?: string };
@@ -43,7 +34,8 @@ describe('InitDiagnostics', () => {
     getIDListJSON = {};
     downloadConfigSpecsResponse = Promise.resolve({
       ok: true,
-      text: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
+      json: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
+      text: () => Promise.resolve(JSON.stringify(CONFIG_SPEC_RESPONSE)),
       status: 200,
     });
     const fetch = require('node-fetch');
@@ -179,5 +171,26 @@ describe('InitDiagnostics', () => {
         success: true,
         configName: 'unallocated_layer'
       })
+  });
+
+  it('test max_markers', async () => {
+    await Statsig.initialize('secret-key', {
+      loggingMaxBufferSize: 1000,
+      rulesetsSyncIntervalMs: 1000,
+      disableDiagnostics: false,
+    });
+    const user = { userID: 'test_user' };
+    for(let i = 0; i < MAX_MARKER_COUNT*4; i++) {
+      Statsig.checkGateSync(user, 'a_gate');
+    }
+    Statsig.shutdown();
+    events = events.filter((e) => e['metadata']['context'] === 'api_call');
+
+    expect(events.length).toBe(1);
+    const event = events[0];
+    expect(event['eventName']).toBe('statsig::diagnostics');
+    
+    const markers = event['metadata']['markers'];
+    expect(markers.length).toBe(MAX_MARKER_COUNT);
   });
 });

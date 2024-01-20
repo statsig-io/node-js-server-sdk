@@ -3,6 +3,7 @@ import { StatsigOptions } from './StatsigOptions';
 import { ExhaustSwitchError } from './utils/core';
 
 export const MAX_SAMPLING_RATE = 10000;
+export const MAX_MARKER_COUNT = 26;
 export interface Marker {
   markerID?: string;
   key: KeyType;
@@ -169,6 +170,9 @@ export class DiagnosticsImpl {
   addMarker(marker: Marker, overrideContext?: ContextType) {
     const context = overrideContext ?? this.context;
     if (this.disabledCoreAPI && context == 'api_call') {
+      return;
+    }
+    if (this.getMarkerCount(context) >= MAX_MARKER_COUNT) {
       return;
     }
     this.markers[context].push(marker);
