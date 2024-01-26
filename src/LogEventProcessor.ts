@@ -62,7 +62,10 @@ export default class LogEventProcessor {
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
-    if (this.explicitOptions.localMode) {
+    if (
+      this.explicitOptions.localMode ||
+      this.explicitOptions.disableAllLogging
+    ) {
       return;
     }
     if (!(event instanceof LogEvent)) {

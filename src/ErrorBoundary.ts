@@ -94,7 +94,7 @@ export default class ErrorBoundary {
 
   public logError(error: unknown, key?: string, extra: ExtraArgs = {}) {
     try {
-      if (!this.sdkKey) {
+      if (!this.sdkKey || this.optionsLoggingCopy.disableAllLogging) {
         return;
       }
 

@@ -57,7 +57,7 @@ export default class LogEvent {
   public setDiagnosticsMetadata(metadata: {
     context: string;
     markers: Marker[];
-    statsigOptions: unknown;
+    statsigOptions: object | undefined;
   }) {
     const metadataSize = LogEventValidator.approximateObjectSize(metadata);
     let optionSize = 0;

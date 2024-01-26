@@ -51,6 +51,7 @@ export type ExplicitStatsigOptions = {
   postLogsRetryBackoff: RetryBackoffFunc | number;
   disableRulesetsSync: boolean;
   disableIdListsSync: boolean;
+  disableAllLogging: boolean;
 };
 
 /**
@@ -123,6 +124,7 @@ export function OptionsWithDefaults(
       opts.postLogsRetryBackoff ?? DEFAULT_POST_LOGS_RETRY_BACKOFF,
     disableRulesetsSync: opts.disableRulesetsSync ?? false,
     disableIdListsSync: opts.disableIdListsSync ?? false,
+    disableAllLogging: opts.disableAllLogging ?? false,
   };
 }
 
