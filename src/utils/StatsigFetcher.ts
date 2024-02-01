@@ -20,6 +20,7 @@ type RequestOptions = Partial<{
   isRetrying: boolean;
   signal: AbortSignal;
   compress?: boolean;
+  additionalHeaders?: Record<string, string>
 }>;
 
 export default class StatsigFetcher {
@@ -130,6 +131,7 @@ export default class StatsigFetcher {
         : backoff(retries);
 
     const headers = {
+      ...options?.additionalHeaders,
       'Content-type': 'application/json; charset=UTF-8',
       'STATSIG-API-KEY': this.sdkKey,
       'STATSIG-CLIENT-TIME': Date.now(),

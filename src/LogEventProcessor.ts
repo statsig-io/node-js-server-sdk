@@ -110,6 +110,9 @@ export default class LogEventProcessor {
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
         compress: false,
+        additionalHeaders: {
+          "STATSIG-EVENT-COUNT": String(oldQueue.length)
+        }
       })
       .then(() => {
         return Promise.resolve();
