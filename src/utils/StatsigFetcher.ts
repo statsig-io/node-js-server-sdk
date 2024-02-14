@@ -20,7 +20,7 @@ type RequestOptions = Partial<{
   isRetrying: boolean;
   signal: AbortSignal;
   compress?: boolean;
-  additionalHeaders?: Record<string, string>
+  additionalHeaders?: Record<string, string>;
 }>;
 
 export default class StatsigFetcher {

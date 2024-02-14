@@ -52,7 +52,7 @@ export default class Layer {
 
     const logAndReturn = (): T => {
       this._logExposure?.(this, key);
-      return val as unknown as T;
+      return val as T;
     };
 
     if (typeGuard) {

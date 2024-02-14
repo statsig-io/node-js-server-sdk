@@ -20,6 +20,15 @@ function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
   return value !== null && value !== undefined;
 }
 
+function notEmptyObject(value: unknown | null | undefined): boolean {
+  return (
+    value !== null &&
+    value !== undefined &&
+    typeof value == 'object' &&
+    Object.keys(value).length > 0
+  );
+}
+
 function clone<T>(obj: T | null): T | null {
   if (obj == null) {
     return null;
@@ -110,6 +119,7 @@ export {
   getStatsigMetadata,
   isUserIdentifiable,
   notEmpty,
+  notEmptyObject,
   poll,
   getTypeOf,
 };

@@ -1,5 +1,5 @@
 import ConfigEvaluation from './ConfigEvaluation';
-import Diagnostics, { Marker } from './Diagnostics';
+import Diagnostics, { ContextType, Marker } from './Diagnostics';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
@@ -93,7 +93,8 @@ export default class LogEventProcessor {
     fireAndForget = false,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    this.addAPICallDiagnostics();
+    this.addDiagnosticsMarkers('api_call');
+    this.addDiagnosticsMarkers('get_client_initialize_response');
     if (this.queue.length === 0) {
       return Promise.resolve();
     }
@@ -111,8 +112,8 @@ export default class LogEventProcessor {
         signal: abortSignal,
         compress: false,
         additionalHeaders: {
-          "STATSIG-EVENT-COUNT": String(oldQueue.length)
-        }
+          'STATSIG-EVENT-COUNT': String(oldQueue.length),
+        },
       })
       .then(() => {
         return Promise.resolve();
@@ -368,11 +369,13 @@ export default class LogEventProcessor {
     this.queue.push(event.toObject());
   }
 
-  private addAPICallDiagnostics() {
-    if (Diagnostics.instance.getShouldLogDiagnostics('api_call')) {
-      const markers = Diagnostics.instance.getMarker('api_call');
-      this.logDiagnosticsEvent({ context: 'api_call', markers });
+  private addDiagnosticsMarkers(
+    context: 'get_client_initialize_response' | 'api_call',
+  ) {
+    if (Diagnostics.instance.getShouldLogDiagnostics(context)) {
+      const markers = Diagnostics.instance.getMarker(context);
+      this.logDiagnosticsEvent({ context, markers });
     }
-    Diagnostics.instance.clearMarker('api_call');
+    Diagnostics.instance.clearMarker(context);
   }
 }

@@ -26,7 +26,7 @@ import {
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import asyncify from './utils/asyncify';
-import { isUserIdentifiable } from './utils/core';
+import { isUserIdentifiable, notEmptyObject } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -500,22 +500,61 @@ export default class StatsigServer {
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
   ): Record<string, unknown> | null {
+    let markerID = '';
     return this._errorBoundary.capture(
       () => {
         if (this._ready !== true) {
           throw new StatsigUninitializedError();
         }
+        markerID = `gcir_${Diagnostics.getMarkerCount(
+          'get_client_initialize_response',
+        )}`;
+        Diagnostics.mark.getClientInitializeResponse.start(
+          { markerID },
+          'get_client_initialize_response',
+        );
         let normalizedUser = user;
         if (user.statsigEnvironment == null) {
           normalizedUser = normalizeUser(user, this._options);
         }
-        return this._evaluator.getClientInitializeResponse(
+        const response = this._evaluator.getClientInitializeResponse(
           normalizedUser,
           clientSDKKey,
           options,
         );
+        const invalidResponse =
+          response == null ||
+          (!notEmptyObject(response.feature_gates) &&
+            !notEmptyObject(response.dynamic_config) &&
+            !notEmptyObject(response.layer_configs));
+        console.log('invalid response??');
+        console.log(invalidResponse);
+        if (invalidResponse) {
+          console.log('calling exception');
+          this._errorBoundary.logError(
+            new Error('getClientInitializeResponse returns empty response'),
+            undefined,
+            {
+              clientKey: clientSDKKey,
+              hash: options?.hash,
+              tag: 'getClientInitializeResponse',
+            },
+          );
+        }
+        console.log('hihi!');
+        Diagnostics.mark.getClientInitializeResponse.end(
+          { markerID, success: !invalidResponse },
+          'get_client_initialize_response',
+        );
+        return response;
       },
-      () => null,
+      () => {
+        Diagnostics.mark.getClientInitializeResponse.end(
+          { markerID, success: false },
+          'get_client_initialize_response',
+        );
+        return null;
+      },
       { tag: 'getClientInitializeResponse' },
     );
   }

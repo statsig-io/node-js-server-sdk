@@ -25,6 +25,7 @@ export type DiagnosticsSamplingRate = {
   idlist: number;
   initialize: number;
   api_call: number;
+  gcir: number;
 };
 
 export type SDKConstants = DiagnosticsSamplingRate;
@@ -33,7 +34,8 @@ export type ContextType =
   | 'initialize'
   | 'config_sync'
   | 'event_logging'
-  | 'api_call';
+  | 'api_call'
+  | 'get_client_initialize_response';
 export type KeyType =
   | 'download_config_specs'
   | 'bootstrap'
@@ -43,6 +45,7 @@ export type KeyType =
   | 'get_experiment'
   | 'check_gate'
   | 'get_layer'
+  | 'get_client_initialize_response'
   | 'overall';
 export type StepType = 'process' | 'network_request';
 export type ActionType = 'start' | 'end';
@@ -52,6 +55,7 @@ type DiagnosticsMarkers = {
   config_sync: Marker[];
   event_logging: Marker[];
   api_call: Marker[];
+  get_client_initialize_response: Marker[];
 };
 
 export class DiagnosticsImpl {
@@ -63,6 +67,11 @@ export class DiagnosticsImpl {
     getIDListSources: this.selectStep<GetIdListSourcesDataType>(
       'get_id_list_sources',
     ),
+    getClientInitializeResponse:
+      this.selectAction<GetClientInitializeResponseDataType>(
+        'get_client_initialize_response',
+        'process',
+      ),
     api_call: (tag: string) => {
       switch (tag) {
         case 'getConfig':
@@ -83,6 +92,7 @@ export class DiagnosticsImpl {
     config_sync: [],
     event_logging: [],
     api_call: [],
+    get_client_initialize_response: [],
   };
 
   private disabledCoreAPI: boolean;
@@ -94,6 +104,7 @@ export class DiagnosticsImpl {
     idlist: 0,
     initialize: MAX_SAMPLING_RATE,
     api_call: 0,
+    gcir: 0,
   };
 
   constructor(args: {
@@ -106,6 +117,7 @@ export class DiagnosticsImpl {
       config_sync: [],
       event_logging: [],
       api_call: [],
+      get_client_initialize_response: [],
     };
     this.logger = args.logger;
     this.disabledCoreAPI = args.options?.disableDiagnostics ?? false;
@@ -193,7 +205,12 @@ export class DiagnosticsImpl {
   logDiagnostics(
     context: ContextType,
     optionalArgs?: {
-      type: 'id_list' | 'config_spec' | 'initialize' | 'api_call';
+      type:
+        | 'id_list'
+        | 'config_spec'
+        | 'initialize'
+        | 'api_call'
+        | 'get_client_initialize_response';
     },
   ) {
     if (this.disabledCoreAPI && context == 'api_call') {
@@ -222,6 +239,7 @@ export class DiagnosticsImpl {
     this.safeSet(this.samplingRates, 'initialize', obj['initialize']);
     this.safeSet(this.samplingRates, 'log', obj['log']);
     this.safeSet(this.samplingRates, 'api_call', obj['api_call']);
+    this.safeSet(this.samplingRates, 'gcir', obj['gcir']);
   }
 
   private safeSet(
@@ -242,7 +260,12 @@ export class DiagnosticsImpl {
   }
 
   getShouldLogDiagnostics(
-    type: 'id_list' | 'config_spec' | 'initialize' | 'api_call',
+    type:
+      | 'id_list'
+      | 'config_spec'
+      | 'initialize'
+      | 'api_call'
+      | 'get_client_initialize_response',
   ): boolean {
     const rand = Math.random() * MAX_SAMPLING_RATE;
     switch (type) {
@@ -254,6 +277,8 @@ export class DiagnosticsImpl {
         return rand < this.samplingRates.initialize;
       case 'api_call':
         return rand < this.samplingRates.api_call;
+      case 'get_client_initialize_response':
+        return rand < this.samplingRates.gcir;
       default:
         throw new ExhaustSwitchError(type);
     }
@@ -276,7 +301,12 @@ export default abstract class Diagnostics {
   static logDiagnostics(
     context: ContextType,
     optionalArgs?: {
-      type: 'id_list' | 'config_spec' | 'initialize' | 'api_call';
+      type:
+        | 'id_list'
+        | 'config_spec'
+        | 'initialize'
+        | 'api_call'
+        | 'get_client_initialize_response';
     },
   ) {
     this.instance.logDiagnostics(context, optionalArgs);
@@ -410,6 +440,18 @@ interface ApiCallDataType extends RequiredStepTags {
       markerID: string;
       success: boolean;
       configName: string;
+    };
+  };
+}
+
+interface GetClientInitializeResponseDataType extends RequiredStepTags {
+  process: {
+    start: {
+      markerID: string;
+    };
+    end: {
+      markerID: string;
+      success: boolean;
     };
   };
 }

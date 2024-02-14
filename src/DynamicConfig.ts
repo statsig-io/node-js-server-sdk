@@ -70,7 +70,7 @@ export default class DynamicConfig {
     }
 
     if (defaultValue == null || expectedType === actualType) {
-      return val as unknown as T;
+      return val as T;
     }
 
     this._onDefaultValueFallback?.(this, key, expectedType, actualType);

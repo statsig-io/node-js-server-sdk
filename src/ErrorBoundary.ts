@@ -12,7 +12,12 @@ import safeFetch from './utils/safeFetch';
 
 export const ExceptionEndpoint = 'https://statsigapi.net/v1/sdk_exception';
 
-type ExtraArgs = Partial<{ configName: string; tag: string }>;
+type ExtraArgs = Partial<{
+  configName: string;
+  tag: string;
+  clientKey: string;
+  hash: string;
+}>;
 
 export default class ErrorBoundary {
   private sdkKey: string;
@@ -111,9 +116,9 @@ export default class ErrorBoundary {
         exception: name,
         info,
         statsigMetadata: this.statsigMetadata ?? {},
-        configName: extra.configName,
         statsigOptions: this.optionsLoggingCopy,
         tag: extra.tag,
+        ...extra,
       });
       safeFetch(ExceptionEndpoint, {
         method: 'POST',
