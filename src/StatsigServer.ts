@@ -935,9 +935,6 @@ export default class StatsigServer {
     }
 
     const resetError = this._evaluator.resetSyncTimerIfExited();
-    if (resetError != null) {
-      this._errorBoundary.logError(resetError, 'reset_sync_time');
-    }
 
     return result;
   }
