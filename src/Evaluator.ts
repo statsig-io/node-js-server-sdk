@@ -107,6 +107,18 @@ export default class Evaluator {
     this.layerOverrides[layerName] = overrides;
   }
 
+  public clearAllGateOverrides(): void {
+    this.gateOverrides = {};
+  }
+
+  public clearAllConfigOverrides(): void {
+    this.configOverrides = {};
+  }
+
+  public clearAllLayerOverrides(): void {
+    this.layerOverrides = {};
+  }
+
   public checkGate(user: StatsigUser, gateName: string): ConfigEvaluation {
     const override = this.lookupGateOverride(user, gateName);
     if (override) {

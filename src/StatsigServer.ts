@@ -574,6 +574,18 @@ export default class StatsigServer {
     );
   }
 
+  public clearAllGateOverrides(): void {
+    this._evaluator.clearAllGateOverrides();
+  }
+
+  public clearAllConfigOverrides(): void {
+    this._evaluator.clearAllConfigOverrides();
+  }
+
+  public clearAllLayerOverrides(): void {
+    this._evaluator.clearAllLayerOverrides();
+  }
+
   public getFeatureGateList(): string[] {
     return this._evaluator.getFeatureGateList();
   }
