@@ -371,14 +371,23 @@ export const Statsig = {
     this._enforceServer().overrideLayer(layerName, value, userID);
   },
 
+  /**
+   * Clears all gate overrides
+   */
   clearAllGateOverrides(): void {
     this._enforceServer().clearAllGateOverrides();
   },
 
+  /**
+   * Clears all config overrides
+   */
   clearAllConfigOverrides(): void {
     this._enforceServer().clearAllConfigOverrides();
   },
 
+  /**
+   * Clears all layer overrides
+   */
   clearAllLayerOverrides(): void {
     this._enforceServer().clearAllLayerOverrides();
   },
