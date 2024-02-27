@@ -371,6 +371,18 @@ export const Statsig = {
     this._enforceServer().overrideLayer(layerName, value, userID);
   },
 
+  clearAllGateOverrides(): void {
+    this._enforceServer().clearAllGateOverrides();
+  },
+
+  clearAllConfigOverrides(): void {
+    this._enforceServer().clearAllConfigOverrides();
+  },
+
+  clearAllLayerOverrides(): void {
+    this._enforceServer().clearAllLayerOverrides();
+  },
+
   /**
    * Flushes all the events that are currently in the queue to Statsig.
    */
