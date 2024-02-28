@@ -383,6 +383,27 @@ export const Statsig = {
   },
 
   /**
+   * Clears all gate overrides
+   */
+  clearAllGateOverrides(): void {
+    this._enforceServer().clearAllGateOverrides();
+  },
+
+  /**
+   * Clears all config overrides
+   */
+  clearAllConfigOverrides(): void {
+    this._enforceServer().clearAllConfigOverrides();
+  },
+
+  /**
+   * Clears all layer overrides
+   */
+  clearAllLayerOverrides(): void {
+    this._enforceServer().clearAllLayerOverrides();
+  },
+
+  /**
    * Gets all Feature Gate names
    *
    * @returns {string[]}

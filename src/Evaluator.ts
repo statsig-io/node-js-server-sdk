@@ -336,6 +336,18 @@ export default class Evaluator {
     };
   }
 
+  public clearAllGateOverrides(): void {
+    this.gateOverrides = {};
+  }
+
+  public clearAllConfigOverrides(): void {
+    this.configOverrides = {};
+  }
+
+  public clearAllLayerOverrides(): void {
+    this.layerOverrides = {};
+  }
+
   public resetSyncTimerIfExited(): Error | null {
     return this.store.resetSyncTimerIfExited();
   }

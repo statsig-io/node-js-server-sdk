@@ -127,6 +127,26 @@ describe('Test local mode with overrides', () => {
       true,
     );
 
+    statsig.clearAllGateOverrides();
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      userOne,
+      'override_gate',
+      false,
+    );
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      userTwo,
+      'override_gate',
+      false,
+    );
+    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      statsig,
+      { userID: 'new_user' },
+      'override_gate',
+      false,
+    );
+
     // non boolean wont override
     // @ts-ignore
     statsig.overrideGate('different_gate', 'not a boolean');
@@ -179,11 +199,23 @@ describe('Test local mode with overrides', () => {
     expect(u1config.getValue()).toEqual({});
     u2config = await statsig.getConfig(userTwo, 'override_config');
     expect(u2config.getValue()).toEqual({ test: 123 });
-    const u3config = await statsig.getConfig(
+    let u3config = await statsig.getConfig(
       { userID: 'new_user' },
       'override_config',
     );
     expect(u3config.getValue()).toEqual({ all: true });
+
+    statsig.clearAllConfigOverrides();
+
+    u1config = await statsig.getConfig(userOne, 'override_config');
+    expect(u1config.getValue()).toEqual({});
+    u2config = await statsig.getConfig(userTwo, 'override_config');
+    expect(u2config.getValue()).toEqual({});
+    u3config = await statsig.getConfig(
+      { userID: 'new_user' },
+      'override_config',
+    );
+    expect(u3config.getValue()).toEqual({});
 
     // non objects wont override
     // @ts-ignore
@@ -227,6 +259,10 @@ describe('Test local mode with overrides', () => {
 
       layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
       expect(layer.get('a_param', 'fallback')).toEqual('a_value');
+
+      statsig.clearAllLayerOverrides();
+      layer = await statsig.getLayer({ userID: 'b-user' }, 'a_layer');
+      expect(layer.get('a_param', 'fallback')).toEqual('fallback');
     });
   });
 

@@ -487,6 +487,18 @@ export default class StatsigServer {
     );
   }
 
+  public clearAllGateOverrides(): void {
+    this._evaluator.clearAllGateOverrides();
+  }
+
+  public clearAllConfigOverrides(): void {
+    this._evaluator.clearAllConfigOverrides();
+  }
+
+  public clearAllLayerOverrides(): void {
+    this._evaluator.clearAllLayerOverrides();
+  }
+
   public async syncStoreSpecs(): Promise<void> {
     await this._evaluator.syncStoreSpecs();
   }
