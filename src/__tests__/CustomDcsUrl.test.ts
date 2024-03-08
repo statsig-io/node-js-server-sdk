@@ -1,4 +1,5 @@
 import Diagnostics from '../Diagnostics';
+import ErrorBoundary from '../ErrorBoundary';
 import LogEvent from '../LogEvent';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
@@ -21,8 +22,9 @@ describe('Check custom DCS url', () => {
     disableDiagnostics: true,
   });
   const secretKey = 'secret-123';
+  const errorBoundary  = new ErrorBoundary(secretKey, options, "sessionid-1")
   const fetcher = new StatsigFetcher(secretKey, options);
-  const logger = new LogEventProcessor(fetcher, options);
+  const logger = new LogEventProcessor(fetcher,errorBoundary, options);
   const store = new SpecStore(fetcher, options);
   Diagnostics.initialize({ logger });
 

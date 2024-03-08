@@ -1,5 +1,6 @@
 import { ConfigSpec } from '../ConfigSpec';
 import Diagnostics, { MAX_SAMPLING_RATE, SDKConstants } from '../Diagnostics';
+import ErrorBoundary from '../ErrorBoundary';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
@@ -71,8 +72,10 @@ fetch.mockImplementation((url, params) => {
 describe('Verify behavior of SpecStore', () => {
   let store;
   const options = OptionsWithDefaults({});
+  const errorBoundary = new ErrorBoundary('secret-asdf1234', options, "sessionid-a")
   const logger = new LogEventProcessor(
     new StatsigFetcher('secret-asdf1234', options),
+    errorBoundary,
     options,
   );
   beforeEach(() => {

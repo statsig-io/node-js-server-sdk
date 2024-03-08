@@ -95,6 +95,7 @@ export default class StatsigServer {
     );
     this._logger = new LogEventProcessor(
       this._fetcher,
+      this._errorBoundary,
       this._options,
       optionsLoggingcopy,
       this._sessionID,

@@ -3,6 +3,7 @@ import Diagnostics, {
   DiagnosticsImpl,
   KeyType,
 } from '../Diagnostics';
+import ErrorBoundary from '../ErrorBoundary';
 import LogEventProcessor from '../LogEventProcessor';
 import { OptionsLoggingCopy, OptionsWithDefaults } from '../StatsigOptions';
 import StatsigFetcher from '../utils/StatsigFetcher';
@@ -18,6 +19,7 @@ describe('Diagnostics', () => {
   const options = { loggingMaxBufferSize: 1 }
   const logger = new LogEventProcessor(
     new StatsigFetcher('secret-asdf1234', options),
+    new ErrorBoundary('secret-asdf1234', options, 'sessionID-a'),
     OptionsWithDefaults(options),
     OptionsLoggingCopy(options),
     'sessionID'

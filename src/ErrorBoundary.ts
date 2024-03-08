@@ -17,6 +17,8 @@ type ExtraArgs = Partial<{
   tag: string;
   clientKey: string;
   hash: string;
+  eventCount: number;
+  nonLoggignArgs: Record<string, any>;
 }>;
 
 export default class ErrorBoundary {
@@ -106,12 +108,14 @@ export default class ErrorBoundary {
       const unwrapped = error ?? Error('[Statsig] Error was empty');
       const isError = unwrapped instanceof Error;
       const name = isError && unwrapped.name ? unwrapped.name : 'No Name';
-      if (this.seen.has(name) || (key != null && this.seen.has(key))) {
+      const hasSeen =
+        this.seen.has(name) || (key != null && this.seen.has(key));
+      if (extra.nonLoggignArgs?.bypassDedupe !== true && hasSeen) {
         return;
       }
       this.seen.add(name);
-
       const info = isError ? unwrapped.stack : this.getDescription(unwrapped);
+      delete extra.nonLoggignArgs;
       const body = JSON.stringify({
         exception: name,
         info,

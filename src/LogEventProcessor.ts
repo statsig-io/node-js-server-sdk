@@ -1,5 +1,6 @@
 import ConfigEvaluation from './ConfigEvaluation';
 import Diagnostics, { ContextType, Marker } from './Diagnostics';
+import ErrorBoundary from './ErrorBoundary';
 import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
@@ -37,9 +38,11 @@ export default class LogEventProcessor {
   private deduper: Set<string>;
   private deduperTimer: NodeJS.Timer | null;
   private sessionID: string;
+  private errorBoundary: ErrorBoundary;
 
   public constructor(
     fetcher: StatsigFetcher,
+    errorBoundry: ErrorBoundary,
     explicitOptions: ExplicitStatsigOptions,
     optionsLoggiingCopy: StatsigOptions,
     sessionID: string,
@@ -48,6 +51,7 @@ export default class LogEventProcessor {
     this.optionsLoggiingCopy = optionsLoggiingCopy;
     this.fetcher = fetcher;
     this.sessionID = sessionID;
+    this.errorBoundary = errorBoundry;
 
     this.queue = [];
     this.deduper = new Set();
@@ -119,13 +123,13 @@ export default class LogEventProcessor {
         return Promise.resolve();
       })
       .catch((e) => {
+        this.errorBoundary.logError(new Error('Log event failed'), undefined, {
+          tag: 'statsig::log_event_failed',
+          eventCount: oldQueue.length,
+          nonLoggignArgs: { bypassDedupe: true },
+        });
         if (e?.name === 'AbortError') {
           OutputLogger.debug('Request to log_event aborted');
-        }
-        if (!fireAndForget && !(e instanceof StatsigLocalModeNetworkError)) {
-          this.logStatsigInternal(null, 'log_event_failed', {
-            error: e?.message || 'log_event_failed',
-          });
         }
         return Promise.resolve();
       });

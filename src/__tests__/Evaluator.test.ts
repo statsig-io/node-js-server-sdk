@@ -1,6 +1,7 @@
 import ConfigEvaluation from '../ConfigEvaluation';
 import { ConfigCondition, ConfigSpec } from '../ConfigSpec';
 import Diagnostics from '../Diagnostics';
+import ErrorBoundary from '../ErrorBoundary';
 import Evaluator from '../Evaluator';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
@@ -12,8 +13,9 @@ describe('Test condition evaluation', () => {
   const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
   const logger = new LogEventProcessor(
     new StatsigFetcher('secret-asdf1234', options),
-    options,
-  );
+    new ErrorBoundary('secret-asdf1234', options, "sessionid-a"),
+    options
+      );
   beforeEach(() => {
     Diagnostics.initialize({ logger });
   });
