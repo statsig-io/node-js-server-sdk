@@ -4,7 +4,7 @@ import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import { EvaluationDetails } from './EvaluationDetails';
 import OutputLogger from './OutputLogger';
-import SpecStore from './SpecStore';
+import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
 import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
@@ -199,11 +199,14 @@ export default class Evaluator {
     if (!this.store.isServingChecks()) {
       return null;
     }
-    const hashedClientKeyToAppMap = this.store.getHashedClientKeyToAppMap();
     const clientKeyToAppMap = this.store.getClientKeyToAppMap();
     let targetAppID: string | null = null;
+    let targetEntities: APIEntityNames | null = null;
     if (clientSDKKey != null) {
+      const hashedClientKeyToAppMap = this.store.getHashedClientKeyToAppMap();
+      const hashedSDKKeysToEntities = this.store.getHashedSDKKeysToEntities();
       targetAppID = hashedClientKeyToAppMap[djb2Hash(clientSDKKey)] ?? null;
+      targetEntities = hashedSDKKeysToEntities[djb2Hash(clientSDKKey)] ?? null;
     }
     if (clientSDKKey != null && targetAppID == null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
@@ -211,19 +214,32 @@ export default class Evaluator {
     const filterTargetAppID = (spec: ConfigSpec) => {
       if (
         targetAppID != null &&
-        !(spec?.targetAppIDs ?? []).includes(targetAppID)
+        !(spec.targetAppIDs ?? []).includes(targetAppID)
       ) {
         return false;
       }
       return true;
     };
+    const filterGate = (spec: ConfigSpec) => {
+      if (spec.entity === 'segment' || spec.entity === 'holdout') {
+        return false;
+      }
+      if (targetEntities != null && !targetEntities.gates.includes(spec.name)) {
+        return false;
+      }
+      return filterTargetAppID(spec);
+    };
+    const filterConfig = (spec: ConfigSpec) => {
+      if (
+        targetEntities != null &&
+        !targetEntities.configs.includes(spec.name)
+      ) {
+        return false;
+      }
+      return filterTargetAppID(spec);
+    };
     const gates = Object.entries(this.store.getAllGates())
-      .filter(([, spec]) => {
-        if (spec?.entity === 'segment' || spec?.entity === 'holdout') {
-          return false;
-        }
-        return filterTargetAppID(spec);
-      })
+      .filter(([, spec]) => filterGate(spec))
       .map(([gate, spec]) => {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupGateOverride(user, spec.name)
@@ -238,7 +254,7 @@ export default class Evaluator {
       });
 
     const configs = Object.entries(this.store.getAllConfigs())
-      .filter(([, spec]) => filterTargetAppID(spec))
+      .filter(([, spec]) => filterConfig(spec))
       .map(([, spec]) => {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupConfigOverride(user, spec.name)

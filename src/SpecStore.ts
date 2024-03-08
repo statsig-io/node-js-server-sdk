@@ -29,6 +29,11 @@ export type ConfigStore = {
   experimentToLayer: Record<string, string>;
 };
 
+export type APIEntityNames = {
+  gates: string[];
+  configs: string[];
+};
+
 export default class SpecStore {
   private initReason: EvaluationReason;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
@@ -55,6 +60,7 @@ export default class SpecStore {
   private initStrategyForIDLists: InitStrategy;
   private clientSDKKeyToAppMap: Record<string, string> = {};
   private hashedClientSDKKeyToAppMap: Record<string, string> = {};
+  private hashedSDKKeysToEntities: Record<string, APIEntityNames> = {};
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
@@ -133,6 +139,10 @@ export default class SpecStore {
 
   public getHashedClientKeyToAppMap(): Record<string, string> {
     return this.hashedClientSDKKeyToAppMap;
+  }
+
+  public getHashedSDKKeysToEntities(): Record<string, APIEntityNames> {
+    return this.hashedSDKKeysToEntities;
   }
 
   public async init(): Promise<void> {
@@ -515,6 +525,8 @@ export default class SpecStore {
       {}) as Record<string, string>;
     this.hashedClientSDKKeyToAppMap = (specsJSON?.hashed_sdk_keys_to_app_ids ??
       {}) as Record<string, string>;
+    this.hashedSDKKeysToEntities = (specsJSON?.hashed_sdk_keys_to_entities ??
+      {}) as Record<string, APIEntityNames>;
     return { success: true, hasUpdates: true };
   }
 
