@@ -9,6 +9,7 @@ module.exports = {
   plugins: ['@typescript-eslint', 'simple-import-sort'],
   rules: {
     'simple-import-sort/imports': 'error',
+    'no-console': 'error',
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-unused-vars': ['off', { varsIgnorePattern: '^_' }],
     '@typescript-eslint/no-for-in-array': 'off',

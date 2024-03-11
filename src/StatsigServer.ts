@@ -540,10 +540,7 @@ export default class StatsigServer {
           (!notEmptyObject(response.feature_gates) &&
             !notEmptyObject(response.dynamic_config) &&
             !notEmptyObject(response.layer_configs));
-        console.log('invalid response??');
-        console.log(invalidResponse);
         if (invalidResponse) {
-          console.log('calling exception');
           this._errorBoundary.logError(
             new Error('getClientInitializeResponse returns empty response'),
             undefined,
@@ -554,7 +551,6 @@ export default class StatsigServer {
             },
           );
         }
-        console.log('hihi!');
         Diagnostics.mark.getClientInitializeResponse.end(
           { markerID, success: !invalidResponse },
           'get_client_initialize_response',
