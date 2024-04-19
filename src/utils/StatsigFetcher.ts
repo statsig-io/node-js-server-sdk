@@ -26,6 +26,7 @@ type RequestOptions = Partial<{
 export default class StatsigFetcher {
   private api: string;
   private apiForDownloadConfigSpecs: string;
+  private apiForGetIdLists: string;
   private sessionID: string;
   private leakyBucket: Record<string, number>;
   private pendingTimers: NodeJS.Timer[];
@@ -42,6 +43,7 @@ export default class StatsigFetcher {
   ) {
     this.api = options.api;
     this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
+    this.apiForGetIdLists = options.apiForGetIdLists;
     this.sessionID = sessionID;
     this.leakyBucket = {};
     this.pendingTimers = [];
@@ -69,7 +71,7 @@ export default class StatsigFetcher {
   }
 
   public async getIDLists(sinceTime?: number): Promise<Response> {
-    return await this.post(this.api + '/get_id_lists', {});
+    return await this.post(this.apiForGetIdLists + '/get_id_lists', {});
   }
 
   public dispatch(

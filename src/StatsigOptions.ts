@@ -33,6 +33,7 @@ export interface LoggerInterface {
 export type ExplicitStatsigOptions = {
   api: string;
   apiForDownloadConfigSpecs: string;
+  apiForGetIdLists: string;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
@@ -70,6 +71,9 @@ export function OptionsWithDefaults(
       normalizeUrl(
         getString(opts, 'apiForDownloadConfigSpecs', opts.api ?? null),
       ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+    apiForGetIdLists:
+      normalizeUrl(getString(opts, 'apiForGetIdLists', opts.api ?? null)) ??
+      DEFAULT_API,
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)
