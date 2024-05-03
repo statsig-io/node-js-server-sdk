@@ -124,8 +124,15 @@
   "hash_used": "sha256",
   "time": 0,
   "generator": "statsig-node-sdk",
+  "sdkInfo": {
+    "sdkType": "statsig-node",
+    "sdkVersion": "5.19.1"
+  },
   "evaluated_keys": {
     "userID": "123"
   },
-  "user_hash": "1800907990"
+  "user": {
+    "userID": "123",
+    "email": "testuser@statsig.com"
+  }
 }

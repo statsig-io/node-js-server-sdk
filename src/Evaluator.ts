@@ -8,7 +8,7 @@ import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
 import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
-import { notEmpty } from './utils/core';
+import { getSDKType, getSDKVersion, notEmpty } from './utils/core';
 import {
   djb2Hash,
   HashingAlgorithm,
@@ -345,10 +345,11 @@ export default class Evaluator {
       sdkParams: {},
       has_updates: true,
       generator: 'statsig-node-sdk',
-      time: 0, // set the time to 0 so this doesnt interfere with polling,
+      sdkInfo: { sdkType: getSDKType(), sdkVersion: getSDKVersion() },
+      time: this.store.getLastUpdateTime(),
       evaluated_keys: evaluatedKeys,
       hash_used: options?.hash ?? 'sha256',
-      user_hash: getUserHashWithoutStableID(user),
+      user: user,
     };
   }
 

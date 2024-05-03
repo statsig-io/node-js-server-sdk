@@ -70,9 +70,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify checkGate and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
-      INIT_RESPONSE,
-    );
+    const clientInitializeResponse =
+      statsig.getClientInitializeResponse(statsigUser);
+    if (clientInitializeResponse != null) {
+      expect(clientInitializeResponse.time).toBeGreaterThan(0);
+      delete clientInitializeResponse.time;
+    }
+    const initResponse = INIT_RESPONSE;
+    delete initResponse.time;
+    expect(clientInitializeResponse).toEqual(initResponse);
     const on1 = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on1).toEqual(true);
 
@@ -128,9 +134,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify checkGateWithoutServerFallback and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
-      INIT_RESPONSE,
-    );
+    const clientInitializeResponse =
+      statsig.getClientInitializeResponse(statsigUser);
+    if (clientInitializeResponse != null) {
+      expect(clientInitializeResponse.time).toBeGreaterThan(0);
+      delete clientInitializeResponse.time;
+    }
+    const initResponse = INIT_RESPONSE;
+    delete initResponse.time;
+    expect(clientInitializeResponse).toEqual(initResponse);
     const on1 = statsig.checkGateWithoutServerFallback(
       statsigUser,
       'always_on_gate',
@@ -223,7 +235,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.value).toEqual({});
 
     statsig.shutdown();
-    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
+    postedLogs.events = postedLogs.events.filter(
+      (event) => event.eventName !== 'statsig::diagnostics',
+    );
     expect(postedLogs.events.length).toEqual(3);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual('test_config');
@@ -257,7 +271,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
     statsig.shutdown();
-    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
+    postedLogs.events = postedLogs.events.filter(
+      (event) => event.eventName !== 'statsig::diagnostics',
+    );
     expect(postedLogs.events.length).toEqual(2);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual(
@@ -298,7 +314,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     statsig.shutdown();
     // fallback does not log an exposure, so nothing gets set here
-    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
+    postedLogs.events = postedLogs.events.filter(
+      (event) => event.eventName !== 'statsig::diagnostics',
+    );
     expect(postedLogs.events).toEqual([]);
   });
 
@@ -309,7 +327,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       item_name: 'diet_coke_48_pack',
     });
     statsig.shutdown();
-    postedLogs.events = postedLogs.events.filter(event => event.eventName !== 'statsig::diagnostics')
+    postedLogs.events = postedLogs.events.filter(
+      (event) => event.eventName !== 'statsig::diagnostics',
+    );
     expect(postedLogs.events.length).toEqual(1);
     expect(postedLogs.events[0].eventName).toEqual('add_to_cart');
     expect(postedLogs.events[0].value).toEqual('SKU_12345');
@@ -323,11 +343,11 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify list APIs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getFeatureGateList()).toContain("always_on_gate");
-    expect(statsig.getDynamicConfigList()).toContain("test_config");
-    expect(statsig.getExperimentList()).toContain("sample_experiment");
-    expect(statsig.getAutotuneList()).toContain("test_autotune");
-    expect(statsig.getLayerList()).toContain("statsig::test_layer");
+    expect(statsig.getFeatureGateList()).toContain('always_on_gate');
+    expect(statsig.getDynamicConfigList()).toContain('test_config');
+    expect(statsig.getExperimentList()).toContain('sample_experiment');
+    expect(statsig.getAutotuneList()).toContain('test_autotune');
+    expect(statsig.getLayerList()).toContain('statsig::test_layer');
     statsig.shutdown();
   });
 });

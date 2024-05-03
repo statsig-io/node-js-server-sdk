@@ -4,7 +4,7 @@
 
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import {  parseLogEvents } from './StatsigTestUtils';
+import { parseLogEvents } from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
@@ -68,9 +68,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify checkGate and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
-      INIT_RESPONSE,
-    );
+    const clientInitializeResponse =
+      statsig.getClientInitializeResponse(statsigUser);
+    if (clientInitializeResponse != null) {
+      expect(clientInitializeResponse.time).toBeGreaterThan(0);
+      delete clientInitializeResponse.time;
+    }
+    const initResponse = INIT_RESPONSE;
+    delete initResponse.time;
+    expect(clientInitializeResponse).toEqual(initResponse);
     const on1 = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on1).toEqual(true);
 
@@ -134,9 +140,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify checkGateWithoutServerFallback and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
-      INIT_RESPONSE,
-    );
+    const clientInitializeResponse =
+      statsig.getClientInitializeResponse(statsigUser);
+    if (clientInitializeResponse != null) {
+      expect(clientInitializeResponse.time).toBeGreaterThan(0);
+      delete clientInitializeResponse.time;
+    }
+    const initResponse = INIT_RESPONSE;
+    delete initResponse.time;
+    expect(clientInitializeResponse).toEqual(initResponse);
     const on1 = statsig.checkGateWithoutServerFallback(
       statsigUser,
       'always_on_gate',
@@ -309,10 +321,15 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
   test('Verify partial rollout', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
-    expect(statsig.getClientInitializeResponse(statsigUser)).toEqual(
-      INIT_RESPONSE,
-    );
-
+    const clientInitializeResponse =
+      statsig.getClientInitializeResponse(statsigUser);
+    if (clientInitializeResponse != null) {
+      expect(clientInitializeResponse.time).toBeGreaterThan(0);
+      delete clientInitializeResponse.time;
+    }
+    const initResponse = INIT_RESPONSE;
+    delete initResponse.time;
+    expect(clientInitializeResponse).toEqual(initResponse);
     const on1 = await statsig.checkGate(statsigUser, 'partial_rollout_gate');
     expect(on1).toEqual(true);
 
