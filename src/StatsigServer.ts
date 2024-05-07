@@ -313,6 +313,16 @@ export default class StatsigServer {
     });
   }
 
+  public getExperimentLayer(experiment: string): string | null {
+    return this._errorBoundary.capture(
+      () => {
+        return this._evaluator.getExperimentLayer(experiment);
+      },
+      () => null,
+      { configName: experiment, tag: 'getExperimentLayer' },
+    );
+  }
+
   //#endregion
 
   // #region Get Layer

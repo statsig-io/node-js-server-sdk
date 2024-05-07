@@ -218,5 +218,11 @@ describe('ExposureLogging', () => {
       expect(events[0].metadata.isManualExposure).toEqual('true');
       expect(events[0].eventName).toEqual('statsig::layer_exposure');
     });
+
+    it('get experiment layer does not log exposure', () => {
+      const layerName = Statsig.getExperimentLayer('sample_experiment');
+      expect(events.length).toBe(0);
+      expect(layerName).toEqual('a_layer');
+    });
   });
 });

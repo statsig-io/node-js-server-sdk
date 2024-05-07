@@ -33,5 +33,8 @@
   ],
   "has_updates": true,
   "diagnostics": {},
-  "time": 0
+  "time": 0,
+  "layers": {
+    "a_layer": ["sample_experiment"]
+  }
 }

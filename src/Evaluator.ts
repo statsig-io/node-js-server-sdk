@@ -382,6 +382,10 @@ export default class Evaluator {
     return Object.entries(gates).map(([name, _]) => name);
   }
 
+  public getExperimentLayer(experimentName: string): string | null {
+    return this.store.getExperimentLayer(experimentName);
+  }
+
   public getConfigsList(
     entityType: 'experiment' | 'dynamic_config' | 'autotune',
   ): string[] {

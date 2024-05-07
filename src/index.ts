@@ -209,7 +209,20 @@ export const Statsig = {
   },
 
   /**
-   * Logs an exposure event for the experiment
+   * Get the name of an layer an experiment is in
+   * No exposure event will be logged.
+   *
+   * @param {string} experimentName - the name of the experiment to get
+   * @returns {string} - the layer name the experiment belongs to
+   * @throws Error if initialize() was not called first
+   */
+
+  getExperimentLayer(experimentName: string): string | null {
+    return this._enforceServer().getExperimentLayer(experimentName);
+  },
+
+  /**
+   * Logs an exposure event for the experiment.
    *
    * @param {StatsigUser} user - the user to log the exposure against
    * @param {string} experimentName - the name of the experiment to expose
