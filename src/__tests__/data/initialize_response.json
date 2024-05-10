@@ -126,7 +126,7 @@
   "generator": "statsig-node-sdk",
   "sdkInfo": {
     "sdkType": "statsig-node",
-    "sdkVersion": "5.19.1"
+    "sdkVersion": "5.20.0"
   },
   "evaluated_keys": {
     "userID": "123"
