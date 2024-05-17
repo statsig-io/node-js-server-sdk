@@ -7,7 +7,7 @@ import OutputLogger from './OutputLogger';
 import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
-import { getUserHashWithoutStableID, StatsigUser } from './StatsigUser';
+import { StatsigUser } from './StatsigUser';
 import { getSDKType, getSDKVersion, notEmpty } from './utils/core';
 import {
   djb2Hash,
@@ -28,13 +28,27 @@ type InitializeResponse = {
   group: string;
   rule_id: string;
   is_device_based: boolean;
-  secondary_exposures: unknown;
+  secondary_exposures: Record<string, string>[];
   is_experiment_active?: boolean;
   is_user_in_experiment?: boolean;
   is_in_layer?: boolean;
   allocated_experiment_name?: string;
   explicit_parameters?: string[];
   undelegated_secondary_exposures?: Record<string, string>[];
+};
+
+export type ClientInitializeResponse = {
+  feature_gates: Record<string, InitializeResponse>;
+  dynamic_configs: Record<string, InitializeResponse>;
+  layer_configs: Record<string, InitializeResponse>;
+  sdkParams: Record<string, unknown>;
+  has_updates: boolean;
+  generator: 'statsig-node-sdk';
+  sdkInfo: { sdkType: string; sdkVersion: string };
+  time: number;
+  evaluated_keys: Record<string, unknown>;
+  hash_used: HashingAlgorithm;
+  user: StatsigUser;
 };
 
 export default class Evaluator {
@@ -195,7 +209,7 @@ export default class Evaluator {
     user: StatsigUser,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
-  ): Record<string, unknown> | null {
+  ): ClientInitializeResponse | null {
     if (!this.store.isServingChecks()) {
       return null;
     }
@@ -491,6 +505,7 @@ export default class Evaluator {
   ): Record<string, string>[] {
     const seen: Record<string, boolean> = {};
     return exposures
+      .filter((exposure) => !exposure.gate.startsWith('segment:'))
       .map((exposure: Record<string, string>) => {
         const key = `${exposure.gate}|${exposure.gateValue}|${exposure.ruleID}`;
         if (seen[key]) {

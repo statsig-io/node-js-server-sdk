@@ -8,7 +8,7 @@ import {
   StatsigInvalidArgumentError,
   StatsigUninitializedError,
 } from './Errors';
-import Evaluator from './Evaluator';
+import Evaluator, { ClientInitializeResponse } from './Evaluator';
 import {
   FeatureGate,
   makeEmptyFeatureGate,
@@ -522,7 +522,7 @@ export default class StatsigServer {
     user: StatsigUser,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
-  ): Record<string, unknown> | null {
+  ): ClientInitializeResponse | null {
     let markerID = '';
     return this._errorBoundary.capture(
       () => {
@@ -548,7 +548,7 @@ export default class StatsigServer {
         const invalidResponse =
           response == null ||
           (!notEmptyObject(response.feature_gates) &&
-            !notEmptyObject(response.dynamic_config) &&
+            !notEmptyObject(response.dynamic_configs) &&
             !notEmptyObject(response.layer_configs));
         if (invalidResponse) {
           this._errorBoundary.logError(

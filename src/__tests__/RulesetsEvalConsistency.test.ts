@@ -1,4 +1,4 @@
-import Evaluator from '../Evaluator';
+import Evaluator, { ClientInitializeResponse } from '../Evaluator';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import safeFetch from '../utils/safeFetch';
@@ -21,7 +21,7 @@ describe('RulesetsEvalConsistency', () => {
 
   afterEach(() => {
     Statsig.shutdown();
-  })
+  });
 
   test.each([
     ['https://staging.statsigapi.net/v1'],
@@ -61,9 +61,17 @@ describe('RulesetsEvalConsistency', () => {
       const gates = data.feature_gates_v2;
       const configs = data.dynamic_configs;
       const layers = data.layer_configs;
+      const sdkResults = evaluator.getClientInitializeResponse(
+        user,
+        undefined,
+        { hash: 'none' },
+      )
+      if (sdkResults == null) {
+        throw new Error('Store has not been set up for test');
+      }
 
       for (const name in gates) {
-        const sdkResult = evaluator.checkGate(user, name);
+        const sdkResult = sdkResults['feature_gates'][name];
         const serverResult = gates[name];
 
         expect([
@@ -80,12 +88,12 @@ describe('RulesetsEvalConsistency', () => {
       }
 
       for (const name in configs) {
-        const sdkResult = evaluator.getConfig(user, name);
+        const sdkResult = sdkResults['dynamic_configs'][name];
         const serverResult = configs[name];
 
         expect([
           name,
-          sdkResult.json_value,
+          sdkResult.value,
           sdkResult.rule_id,
           sdkResult.secondary_exposures,
         ]).toEqual([
@@ -97,12 +105,12 @@ describe('RulesetsEvalConsistency', () => {
       }
 
       for (const name in layers) {
-        const sdkResult = evaluator.getLayer(user, name);
+        const sdkResult = sdkResults['layer_configs'][name];
         const serverResult = layers[name];
 
         expect([
           name,
-          sdkResult.json_value,
+          sdkResult.value,
           sdkResult.rule_id,
           sdkResult.secondary_exposures,
           sdkResult.undelegated_secondary_exposures,

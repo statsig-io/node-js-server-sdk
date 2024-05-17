@@ -5,6 +5,7 @@ import {
   StatsigTooManyRequestsError,
   StatsigUninitializedError,
 } from './Errors';
+import { ClientInitializeResponse } from './Evaluator';
 import { FeatureGate } from './FeatureGate';
 import {
   AdapterResponse,
@@ -341,7 +342,7 @@ export const Statsig = {
     user: StatsigUser,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
-  ): Record<string, unknown> | null {
+  ): ClientInitializeResponse | null {
     return this._enforceServer().getClientInitializeResponse(
       user,
       clientSDKKey,
