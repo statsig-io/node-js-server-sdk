@@ -4,6 +4,7 @@ import {
   StatsigInvalidArgumentError,
   StatsigUninitializedError,
 } from '../Errors';
+import { EvaluationDetails } from '../EvaluationDetails';
 import Statsig from '../index';
 import LogEvent from '../LogEvent';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
@@ -809,7 +810,16 @@ describe('Verify behavior of top level index functions', () => {
       });
 
     const configName = 'non_existent_config';
-    const config = new DynamicConfig(configName, {}, '');
+    const config = new DynamicConfig(
+      configName,
+      {},
+      '',
+      null,
+      null,
+      [],
+      null,
+      EvaluationDetails.make(0, -1, 'Unrecognized'),
+    );
 
     const spy = jest.spyOn(StatsigTestUtils.getLogger(), 'log');
     await Statsig.getConfig({ userID: '12345' }, configName).then((data) => {

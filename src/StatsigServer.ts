@@ -842,6 +842,7 @@ export default class StatsigServer {
       evaluation.value === true,
       evaluation.group_name,
       evaluation.id_type,
+      evaluation.evaluation_details ?? null,
     );
   }
 
@@ -895,6 +896,7 @@ export default class StatsigServer {
       evaluation.rule_id !== ''
         ? this._makeOnDefaultValueFallbackFunction(user)
         : null,
+      evaluation.evaluation_details ?? null,
     );
 
     if (exposureLogging !== ExposureLogging.Disabled) {
@@ -952,6 +954,7 @@ export default class StatsigServer {
       evaluation?.group_name,
       evaluation?.config_delegate,
       exposureLogging === ExposureLogging.Disabled ? null : logFunc,
+      evaluation?.evaluation_details,
     );
   }
 

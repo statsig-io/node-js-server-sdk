@@ -1,3 +1,4 @@
+import type { EvaluationDetails } from './EvaluationDetails';
 import { clone } from './utils/core';
 
 type ExposeLayer = (layer: Layer, key: string) => void;
@@ -12,6 +13,7 @@ export default class Layer {
   private _groupName: string | null;
   private _allocatedExperimentName: string | null;
   private _logExposure: ExposeLayer | null;
+  private _evaluationDetails: EvaluationDetails | null;
 
   public constructor(
     layerName: string,
@@ -20,6 +22,7 @@ export default class Layer {
     groupName: string | null = null,
     allocatedExperimentName: string | null = null,
     logExposure: ExposeLayer | null = null,
+    evaluationDetails: EvaluationDetails | null = null,
   ) {
     if (typeof layerName !== 'string' || layerName.length === 0) {
       layerName = '';
@@ -34,6 +37,7 @@ export default class Layer {
     this._groupName = groupName;
     this._allocatedExperimentName = allocatedExperimentName;
     this._logExposure = logExposure;
+    this._evaluationDetails = evaluationDetails;
   }
 
   public get<T>(
@@ -102,5 +106,9 @@ export default class Layer {
 
   getAllocatedExperimentName(): string | null {
     return this._allocatedExperimentName;
+  }
+
+  getEvaluationDetails(): EvaluationDetails | null {
+    return this._evaluationDetails;
   }
 }

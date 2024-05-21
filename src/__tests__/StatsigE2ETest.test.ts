@@ -5,9 +5,7 @@ import { parseLogEvents } from './StatsigTestUtils';
 // @ts-ignore
 const statsig = statsigsdk.default;
 
-const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./data/download_config_spec.json'),
-);
+const CONFIG_SPEC_RESPONSE = require('./data/download_config_spec.json');
 
 type NonNullableNested<T> = {
   [P in keyof T]: NonNullable<T[P]>;
@@ -26,7 +24,7 @@ fetch.mockImplementation((url, params) => {
   if (url.includes('download_config_specs')) {
     return Promise.resolve({
       ok: true,
-      text: () => Promise.resolve(CONFIG_SPEC_RESPONSE),
+      text: () => Promise.resolve(JSON.stringify(CONFIG_SPEC_RESPONSE)),
     });
   }
   if (url.includes('log_event')) {
@@ -90,6 +88,10 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     const gate = statsig.getFeatureGateSync(statsigUser, 'always_on_gate');
     expect(gate.idType).toEqual('userID');
+    expect(gate.evaluationDetails?.configSyncTime).toBe(
+      CONFIG_SPEC_RESPONSE.time,
+    );
+    expect(gate.evaluationDetails?.reason).toBe('Network');
 
     const passingEmail = await statsig.checkGate(
       statsigUser,
@@ -222,6 +224,10 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.getGroupName()).toBe('statsig emails');
     expect(config.getRuleID()).toBe('4lInPNRUnjUzaWNkEWLFA9');
     expect(config.getIDType()).toBe('userID');
+    expect(config.getEvaluationDetails()?.configSyncTime).toBe(
+      CONFIG_SPEC_RESPONSE.time,
+    );
+    expect(config.getEvaluationDetails()?.reason).toBe('Network');
 
     expect(config.get('number', 0)).toEqual(7);
     expect(config.get('string', '')).toEqual('statsig');
@@ -237,6 +243,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       'test_config_unsupported_condition',
     );
     expect(config.value).toEqual({});
+    expect(config.getEvaluationDetails()?.reason).toBe('Unsupported');
 
     statsig.shutdown();
     postedLogs.events = postedLogs.events.filter(
@@ -308,6 +315,10 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(layer.getValue('b_param', 'err')).toBe('err');
     expect(layer.getRuleID()).toEqual('');
     expect(layer.getGroupName()).toBeNull();
+    expect(layer.getEvaluationDetails()?.configSyncTime).toBe(
+      CONFIG_SPEC_RESPONSE.time,
+    );
+    expect(layer.getEvaluationDetails()?.reason).toBe('Unsupported');
 
     layer = await statsig.getLayer(
       randomUser,
@@ -316,6 +327,10 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(layer.getRuleID()).toEqual('5yQbPNUpd8mNbkB0SZZeln');
     expect(layer.getGroupName()).toEqual('Test');
     expect(layer.getAllocatedExperimentName()).toEqual('sample_experiment');
+    expect(layer.getEvaluationDetails()?.configSyncTime).toBe(
+      CONFIG_SPEC_RESPONSE.time,
+    );
+    expect(layer.getEvaluationDetails()?.reason).toBe('Network');
 
     statsig.shutdown();
     // fallback does not log an exposure, so nothing gets set here

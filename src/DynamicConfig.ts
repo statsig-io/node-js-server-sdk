@@ -1,3 +1,4 @@
+import type { EvaluationDetails } from './EvaluationDetails';
 import { clone, getTypeOf } from './utils/core';
 
 export type OnDefaultValueFallback = (
@@ -18,6 +19,7 @@ export default class DynamicConfig {
   private _idType: string | null;
   private _secondaryExposures: Record<string, unknown>[];
   private _onDefaultValueFallback: OnDefaultValueFallback | null = null;
+  private _evaluationDetails: EvaluationDetails | null;
 
   public constructor(
     configName: string,
@@ -27,6 +29,7 @@ export default class DynamicConfig {
     idType: string | null = null,
     secondaryExposures: Record<string, unknown>[] = [],
     onDefaultValueFallback: OnDefaultValueFallback | null = null,
+    evaluationDetails: EvaluationDetails | null = null,
   ) {
     if (typeof configName !== 'string' || configName.length === 0) {
       configName = '';
@@ -43,6 +46,7 @@ export default class DynamicConfig {
       ? secondaryExposures
       : [];
     this._onDefaultValueFallback = onDefaultValueFallback;
+    this._evaluationDetails = evaluationDetails;
   }
 
   public get<T>(
@@ -105,6 +109,10 @@ export default class DynamicConfig {
 
   getIDType(): string | null {
     return this._idType;
+  }
+
+  getEvaluationDetails(): EvaluationDetails | null {
+    return this._evaluationDetails;
   }
 
   _getSecondaryExposures(): Record<string, unknown>[] {
