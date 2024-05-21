@@ -263,7 +263,7 @@ export default class Evaluator {
           name: hashString(gate, options?.hash),
           value: res.unsupported ? false : res.value,
           rule_id: res.rule_id,
-          secondary_exposures: this._cleanExposures(res.secondary_exposures),
+          secondary_exposures: res.secondary_exposures,
         };
       });
 
@@ -328,9 +328,8 @@ export default class Evaluator {
           format.explicit_parameters = delegateSpec?.explicitParameters ?? [];
         }
 
-        format.undelegated_secondary_exposures = this._cleanExposures(
-          res.undelegated_secondary_exposures ?? [],
-        );
+        format.undelegated_secondary_exposures =
+          res.undelegated_secondary_exposures ?? [];
 
         return format;
       });
@@ -490,7 +489,7 @@ export default class Evaluator {
       rule_id: res.rule_id,
       is_device_based:
         spec.idType != null && spec.idType.toLowerCase() === 'stableid',
-      secondary_exposures: this._cleanExposures(res.secondary_exposures),
+      secondary_exposures: res.secondary_exposures,
     };
 
     if (res.explicit_parameters) {
@@ -572,8 +571,8 @@ export default class Evaluator {
         );
       }
 
-      secondary_exposures = secondary_exposures.concat(
-        ruleResult.secondary_exposures,
+      secondary_exposures = this._cleanExposures(
+        secondary_exposures.concat(ruleResult.secondary_exposures),
       );
 
       if (ruleResult.value === true) {
@@ -630,8 +629,8 @@ export default class Evaluator {
     delegatedResult.config_delegate = rule.configDelegate;
     delegatedResult.undelegated_secondary_exposures = exposures;
     delegatedResult.explicit_parameters = config.explicitParameters;
-    delegatedResult.secondary_exposures = exposures.concat(
-      delegatedResult.secondary_exposures,
+    delegatedResult.secondary_exposures = this._cleanExposures(
+      exposures.concat(delegatedResult.secondary_exposures),
     );
     return delegatedResult;
   }
