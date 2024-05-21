@@ -15,6 +15,7 @@ export default class DynamicConfig {
   public value: Record<string, unknown>;
   private _ruleID: string;
   private _groupName: string | null;
+  private _idType: string | null;
   private _secondaryExposures: Record<string, unknown>[];
   private _onDefaultValueFallback: OnDefaultValueFallback | null = null;
 
@@ -23,6 +24,7 @@ export default class DynamicConfig {
     value: Record<string, unknown> = {},
     ruleID = '',
     groupName: string | null = null,
+    idType: string | null = null,
     secondaryExposures: Record<string, unknown>[] = [],
     onDefaultValueFallback: OnDefaultValueFallback | null = null,
   ) {
@@ -36,6 +38,7 @@ export default class DynamicConfig {
     this.value = clone(value) ?? {};
     this._ruleID = ruleID;
     this._groupName = groupName;
+    this._idType = idType;
     this._secondaryExposures = Array.isArray(secondaryExposures)
       ? secondaryExposures
       : [];
@@ -98,6 +101,10 @@ export default class DynamicConfig {
 
   getGroupName(): string | null {
     return this._groupName;
+  }
+
+  getIDType(): string | null {
+    return this._idType;
   }
 
   _getSecondaryExposures(): Record<string, unknown>[] {

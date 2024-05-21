@@ -12,11 +12,13 @@ export default class ConfigEvaluation {
   public is_experiment_group: boolean;
   public group_name: string | null;
   public evaluation_details: EvaluationDetails | undefined;
+  public id_type: string | null;
 
   constructor(
     value: boolean,
     rule_id = '',
     group_name: string | null = null,
+    id_type: string | null = null,
     secondary_exposures: Record<string, string>[] = [],
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
@@ -38,6 +40,7 @@ export default class ConfigEvaluation {
     this.explicit_parameters = explicit_parameters;
     this.is_experiment_group = false;
     this.group_name = group_name;
+    this.id_type = id_type;
   }
 
   public withEvaluationDetails(
@@ -55,6 +58,7 @@ export default class ConfigEvaluation {
     return new ConfigEvaluation(
       false,
       '',
+      null,
       null,
       [],
       {},

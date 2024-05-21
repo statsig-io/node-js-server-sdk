@@ -70,7 +70,9 @@ describe('Verify behavior of top level index functions', () => {
 
     try {
       Statsig.shutdown();
-    } catch {/* noop */}
+    } catch {
+      /* noop */
+    }
 
     StatsigInstanceUtils.setInstance(null);
     flushedEventCount = 0;
@@ -365,7 +367,9 @@ describe('Verify behavior of top level index functions', () => {
       new Error('Lookup key must be a non-empty string'),
     );
     expect(StatsigTestUtils.getLogger().queue).toHaveLength(1); // Has only diagnostics initialize
-    expect(StatsigTestUtils.getLogger().queue[0].eventName).toBe("statsig::diagnostics")
+    expect(StatsigTestUtils.getLogger().queue[0].eventName).toBe(
+      'statsig::diagnostics',
+    );
   });
 
   test(
@@ -414,7 +418,10 @@ describe('Verify behavior of top level index functions', () => {
         .mockImplementation((_user, _gateName) => {
           return ConfigEvaluation.unsupported(-1, -2);
         });
-      const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      const user = {
+        userID: '123',
+        privateAttributes: { secret: 'do not log' },
+      };
       const gateName = 'gate_server';
 
       expect(
@@ -445,7 +452,7 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', '', [
+          return new ConfigEvaluation(true, 'rule_id_pass', '', 'userID', [
             { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
           ]);
         }
@@ -490,7 +497,7 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', '', [
+          return new ConfigEvaluation(true, 'rule_id_pass', '', 'userID', [
             { gate: 'dependent_gate', gateValue: 'true', ruleID: 'rule_22' },
           ]);
         }
@@ -538,14 +545,14 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', '', []);
+          return new ConfigEvaluation(true, 'rule_id_pass', '', 'userID', []);
         }
 
         if (gateName === 'gate_server') {
           return ConfigEvaluation.unsupported(-1, -1);
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail', '', []);
+        return new ConfigEvaluation(false, 'rule_id_fail', '', 'userID', []);
       });
 
     const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -584,14 +591,14 @@ describe('Verify behavior of top level index functions', () => {
       .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
       .mockImplementation((user, gateName) => {
         if (gateName === 'gate_pass') {
-          return new ConfigEvaluation(true, 'rule_id_pass', '', []);
+          return new ConfigEvaluation(true, 'rule_id_pass', '', 'userID', []);
         }
 
         if (gateName === 'gate_server') {
           return ConfigEvaluation.unsupported(-1, -1);
         }
 
-        return new ConfigEvaluation(false, 'rule_id_fail', '', []);
+        return new ConfigEvaluation(false, 'rule_id_fail', '', 'userID', []);
       });
 
     const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
@@ -632,7 +639,10 @@ describe('Verify behavior of top level index functions', () => {
           return ConfigEvaluation.unsupported(-1, -2);
         });
 
-      const user = { userID: '123', privateAttributes: { secret: 'do not log' } };
+      const user = {
+        userID: '123',
+        privateAttributes: { secret: 'do not log' },
+      };
       const configName = 'config_server';
 
       let data = await Statsig.getConfig(user, configName);
@@ -665,6 +675,7 @@ describe('Verify behavior of top level index functions', () => {
           true,
           'rule_id_config',
           'group_name_config',
+          'userID',
           [],
           {
             string: '12345',
@@ -713,7 +724,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', 'userID', [], {
           string: '12345',
           number: 12345,
         });
@@ -738,7 +749,7 @@ describe('Verify behavior of top level index functions', () => {
     jest
       .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
       .mockImplementation((_, configName) => {
-        return new ConfigEvaluation(true, 'rule_id_config', '', [], {
+        return new ConfigEvaluation(true, 'rule_id_config', '', 'userID', [], {
           string: '12345',
           number: 12345,
         });
@@ -769,9 +780,16 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
         .mockImplementation((_, configName) => {
-          return new ConfigEvaluation(true, 'rule_id_config_' + ii, '', [], {
-            string: '12345',
-          });
+          return new ConfigEvaluation(
+            true,
+            'rule_id_config_' + ii,
+            '',
+            'userID',
+            [],
+            {
+              string: '12345',
+            },
+          );
         });
       await Statsig.getConfig(user, configName);
     }

@@ -841,6 +841,7 @@ export default class StatsigServer {
       evaluation.rule_id,
       evaluation.value === true,
       evaluation.group_name,
+      evaluation.id_type,
     );
   }
 
@@ -889,6 +890,7 @@ export default class StatsigServer {
       evaluation.json_value,
       evaluation.rule_id,
       evaluation.group_name,
+      evaluation.id_type,
       evaluation.secondary_exposures,
       evaluation.rule_id !== ''
         ? this._makeOnDefaultValueFallbackFunction(user)

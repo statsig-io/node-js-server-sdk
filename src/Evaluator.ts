@@ -465,14 +465,21 @@ export default class Evaluator {
       // check for a user level override
       const userOverride = overrides[user.userID];
       if (userOverride != null) {
-        return new ConfigEvaluation(true, 'override', null, [], userOverride);
+        return new ConfigEvaluation(
+          true,
+          'override',
+          null,
+          'userID',
+          [],
+          userOverride,
+        );
       }
     }
 
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
-      return new ConfigEvaluation(true, 'override', null, [], allOverride);
+      return new ConfigEvaluation(true, 'override', null, '', [], allOverride);
     }
     return null;
   }
@@ -555,6 +562,7 @@ export default class Evaluator {
         false,
         'disabled',
         null,
+        config.idType,
         [],
         config.defaultValue as Record<string, unknown>,
       );
@@ -590,6 +598,7 @@ export default class Evaluator {
           pass,
           ruleResult.rule_id,
           ruleResult.group_name,
+          config.idType,
           secondary_exposures,
           pass
             ? ruleResult.json_value
@@ -606,6 +615,7 @@ export default class Evaluator {
       false,
       'default',
       null,
+      config.idType,
       secondary_exposures,
       config.defaultValue as Record<string, unknown>,
       config.explicitParameters,
@@ -685,6 +695,7 @@ export default class Evaluator {
       pass,
       rule.id,
       rule.groupName,
+      null,
       secondaryExposures,
       rule.returnValue as Record<string, unknown>,
     );

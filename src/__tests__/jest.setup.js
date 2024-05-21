@@ -17,6 +17,7 @@ const mock_gateSpec = {
   salt: 'na',
   defaultValue: false,
   enabled: true,
+  idType: 'teamID',
   rules: [
     {
       name: 'employees',
@@ -95,6 +96,7 @@ const mock_disabledGateSpec = {
   salt: 'na',
   defaultValue: false,
   enabled: false,
+  idType: 'teamID',
   rules: [
     {
       name: 'employees',

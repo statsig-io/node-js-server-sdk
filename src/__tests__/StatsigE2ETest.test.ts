@@ -88,6 +88,9 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     const on3 = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on3).toEqual(true);
 
+    const gate = statsig.getFeatureGateSync(statsigUser, 'always_on_gate');
+    expect(gate.idType).toEqual('userID');
+
     const passingEmail = await statsig.checkGate(
       statsigUser,
       'on_for_statsig_email',
@@ -218,6 +221,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     let config = await statsig.getConfig(statsigUser, 'test_config');
     expect(config.getGroupName()).toBe('statsig emails');
     expect(config.getRuleID()).toBe('4lInPNRUnjUzaWNkEWLFA9');
+    expect(config.getIDType()).toBe('userID');
 
     expect(config.get('number', 0)).toEqual(7);
     expect(config.get('string', '')).toEqual('statsig');
@@ -267,6 +271,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     experiment = await statsig.getExperiment(randomUser, 'sample_experiment');
     expect(experiment.getGroupName()).toBe('Test');
     expect(experiment.getRuleID()).toBe('5yQbPNUpd8mNbkB0SZZeln');
+    expect(experiment.getIDType()).toBe('userID');
 
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
