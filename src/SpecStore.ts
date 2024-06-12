@@ -302,7 +302,8 @@ export default class SpecStore {
         DataAdapterKey.Rulesets,
       );
       if (result && !error) {
-        const configSpecs = JSON.parse(result);
+        const configSpecs =
+          typeof result === 'string' ? JSON.parse(result) : result;
         const { success } = this._process(configSpecs);
         if (success) {
           this.initReason = 'DataAdapter';
@@ -557,9 +558,10 @@ export default class SpecStore {
       if (!dataAdapter) {
         return { synced: false };
       }
-      const adapterIdLists = await dataAdapter.get(DataAdapterKey.IDLists);
-      const listsLookupString = adapterIdLists.result;
-      if (!listsLookupString) {
+      const { result: adapterIdLists } = await dataAdapter.get(
+        DataAdapterKey.IDLists,
+      );
+      if (!adapterIdLists) {
         return {
           synced: false,
           error: new StatsigInvalidDataAdapterValuesError(
@@ -567,7 +569,7 @@ export default class SpecStore {
           ),
         };
       }
-      const lookup = IDListUtil.parseBootstrapLookup(listsLookupString);
+      const lookup = IDListUtil.parseBootstrapLookup(adapterIdLists);
       if (!lookup) {
         return {
           synced: false,
@@ -583,8 +585,8 @@ export default class SpecStore {
           new Promise((resolve, reject) => {
             dataAdapter
               .get(IDListUtil.getIdListDataStoreKey(name))
-              .then((data) => {
-                if (!data.result) {
+              .then(({ result: data }) => {
+                if (!data || typeof data !== 'string') {
                   return reject(
                     new StatsigInvalidDataAdapterValuesError(
                       IDListUtil.getIdListDataStoreKey(name),
@@ -599,7 +601,7 @@ export default class SpecStore {
                   creationTime: 0,
                 };
 
-                IDListUtil.updateIdList(this.store.idLists, name, data.result);
+                IDListUtil.updateIdList(this.store.idLists, name, data);
               })
               .catch((e) => {
                 OutputLogger.debug(e);

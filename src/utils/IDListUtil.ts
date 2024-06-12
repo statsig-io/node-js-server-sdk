@@ -30,9 +30,11 @@ export default abstract class IDListUtil {
     return input as IDListsLookupResponse;
   }
 
-  static parseBootstrapLookup(input: string): IDListsLookupBootstrap | null {
+  static parseBootstrapLookup(
+    input: string | object,
+  ): IDListsLookupBootstrap | null {
     try {
-      const result = JSON.parse(input);
+      const result = typeof input === 'string' ? JSON.parse(input) : input;
       if (Array.isArray(result)) {
         return result as IDListsLookupBootstrap;
       }

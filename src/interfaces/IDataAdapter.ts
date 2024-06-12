@@ -1,5 +1,5 @@
 export type AdapterResponse = {
-  result?: string;
+  result?: string | object;
   time?: number;
   error?: Error;
 };
