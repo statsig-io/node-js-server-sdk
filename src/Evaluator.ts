@@ -801,6 +801,9 @@ export default class Evaluator {
       case 'unit_id':
         value = this._getUnitID(user, idType);
         break;
+      case 'target_app':
+        value = this.store.getPrimaryTargetAppID();
+        break;
       default:
         return { passes: false, unsupported: true };
     }

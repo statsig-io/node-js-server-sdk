@@ -61,6 +61,7 @@ export default class SpecStore {
   private clientSDKKeyToAppMap: Record<string, string> = {};
   private hashedClientSDKKeyToAppMap: Record<string, string> = {};
   private hashedSDKKeysToEntities: Record<string, APIEntityNames> = {};
+  private primaryTargetAppID: string | null;
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
@@ -87,6 +88,7 @@ export default class SpecStore {
     this.initStrategyForIDLists = options.initStrategyForIDLists;
     this.clientSDKKeyToAppMap = {};
     this.hashedClientSDKKeyToAppMap = {};
+    this.primaryTargetAppID = null;
   }
 
   public getInitReason() {
@@ -143,6 +145,10 @@ export default class SpecStore {
 
   public getHashedSDKKeysToEntities(): Record<string, APIEntityNames> {
     return this.hashedSDKKeysToEntities;
+  }
+
+  public getPrimaryTargetAppID(): string | null {
+    return this.primaryTargetAppID;
   }
 
   public async init(): Promise<void> {
@@ -528,6 +534,7 @@ export default class SpecStore {
       {}) as Record<string, string>;
     this.hashedSDKKeysToEntities = (specsJSON?.hashed_sdk_keys_to_entities ??
       {}) as Record<string, APIEntityNames>;
+    this.primaryTargetAppID = (specsJSON?.app_id ?? null) as string | null;
     return { success: true, hasUpdates: true };
   }
 
