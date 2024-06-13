@@ -7,37 +7,41 @@ import {
 } from '../Errors';
 import { InitStrategy, OptionsLoggingCopy } from '../StatsigOptions';
 import { getStatsigMetadata } from '../utils/core';
+import StatsigContext from '../utils/StatsigContext';
 import { getDecodedBody } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
 const TestDataAdapter: IDataAdapter = {
   get(key: string): Promise<AdapterResponse> {
-    return new Promise<AdapterResponse>(() => {})
+    return new Promise<AdapterResponse>(() => {});
   },
   set(key: string, value: string, time?: number): Promise<void> {
-    return new Promise(() => {})
+    return new Promise(() => {});
   },
   shutdown(): Promise<void> {
-    return new Promise(() => {})
-
+    return new Promise(() => {});
   },
-  initialize(): Promise<void>{
-    return new Promise(() => {})
-  }
-}
+  initialize(): Promise<void> {
+    return new Promise(() => {});
+  },
+};
 describe('ErrorBoundary', () => {
   let boundary: ErrorBoundary;
   let requests: { url: RequestInfo; params: RequestInit }[] = [];
 
   beforeEach(() => {
     const options = {
-      environment: {tier: "staging"},
+      environment: { tier: 'staging' },
       initStrategyForIP3Country: 'await' as InitStrategy,
       rulesetsSyncIntervalMs: 30000,
       dataAdapter: TestDataAdapter,
-      api: "www.google.com",
-      disableDiagnostics: true
-    }
-    boundary = new ErrorBoundary('secret-key', OptionsLoggingCopy(options), 'sessionID');
+      api: 'www.google.com',
+      disableDiagnostics: true,
+    };
+    boundary = new ErrorBoundary(
+      'secret-key',
+      OptionsLoggingCopy(options),
+      'sessionID',
+    );
     requests = [];
 
     const fetch = require('node-fetch');
@@ -57,6 +61,7 @@ describe('ErrorBoundary', () => {
         called = true;
         return 'called';
       },
+      StatsigContext.new({}),
     );
 
     expect(called).toBe(true);
@@ -67,6 +72,7 @@ describe('ErrorBoundary', () => {
     const result = await boundary.capture(
       () => Promise.reject(Error('bad')),
       () => Promise.resolve('good'),
+      StatsigContext.new({}),
     );
 
     expect(result).toEqual('good');
@@ -76,6 +82,7 @@ describe('ErrorBoundary', () => {
     const result = await boundary.capture(
       () => Promise.resolve('success'),
       () => Promise.resolve('failure'),
+      StatsigContext.new({}),
     );
 
     expect(result).toEqual('success');
@@ -85,7 +92,7 @@ describe('ErrorBoundary', () => {
     const err = new URIError();
     boundary.swallow(() => {
       throw err;
-    });
+    }, StatsigContext.new({}));
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
 
@@ -101,7 +108,7 @@ describe('ErrorBoundary', () => {
     const err = { 'sort-of-an-error': 'but-not-really' };
     boundary.swallow(() => {
       throw err;
-    });
+    }, StatsigContext.new({}));
 
     expect(requests[0].url).toEqual(ExceptionEndpoint);
     expect(getDecodedBody(requests[0].params)).toEqual(
@@ -115,7 +122,7 @@ describe('ErrorBoundary', () => {
   it('logs the correct headers', () => {
     boundary.swallow(() => {
       throw new Error();
-    });
+    }, StatsigContext.new({}));
 
     const metadata = getStatsigMetadata();
     expect(requests[0].params['headers']).toEqual(
@@ -131,23 +138,23 @@ describe('ErrorBoundary', () => {
   it('logs statsig metadata and options', () => {
     boundary.swallow(() => {
       throw new Error();
-    });
+    }, StatsigContext.new({}));
 
     expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
-        statsigMetadata: {...getStatsigMetadata(), sessionID: "sessionID"},
+        statsigMetadata: { ...getStatsigMetadata(), sessionID: 'sessionID' },
       }),
     );
 
     expect(getDecodedBody(requests[0].params)).toEqual(
       expect.objectContaining({
         statsigOptions: {
-          environment: {tier: "staging"},
+          environment: { tier: 'staging' },
           initStrategyForIP3Country: 'await',
           rulesetsSyncIntervalMs: 30000,
-          dataAdapter: "set",
-          api: "www.google.com",
-          disableDiagnostics: true
+          dataAdapter: 'set',
+          api: 'www.google.com',
+          disableDiagnostics: true,
         },
       }),
     );
@@ -156,13 +163,13 @@ describe('ErrorBoundary', () => {
   it('logs the same error only once', () => {
     boundary.swallow(() => {
       throw new Error();
-    });
+    }, StatsigContext.new({}));
 
     expect(requests.length).toEqual(1);
 
     boundary.swallow(() => {
       throw new Error();
-    });
+    }, StatsigContext.new({}));
 
     expect(requests.length).toEqual(1);
   });
@@ -171,19 +178,19 @@ describe('ErrorBoundary', () => {
     expect(() => {
       boundary.swallow(() => {
         throw new StatsigUninitializedError();
-      });
+      }, StatsigContext.new({}));
     }).toThrow('Call and wait for initialize() to finish first.');
 
     expect(() => {
       boundary.swallow(() => {
         throw new StatsigInvalidArgumentError('bad arg');
-      });
+      }, StatsigContext.new({}));
     }).toThrow('bad arg');
 
     expect(() => {
       boundary.swallow(() => {
         throw new StatsigTooManyRequestsError('slow down');
-      });
+      }, StatsigContext.new({}));
     }).toThrow('slow down');
   });
 });

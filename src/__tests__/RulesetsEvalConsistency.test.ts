@@ -2,6 +2,7 @@ import Evaluator, { ClientInitializeResponse } from '../Evaluator';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import safeFetch from '../utils/safeFetch';
+import StatsigContext from '../utils/StatsigContext';
 import StatsigTestUtils from './StatsigTestUtils';
 
 const secret: string = process.env.test_api_key ?? '';
@@ -63,9 +64,14 @@ describe('RulesetsEvalConsistency', () => {
       const layers = data.layer_configs;
       const sdkResults = evaluator.getClientInitializeResponse(
         user,
+        StatsigContext.new({
+          caller: 'getClientInitializeResponse',
+          clientKey: undefined,
+          hash: 'none',
+        }),
         undefined,
         { hash: 'none' },
-      )
+      );
       if (sdkResults == null) {
         throw new Error('Store has not been set up for test');
       }

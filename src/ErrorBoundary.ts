@@ -9,17 +9,9 @@ import OutputLogger from './OutputLogger';
 import { StatsigOptions } from './StatsigOptions';
 import { getSDKType, getSDKVersion, getStatsigMetadata } from './utils/core';
 import safeFetch from './utils/safeFetch';
+import StatsigContext from './utils/StatsigContext';
 
 export const ExceptionEndpoint = 'https://statsigapi.net/v1/sdk_exception';
-
-type ExtraArgs = Partial<{
-  configName: string;
-  tag: string;
-  clientKey: string;
-  hash: string;
-  eventCount: number;
-  nonLoggignArgs: Record<string, any>;
-}>;
 
 export default class ErrorBoundary {
   private sdkKey: string;
@@ -37,35 +29,35 @@ export default class ErrorBoundary {
     this.statsigMetadata['sessionID'] = sessionID;
   }
 
-  swallow<T>(task: () => T, extra: ExtraArgs = {}) {
+  swallow<T>(task: (ctx: StatsigContext) => T, ctx: StatsigContext) {
     this.capture(
       task,
       () => {
         return undefined;
       },
-      extra,
+      ctx,
     );
   }
 
   capture<T>(
-    task: () => T,
+    task: (ctx: StatsigContext) => T,
     recover: (e: unknown) => T,
-    extra: ExtraArgs = {},
+    ctx: StatsigContext,
   ): T {
     let markerID: string | null = null;
     try {
-      markerID = this.beginMarker(extra.tag, extra.configName);
-      const result = task();
+      markerID = this.beginMarker(ctx.caller, ctx.configName);
+      const result = task(ctx);
       if (result instanceof Promise) {
         return (result as any).catch((e: unknown) => {
-          return this.onCaught(e, recover, extra);
+          return this.onCaught(e, recover, ctx);
         });
       }
-      this.endMarker(extra.tag, true, markerID, extra.configName);
+      this.endMarker(ctx.caller, true, markerID, ctx.configName);
       return result;
     } catch (error) {
-      this.endMarker(extra.tag, false, markerID, extra.configName);
-      return this.onCaught(error, recover);
+      this.endMarker(ctx.caller, false, markerID, ctx.configName);
+      return this.onCaught(error, recover, ctx);
     }
   }
 
@@ -76,7 +68,7 @@ export default class ErrorBoundary {
   private onCaught<T>(
     error: unknown,
     recover: (e: unknown) => T,
-    extra: ExtraArgs = {},
+    ctx: StatsigContext,
   ): T {
     if (
       error instanceof StatsigUninitializedError ||
@@ -94,12 +86,12 @@ export default class ErrorBoundary {
       error as Error,
     );
 
-    this.logError(error);
+    this.logError(error, ctx);
 
     return recover(error);
   }
 
-  public logError(error: unknown, key?: string, extra: ExtraArgs = {}) {
+  public logError(error: unknown, ctx: StatsigContext) {
     try {
       if (!this.sdkKey || this.optionsLoggingCopy.disableAllLogging) {
         return;
@@ -108,21 +100,18 @@ export default class ErrorBoundary {
       const unwrapped = error ?? Error('[Statsig] Error was empty');
       const isError = unwrapped instanceof Error;
       const name = isError && unwrapped.name ? unwrapped.name : 'No Name';
-      const hasSeen =
-        this.seen.has(name) || (key != null && this.seen.has(key));
-      if (extra.nonLoggignArgs?.bypassDedupe !== true && hasSeen) {
+      const hasSeen = this.seen.has(name);
+      if (ctx.bypassDedupe !== true && hasSeen) {
         return;
       }
       this.seen.add(name);
       const info = isError ? unwrapped.stack : this.getDescription(unwrapped);
-      delete extra.nonLoggignArgs;
       const body = JSON.stringify({
         exception: name,
         info,
         statsigMetadata: this.statsigMetadata ?? {},
         statsigOptions: this.optionsLoggingCopy,
-        tag: extra.tag,
-        ...extra,
+        ...ctx.getContextForLogging(),
       });
       safeFetch(ExceptionEndpoint, {
         method: 'POST',

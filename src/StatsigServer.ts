@@ -29,6 +29,7 @@ import asyncify from './utils/asyncify';
 import { isUserIdentifiable, notEmptyObject } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
+import StatsigContext from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 let hasLoggedNoUserIdWarning = false;
@@ -173,7 +174,7 @@ export default class StatsigServer {
         this._pendingInitPromise = null;
         return Promise.resolve();
       },
-      { tag: 'initializeAsync' },
+      StatsigContext.new({ caller: 'initializeAsync' }),
     );
   }
 
@@ -190,9 +191,9 @@ export default class StatsigServer {
 
   public getFeatureGateSync(user: StatsigUser, gateName: string): FeatureGate {
     return this._errorBoundary.capture(
-      () => this.getGateImpl(user, gateName, ExposureLogging.Enabled),
+      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Enabled, ctx),
       () => makeEmptyFeatureGate(gateName),
-      { configName: gateName, tag: 'checkGate' },
+      StatsigContext.new({ caller: 'checkGate', configName: gateName }),
     );
   }
 
@@ -209,25 +210,28 @@ export default class StatsigServer {
     gateName: string,
   ): FeatureGate {
     return this._errorBoundary.capture(
-      () => this.getGateImpl(user, gateName, ExposureLogging.Disabled),
+      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Disabled, ctx),
       () => makeEmptyFeatureGate(gateName),
-      {
+      StatsigContext.new({
+        caller: 'getFeatureGateWithExposureLoggingDisabled',
         configName: gateName,
-        tag: 'getFeatureGateWithExposureLoggingDisabled',
-      },
+      }),
     );
   }
 
   public logGateExposure(inputUser: StatsigUser, gateName: string) {
-    return this._errorBoundary.swallow(() => {
-      const { evaluation, user } = this.evalGate(inputUser, gateName);
-      this.logGateExposureImpl(
-        user,
-        gateName,
-        evaluation,
-        ExposureCause.Manual,
-      );
-    });
+    return this._errorBoundary.swallow(
+      (ctx) => {
+        const { evaluation, user } = this.evalGate(inputUser, gateName, ctx);
+        this.logGateExposureImpl(
+          user,
+          gateName,
+          evaluation,
+          ExposureCause.Manual,
+        );
+      },
+      StatsigContext.new({ caller: 'logGateExposure', configName: gateName }),
+    );
   }
 
   //#endregion
@@ -238,9 +242,10 @@ export default class StatsigServer {
    */
   public getConfigSync(user: StatsigUser, configName: string): DynamicConfig {
     return this._errorBoundary.capture(
-      () => this.getConfigImpl(user, configName, ExposureLogging.Enabled),
+      (ctx) =>
+        this.getConfigImpl(user, configName, ExposureLogging.Enabled, ctx),
       () => new DynamicConfig(configName),
-      { configName, tag: 'getConfig' },
+      StatsigContext.new({ caller: 'getConfig', configName: configName }),
     );
   }
 
@@ -249,22 +254,36 @@ export default class StatsigServer {
     configName: string,
   ): DynamicConfig {
     return this._errorBoundary.capture(
-      () => this.getConfigImpl(user, configName, ExposureLogging.Disabled),
+      (ctx) =>
+        this.getConfigImpl(user, configName, ExposureLogging.Disabled, ctx),
       () => new DynamicConfig(configName),
-      { configName, tag: 'getConfigWithExposureLoggingDisabled' },
+      StatsigContext.new({
+        caller: 'getConfigWithExposureLoggingDisabled',
+        configName: configName,
+      }),
     );
   }
 
   public logConfigExposure(inputUser: StatsigUser, experimentName: string) {
-    this._errorBoundary.swallow(() => {
-      const { evaluation, user } = this.evalConfig(inputUser, experimentName);
-      this.logConfigExposureImpl(
-        user,
-        experimentName,
-        evaluation,
-        ExposureCause.Manual,
-      );
-    });
+    this._errorBoundary.swallow(
+      (ctx) => {
+        const { evaluation, user } = this.evalConfig(
+          inputUser,
+          experimentName,
+          ctx,
+        );
+        this.logConfigExposureImpl(
+          user,
+          experimentName,
+          evaluation,
+          ExposureCause.Manual,
+        );
+      },
+      StatsigContext.new({
+        caller: 'logConfigExposure',
+        configName: experimentName,
+      }),
+    );
   }
 
   //#endregion
@@ -281,9 +300,13 @@ export default class StatsigServer {
     experimentName: string,
   ): DynamicConfig {
     return this._errorBoundary.capture(
-      () => this.getConfigImpl(user, experimentName, ExposureLogging.Enabled),
+      (ctx) =>
+        this.getConfigImpl(user, experimentName, ExposureLogging.Enabled, ctx),
       () => new DynamicConfig(experimentName),
-      { configName: experimentName, tag: 'getExperiment' },
+      StatsigContext.new({
+        caller: 'getExperiment',
+        configName: experimentName,
+      }),
     );
   }
 
@@ -292,25 +315,36 @@ export default class StatsigServer {
     experimentName: string,
   ): DynamicConfig {
     return this._errorBoundary.capture(
-      () => this.getConfigImpl(user, experimentName, ExposureLogging.Disabled),
+      (ctx) =>
+        this.getConfigImpl(user, experimentName, ExposureLogging.Disabled, ctx),
       () => new DynamicConfig(experimentName),
-      {
+      StatsigContext.new({
+        caller: 'getExperimentWithExposureLoggingDisabled',
         configName: experimentName,
-        tag: 'getExperimentWithExposureLoggingDisabled',
-      },
+      }),
     );
   }
 
   public logExperimentExposure(inputUser: StatsigUser, experimentName: string) {
-    this._errorBoundary.swallow(() => {
-      const { evaluation, user } = this.evalConfig(inputUser, experimentName);
-      this.logConfigExposureImpl(
-        user,
-        experimentName,
-        evaluation,
-        ExposureCause.Manual,
-      );
-    });
+    this._errorBoundary.swallow(
+      (ctx) => {
+        const { evaluation, user } = this.evalConfig(
+          inputUser,
+          experimentName,
+          ctx,
+        );
+        this.logConfigExposureImpl(
+          user,
+          experimentName,
+          evaluation,
+          ExposureCause.Manual,
+        );
+      },
+      StatsigContext.new({
+        caller: 'logExperimentExposure',
+        configName: experimentName,
+      }),
+    );
   }
 
   public getExperimentLayer(experiment: string): string | null {
@@ -319,7 +353,10 @@ export default class StatsigServer {
         return this._evaluator.getExperimentLayer(experiment);
       },
       () => null,
-      { configName: experiment, tag: 'getExperimentLayer' },
+      StatsigContext.new({
+        caller: 'getExperimentLayer',
+        configName: experiment,
+      }),
     );
   }
 
@@ -334,12 +371,9 @@ export default class StatsigServer {
    */
   public getLayerSync(user: StatsigUser, layerName: string): Layer {
     return this._errorBoundary.capture(
-      () => this.getLayerImpl(user, layerName, ExposureLogging.Enabled),
+      (ctx) => this.getLayerImpl(user, layerName, ExposureLogging.Enabled, ctx),
       () => new Layer(layerName),
-      {
-        configName: layerName,
-        tag: 'getLayer',
-      },
+      StatsigContext.new({ caller: 'getLayer', configName: layerName }),
     );
   }
 
@@ -348,9 +382,13 @@ export default class StatsigServer {
     layerName: string,
   ): Layer {
     return this._errorBoundary.capture(
-      () => this.getLayerImpl(user, layerName, ExposureLogging.Disabled),
+      (ctx) =>
+        this.getLayerImpl(user, layerName, ExposureLogging.Disabled, ctx),
       () => new Layer(layerName),
-      { configName: layerName, tag: 'getLayerWithExposureLoggingDisabled' },
+      StatsigContext.new({
+        caller: 'getLayerWithExposureLoggingDisabled',
+        configName: layerName,
+      }),
     );
   }
 
@@ -359,16 +397,22 @@ export default class StatsigServer {
     layerName: string,
     parameterName: string,
   ) {
-    this._errorBoundary.swallow(() => {
-      const { evaluation, user } = this.evalLayer(inputUser, layerName);
-      this.logLayerParameterExposureImpl(
-        user,
-        layerName,
-        parameterName,
-        evaluation,
-        ExposureCause.Manual,
-      );
-    });
+    this._errorBoundary.swallow(
+      (ctx) => {
+        const { evaluation, user } = this.evalLayer(inputUser, layerName, ctx);
+        this.logLayerParameterExposureImpl(
+          user,
+          layerName,
+          parameterName,
+          evaluation,
+          ExposureCause.Manual,
+        );
+      },
+      StatsigContext.new({
+        caller: 'logLayerParameterExposure',
+        configName: layerName,
+      }),
+    );
   }
 
   //#endregion
@@ -391,43 +435,46 @@ export default class StatsigServer {
           value: value,
           metadata: metadata,
         }),
-      { tag: 'logEvent' },
+      StatsigContext.new({ caller: 'logEvent' }),
     );
   }
 
   public logEventObject(eventObject: LogEventObject) {
-    return this._errorBoundary.swallow(() => {
-      const eventName = eventObject.eventName;
-      let user = eventObject.user ?? null;
-      const value = eventObject.value ?? null;
-      const metadata = eventObject.metadata ?? null;
-      const time = eventObject.time ?? null;
+    return this._errorBoundary.swallow(
+      () => {
+        const eventName = eventObject.eventName;
+        let user = eventObject.user ?? null;
+        const value = eventObject.value ?? null;
+        const metadata = eventObject.metadata ?? null;
+        const time = eventObject.time ?? null;
 
-      if (!(this._ready === true && this._logger != null)) {
-        throw new StatsigUninitializedError();
-      }
-      if (LogEventValidator.validateEventName(eventName) == null) {
-        return;
-      }
-      if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
-        hasLoggedNoUserIdWarning = true;
-        OutputLogger.warn(
-          'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
-        );
-      }
-      user = normalizeUser(user, this._options);
+        if (!(this._ready === true && this._logger != null)) {
+          throw new StatsigUninitializedError();
+        }
+        if (LogEventValidator.validateEventName(eventName) == null) {
+          return;
+        }
+        if (!isUserIdentifiable(user) && !hasLoggedNoUserIdWarning) {
+          hasLoggedNoUserIdWarning = true;
+          OutputLogger.warn(
+            'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
+          );
+        }
+        user = normalizeUser(user, this._options);
 
-      const event = new LogEvent(eventName);
-      event.setUser(user);
-      event.setValue(value);
-      event.setMetadata(metadata);
+        const event = new LogEvent(eventName);
+        event.setUser(user);
+        event.setValue(value);
+        event.setMetadata(metadata);
 
-      if (typeof time === 'number') {
-        event.setTime(time);
-      }
+        if (typeof time === 'number') {
+          event.setTime(time);
+        }
 
-      this._logger.log(event);
-    });
+        this._logger.log(event);
+      },
+      StatsigContext.new({ caller: 'logEventObject' }),
+    );
   }
 
   /**
@@ -446,9 +493,7 @@ export default class StatsigServer {
         this._fetcher.shutdown();
         this._evaluator.shutdown();
       },
-      {
-        tag: 'shutdown',
-      },
+      StatsigContext.new({ caller: 'shutdown' }),
     );
   }
 
@@ -470,7 +515,7 @@ export default class StatsigServer {
         await this._evaluator.shutdownAsync();
       },
       () => Promise.resolve(),
-      { tag: 'shutdownAsync' },
+      StatsigContext.new({ caller: 'shutdownAsync' }),
     );
   }
 
@@ -494,7 +539,7 @@ export default class StatsigServer {
         return flushPromise;
       },
       () => Promise.resolve(),
-      { tag: 'flush' },
+      StatsigContext.new({ caller: 'flush' }),
     );
   }
 
@@ -525,7 +570,7 @@ export default class StatsigServer {
   ): ClientInitializeResponse | null {
     let markerID = '';
     return this._errorBoundary.capture(
-      () => {
+      (ctx) => {
         if (this._ready !== true) {
           throw new StatsigUninitializedError();
         }
@@ -542,6 +587,7 @@ export default class StatsigServer {
         }
         const response = this._evaluator.getClientInitializeResponse(
           normalizedUser,
+          ctx,
           clientSDKKey,
           options,
         );
@@ -553,12 +599,7 @@ export default class StatsigServer {
         if (invalidResponse) {
           this._errorBoundary.logError(
             new Error('getClientInitializeResponse returns empty response'),
-            undefined,
-            {
-              clientKey: clientSDKKey,
-              hash: options?.hash,
-              tag: 'getClientInitializeResponse',
-            },
+            ctx,
           );
         }
         Diagnostics.mark.getClientInitializeResponse.end(
@@ -574,7 +615,11 @@ export default class StatsigServer {
         );
         return null;
       },
-      { tag: 'getClientInitializeResponse' },
+      StatsigContext.new({
+        caller: 'getClientInitializeResponse',
+        clientKey: clientSDKKey,
+        hash: options?.hash,
+      }),
     );
   }
 
@@ -583,15 +628,18 @@ export default class StatsigServer {
     value: boolean,
     userID: string | null = '',
   ) {
-    this._errorBoundary.swallow(() => {
-      if (typeof value !== 'boolean') {
-        OutputLogger.warn(
-          'statsigSDK> Attempted to override a gate with a non boolean value',
-        );
-        return;
-      }
-      this._evaluator.overrideGate(gateName, value, userID);
-    });
+    this._errorBoundary.swallow(
+      () => {
+        if (typeof value !== 'boolean') {
+          OutputLogger.warn(
+            'statsigSDK> Attempted to override a gate with a non boolean value',
+          );
+          return;
+        }
+        this._evaluator.overrideGate(gateName, value, userID);
+      },
+      StatsigContext.new({ caller: 'overrideGate' }),
+    );
   }
 
   public overrideConfig(
@@ -609,7 +657,7 @@ export default class StatsigServer {
         }
         this._evaluator.overrideConfig(configName, value, userID);
       },
-      { tag: 'overrideConfig' },
+      StatsigContext.new({ caller: 'overrideConfig' }),
     );
   }
 
@@ -628,7 +676,7 @@ export default class StatsigServer {
         }
         this._evaluator.overrideLayer(layerName, value, userID);
       },
-      { tag: 'overrideConfig' },
+      StatsigContext.new({ caller: 'overrideLayer' }),
     );
   }
 
@@ -805,6 +853,7 @@ export default class StatsigServer {
   private evalGate(
     inputUser: StatsigUser,
     gateName: string,
+    ctx: StatsigContext,
   ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
@@ -816,7 +865,7 @@ export default class StatsigServer {
     }
 
     return {
-      evaluation: this._evaluator.checkGate(user, gateName),
+      evaluation: this._evaluator.checkGate(user, gateName, ctx),
       user: user,
     };
   }
@@ -825,8 +874,9 @@ export default class StatsigServer {
     inputUser: StatsigUser,
     gateName: string,
     exposureLogging: ExposureLogging,
+    ctx: StatsigContext,
   ): FeatureGate {
-    const { evaluation, user } = this.evalGate(inputUser, gateName);
+    const { evaluation, user } = this.evalGate(inputUser, gateName, ctx);
     if (exposureLogging !== ExposureLogging.Disabled) {
       this.logGateExposureImpl(
         user,
@@ -863,6 +913,7 @@ export default class StatsigServer {
   private evalConfig(
     inputUser: StatsigUser,
     configName: string,
+    ctx: StatsigContext,
   ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
@@ -873,7 +924,7 @@ export default class StatsigServer {
       throw error;
     }
 
-    const evaluation = this._evaluator.getConfig(user, configName);
+    const evaluation = this._evaluator.getConfig(user, configName, ctx);
     return {
       evaluation,
       user,
@@ -884,8 +935,9 @@ export default class StatsigServer {
     inputUser: StatsigUser,
     configName: string,
     exposureLogging: ExposureLogging,
+    ctx: StatsigContext,
   ): DynamicConfig {
-    const { evaluation, user } = this.evalConfig(inputUser, configName);
+    const { evaluation, user } = this.evalConfig(inputUser, configName, ctx);
     const config = new DynamicConfig(
       configName,
       evaluation.json_value,
@@ -914,6 +966,7 @@ export default class StatsigServer {
   private evalLayer(
     inputUser: StatsigUser,
     layerName: string,
+    ctx: StatsigContext,
   ): NormalizedEvaluation {
     const { error, normalizedUser: user } = this._validateInputs(
       inputUser,
@@ -924,7 +977,7 @@ export default class StatsigServer {
       throw error;
     }
 
-    const evaluation = this._evaluator.getLayer(user, layerName);
+    const evaluation = this._evaluator.getLayer(user, layerName, ctx);
     return {
       evaluation: evaluation,
       user: user,
@@ -935,8 +988,9 @@ export default class StatsigServer {
     inputUser: StatsigUser,
     layerName: string,
     exposureLogging: ExposureLogging,
+    ctx: StatsigContext,
   ): Layer {
-    const { evaluation, user } = this.evalLayer(inputUser, layerName);
+    const { evaluation, user } = this.evalLayer(inputUser, layerName, ctx);
     const logFunc = (layer: Layer, parameterName: string) => {
       this.logLayerParameterExposureImpl(
         user,

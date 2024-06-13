@@ -8,6 +8,7 @@ import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
+import StatsigContext from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
@@ -123,11 +124,14 @@ export default class LogEventProcessor {
         return Promise.resolve();
       })
       .catch((e) => {
-        this.errorBoundary.logError(new Error('Log event failed'), undefined, {
-          tag: 'statsig::log_event_failed',
-          eventCount: oldQueue.length,
-          nonLoggignArgs: { bypassDedupe: true },
-        });
+        this.errorBoundary.logError(
+          new Error('Log event failed'),
+          StatsigContext.new({
+            caller: 'statsig::log_event_failed',
+            eventCount: oldQueue.length,
+            bypassDedupe: true,
+          }),
+        );
         if (e?.name === 'AbortError') {
           OutputLogger.debug('Request to log_event aborted');
         }

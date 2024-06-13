@@ -17,6 +17,7 @@ import {
   sha256Hash,
 } from './utils/Hashing';
 import parseUserAgent from './utils/parseUserAgent';
+import StatsigContext from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -121,7 +122,11 @@ export default class Evaluator {
     this.layerOverrides[layerName] = overrides;
   }
 
-  public checkGate(user: StatsigUser, gateName: string): ConfigEvaluation {
+  public checkGate(
+    user: StatsigUser,
+    gateName: string,
+    ctx: StatsigContext,
+  ): ConfigEvaluation {
     const override = this.lookupGateOverride(user, gateName);
     if (override) {
       return override.withEvaluationDetails(
@@ -146,10 +151,14 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, gate);
+    return this._evalSpec(user, gate, ctx);
   }
 
-  public getConfig(user: StatsigUser, configName: string): ConfigEvaluation {
+  public getConfig(
+    user: StatsigUser,
+    configName: string,
+    ctx: StatsigContext,
+  ): ConfigEvaluation {
     const override = this.lookupConfigOverride(user, configName);
     if (override) {
       return override.withEvaluationDetails(
@@ -174,10 +183,14 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, config);
+    return this._evalSpec(user, config, ctx);
   }
 
-  public getLayer(user: StatsigUser, layerName: string): ConfigEvaluation {
+  public getLayer(
+    user: StatsigUser,
+    layerName: string,
+    ctx: StatsigContext,
+  ): ConfigEvaluation {
     const override = this.lookupLayerOverride(user, layerName);
     if (override) {
       return override.withEvaluationDetails(
@@ -202,11 +215,12 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, layer);
+    return this._evalSpec(user, layer, ctx);
   }
 
   public getClientInitializeResponse(
     user: StatsigUser,
+    _ctx: StatsigContext,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
   ): ClientInitializeResponse | null {
@@ -225,6 +239,8 @@ export default class Evaluator {
     if (clientSDKKey != null && targetAppID == null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
     }
+    const ctx = targetAppID ? _ctx.withTargetAppID(targetAppID) : _ctx;
+
     const filterTargetAppID = (spec: ConfigSpec) => {
       if (
         targetAppID != null &&
@@ -258,7 +274,7 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupGateOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec);
+        const res = localOverride ?? this._eval(user, spec, ctx);
         return {
           name: hashString(gate, options?.hash),
           value: res.unsupported ? false : res.value,
@@ -273,12 +289,13 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupConfigOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec);
+        const res = localOverride ?? this._eval(user, spec, ctx);
         const format = this._specToInitializeResponse(spec, res, options?.hash);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,
             spec,
+            ctx,
           );
           format.is_experiment_active = this._isExperimentActive(spec);
           if (spec.hasSharedParams) {
@@ -310,7 +327,7 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupLayerOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec);
+        const res = localOverride ?? this._eval(user, spec, ctx);
         const format = this._specToInitializeResponse(spec, res, options?.hash);
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
@@ -324,6 +341,7 @@ export default class Evaluator {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,
             delegateSpec,
+            ctx,
           );
           format.explicit_parameters = delegateSpec?.explicitParameters ?? [];
         }
@@ -541,8 +559,12 @@ export default class Evaluator {
     );
   }
 
-  _evalSpec(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
-    const evaulation = this._eval(user, config);
+  _evalSpec(
+    user: StatsigUser,
+    config: ConfigSpec,
+    ctx: StatsigContext,
+  ): ConfigEvaluation {
+    const evaulation = this._eval(user, config, ctx);
     if (evaulation.evaluation_details) {
       return evaulation;
     }
@@ -556,7 +578,11 @@ export default class Evaluator {
     );
   }
 
-  _eval(user: StatsigUser, config: ConfigSpec): ConfigEvaluation {
+  _eval(
+    user: StatsigUser,
+    config: ConfigSpec,
+    ctx: StatsigContext,
+  ): ConfigEvaluation {
     if (!config.enabled) {
       return new ConfigEvaluation(
         false,
@@ -571,7 +597,7 @@ export default class Evaluator {
     let secondary_exposures: Record<string, string>[] = [];
     for (let i = 0; i < config.rules.length; i++) {
       const rule = config.rules[i];
-      const ruleResult = this._evalRule(user, rule);
+      const ruleResult = this._evalRule(user, rule, ctx);
       if (ruleResult.unsupported) {
         return ConfigEvaluation.unsupported(
           this.store.getLastUpdateTime(),
@@ -588,6 +614,7 @@ export default class Evaluator {
           user,
           rule,
           secondary_exposures,
+          ctx,
         );
         if (delegatedResult) {
           return delegatedResult;
@@ -626,6 +653,7 @@ export default class Evaluator {
     user: StatsigUser,
     rule: ConfigRule,
     exposures: Record<string, string>[],
+    ctx: StatsigContext,
   ) {
     if (rule.configDelegate == null) {
       return null;
@@ -635,7 +663,7 @@ export default class Evaluator {
       return null;
     }
 
-    const delegatedResult = this._eval(user, config);
+    const delegatedResult = this._eval(user, config, ctx);
     delegatedResult.config_delegate = rule.configDelegate;
     delegatedResult.undelegated_secondary_exposures = exposures;
     delegatedResult.explicit_parameters = config.explicitParameters;
@@ -669,12 +697,12 @@ export default class Evaluator {
     return user?.userID;
   }
 
-  _evalRule(user: StatsigUser, rule: ConfigRule) {
+  _evalRule(user: StatsigUser, rule: ConfigRule, ctx: StatsigContext) {
     let secondaryExposures: Record<string, string>[] = [];
     let pass = true;
 
     for (const condition of rule.conditions) {
-      const result = this._evalCondition(user, condition);
+      const result = this._evalCondition(user, condition, ctx);
       if (result.unsupported) {
         return ConfigEvaluation.unsupported(
           this.store.getLastUpdateTime(),
@@ -706,6 +734,7 @@ export default class Evaluator {
   _evalCondition(
     user: StatsigUser,
     condition: ConfigCondition,
+    ctx: StatsigContext,
   ): {
     passes: boolean;
     unsupported?: boolean;
@@ -720,7 +749,7 @@ export default class Evaluator {
         return { passes: true };
       case 'fail_gate':
       case 'pass_gate': {
-        const gateResult = this.checkGate(user, target as string);
+        const gateResult = this.checkGate(user, target as string, ctx);
         if (gateResult?.unsupported) {
           return { passes: false, unsupported: true };
         }
@@ -748,7 +777,7 @@ export default class Evaluator {
         let value = false;
         let exposures: Record<string, string>[] = [];
         for (const gateName of gateNames) {
-          const gateResult = this.checkGate(user, gateName);
+          const gateResult = this.checkGate(user, gateName, ctx);
           if (gateResult?.unsupported) {
             return { passes: false, unsupported: true };
           }
@@ -802,7 +831,9 @@ export default class Evaluator {
         value = this._getUnitID(user, idType);
         break;
       case 'target_app':
-        value = this.store.getPrimaryTargetAppID();
+        value = ctx.clientKey
+          ? ctx.targetAppID
+          : this.store.getPrimaryTargetAppID();
         break;
       default:
         return { passes: false, unsupported: true };
@@ -991,11 +1022,12 @@ export default class Evaluator {
   _isUserAllocatedToExperiment(
     user: StatsigUser,
     experimentConfig: ConfigSpec | null,
+    ctx: StatsigContext,
   ) {
     if (experimentConfig == null) {
       return false;
     }
-    const evalResult = this._eval(user, experimentConfig);
+    const evalResult = this._eval(user, experimentConfig, ctx);
     return evalResult.is_experiment_group;
   }
 

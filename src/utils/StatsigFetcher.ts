@@ -11,6 +11,7 @@ import Dispatcher from './Dispatcher';
 import getCompressionFunc from './getCompressionFunc';
 import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
+import StatsigContext from './StatsigContext';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 
@@ -56,7 +57,10 @@ export default class StatsigFetcher {
   public validateSDKKeyUsed(hashedSDKKeyUsed: string): boolean {
     const matched = hashedSDKKeyUsed === djb2Hash(this.sdkKey);
     if (!matched) {
-      this.errorBoundry.logError(new StatsigSDKKeyMismatchError());
+      this.errorBoundry.logError(
+        new StatsigSDKKeyMismatchError(),
+        StatsigContext.new({ caller: 'validateSDKKeyUsed' }),
+      );
     }
     return matched;
   }
