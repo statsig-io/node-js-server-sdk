@@ -279,7 +279,10 @@ export default class Evaluator {
           name: hashString(gate, options?.hash),
           value: res.unsupported ? false : res.value,
           rule_id: res.rule_id,
-          secondary_exposures: res.secondary_exposures,
+          secondary_exposures: this.hashSecondaryExposure(
+            res.secondary_exposures,
+            options?.hash,
+          ),
         };
       });
 
@@ -345,7 +348,8 @@ export default class Evaluator {
           );
           format.explicit_parameters = delegateSpec?.explicitParameters ?? [];
         }
-
+        // By this point, undelegated secondary exposure is hashed already because it reuse same
+        // array object as secondary exposures
         format.undelegated_secondary_exposures =
           res.undelegated_secondary_exposures ?? [];
 
@@ -514,7 +518,10 @@ export default class Evaluator {
       rule_id: res.rule_id,
       is_device_based:
         spec.idType != null && spec.idType.toLowerCase() === 'stableid',
-      secondary_exposures: res.secondary_exposures,
+      secondary_exposures: this.hashSecondaryExposure(
+        res.secondary_exposures,
+        hash,
+      ),
     };
 
     if (res.explicit_parameters) {
@@ -522,6 +529,16 @@ export default class Evaluator {
     }
 
     return output;
+  }
+
+  private hashSecondaryExposure(
+    secondary_exposures: Record<string, string>[],
+    hash: HashingAlgorithm | undefined,
+  ): Record<string, string>[] {
+    secondary_exposures.forEach((exposure) => {
+      exposure.gate = hashString(exposure.gate, hash);
+    });
+    return secondary_exposures;
   }
 
   private _cleanExposures(
