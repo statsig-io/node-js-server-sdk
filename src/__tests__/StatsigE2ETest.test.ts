@@ -73,6 +73,8 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     if (clientInitializeResponse != null) {
       expect(clientInitializeResponse.time).toBeGreaterThan(0);
       delete clientInitializeResponse.time;
+      expect(clientInitializeResponse.sdkInfo.sdkVersion).not.toBeUndefined();
+      delete clientInitializeResponse?.sdkInfo.sdkVersion;
     }
     const initResponse = INIT_RESPONSE;
     delete initResponse.time;
@@ -144,6 +146,8 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     if (clientInitializeResponse != null) {
       expect(clientInitializeResponse.time).toBeGreaterThan(0);
       delete clientInitializeResponse.time;
+      expect(clientInitializeResponse.sdkInfo.sdkVersion).not.toBeUndefined();
+      delete clientInitializeResponse?.sdkInfo.sdkVersion;
     }
     const initResponse = INIT_RESPONSE;
     delete initResponse.time;

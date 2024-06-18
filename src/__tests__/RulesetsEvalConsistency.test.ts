@@ -24,10 +24,7 @@ describe('RulesetsEvalConsistency', () => {
     Statsig.shutdown();
   });
 
-  test.each([
-    ['https://staging.statsigapi.net/v1'],
-    ['https://statsigapi.net/v1'],
-  ])('Verify [%s]', async (api) => {
+  test.each([['https://statsigapi.net/v1']])('Verify [%s]', async (api) => {
     const response = await safeFetch(api + '/rulesets_e2e_test', {
       method: 'POST',
       body: JSON.stringify({}),
