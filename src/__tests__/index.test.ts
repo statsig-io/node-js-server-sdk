@@ -92,6 +92,15 @@ describe('Verify behavior of top level index functions', () => {
     );
   });
 
+  test('Verify initialize() doesnt re-use a bad instance', async () => {
+    try {
+      await Statsig.initialize("bad-key");
+    } catch {
+      // @ts-ignore
+      return expect(Statsig.initialize("secret-blah", {localMode: true})).resolves.not.toThrow();;
+    }
+  });
+
   test('Verify initialize() returns an error when an empty secret key is provided', async () => {
     return expect(Statsig.initialize('')).rejects.toEqual(
       new Error(

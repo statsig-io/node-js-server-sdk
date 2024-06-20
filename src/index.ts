@@ -63,7 +63,10 @@ export const Statsig = {
    * @returns {Promise<void>} - a promise which rejects only if you fail to provide a proper SDK Key
    * @throws Error if a Server Secret Key is not provided
    */
-  initialize(secretKey: string, options: StatsigOptions = {}): Promise<void> {
+  async initialize(
+    secretKey: string,
+    options: StatsigOptions = {},
+  ): Promise<void> {
     if (options.logger) {
       OutputLogger.setLogger(options.logger);
     }
@@ -76,7 +79,12 @@ export const Statsig = {
       StatsigInstanceUtils.setInstance(inst);
     }
 
-    return inst.initializeAsync();
+    try {
+      return await inst.initializeAsync();
+    } catch (e) {
+      StatsigInstanceUtils.setInstance(null);
+      return Promise.reject(e);
+    }
   },
 
   /**
