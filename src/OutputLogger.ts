@@ -2,6 +2,7 @@
 import { LoggerInterface } from './StatsigOptions';
 
 let _logger: LoggerInterface = { ...console, logLevel: 'warn' };
+let _sdkKey: string | null = null;
 
 export default abstract class OutputLogger {
   static getLogger(): LoggerInterface {
@@ -10,7 +11,8 @@ export default abstract class OutputLogger {
 
   static debug(message?: any, ...optionalParams: any[]) {
     if (_logger.logLevel !== 'none') {
-      _logger.debug && _logger.debug(message, ...optionalParams);
+      const sanitizedMessage = this.sanitizeError(message);
+      _logger.debug && _logger.debug(sanitizedMessage, ...optionalParams);
     }
   }
 
@@ -20,27 +22,47 @@ export default abstract class OutputLogger {
       _logger.logLevel === 'warn' ||
       _logger.logLevel === 'error'
     ) {
-      _logger.info && _logger.info(message, ...optionalParams);
+      const sanitizedMessage = this.sanitizeError(message);
+      _logger.info && _logger.info(sanitizedMessage, ...optionalParams);
     }
   }
 
   static warn(message?: any, ...optionalParams: any[]) {
     if (_logger.logLevel === 'warn' || _logger.logLevel === 'error') {
-      _logger.warn(message, ...optionalParams);
+      const sanitizedMessage = this.sanitizeError(message);
+      _logger.warn(sanitizedMessage, ...optionalParams);
     }
   }
 
   static error(message?: any, ...optionalParams: any[]) {
     if (_logger.logLevel === 'error') {
-      _logger.error(message, ...optionalParams);
+      const sanitizedMessage = this.sanitizeError(message);
+      _logger.error(sanitizedMessage, ...optionalParams);
     }
   }
 
-  static setLogger(logger: LoggerInterface) {
+  static setLogger(logger: LoggerInterface, sdkKey: string) {
     _logger = logger;
+    _sdkKey = sdkKey;
   }
 
   static resetLogger() {
     _logger = { ...console, logLevel: 'warn' };
+  }
+
+  static sanitizeError(message: any): any {
+    if (_sdkKey === null) {
+      return message;
+    }
+    try {
+      if (typeof message === 'string') {
+        return message.replace(new RegExp(_sdkKey, 'g'), '******');
+      } else if (message instanceof Error) {
+        return message.toString().replace(new RegExp(_sdkKey, 'g'), '******');
+      }
+    } catch (_e) {
+      // ignore
+    }
+    return message;
   }
 }

@@ -68,7 +68,7 @@ export const Statsig = {
     options: StatsigOptions = {},
   ): Promise<void> {
     if (options.logger) {
-      OutputLogger.setLogger(options.logger);
+      OutputLogger.setLogger(options.logger, secretKey);
     }
 
     const inst =
