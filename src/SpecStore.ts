@@ -472,6 +472,13 @@ export default class SpecStore {
       return { success: true, hasUpdates: false };
     }
 
+    if (
+      specsJSON?.time !== undefined &&
+      (specsJSON.time as number) < this.lastUpdateTime
+    ) {
+      return { success: true, hasUpdates: true };
+    }
+
     const updatedGates: Record<string, ConfigSpec> = {};
     const updatedConfigs: Record<string, ConfigSpec> = {};
     const updatedLayers: Record<string, ConfigSpec> = {};
