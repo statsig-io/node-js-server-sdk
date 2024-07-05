@@ -37,7 +37,7 @@ describe('Check custom DCS url', () => {
     logger.log(new LogEvent('test'));
     await logger.flush();
 
-    expect(spy).toHaveBeenCalledWith('GET', customUrl + dcsPath + `/${secretKey}.json`, undefined);
+    expect(spy).toHaveBeenCalledWith('GET', customUrl + dcsPath + `/${secretKey}.json?sinceTime=0`, undefined);
     expect(spy).not.toHaveBeenCalledWith(
       'POST',
       customUrl + '/get_id_lists',

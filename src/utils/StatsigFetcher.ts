@@ -65,12 +65,12 @@ export default class StatsigFetcher {
     return matched;
   }
 
-  public async downloadConfigSpecs(sinceTime?: number): Promise<Response> {
+  public async downloadConfigSpecs(sinceTime: number): Promise<Response> {
     return await this.get(
       this.apiForDownloadConfigSpecs +
         '/download_config_specs' +
         `/${this.sdkKey}.json` +
-        (sinceTime ? `?sinceTime=${sinceTime}` : ''),
+        `?sinceTime=${sinceTime}`,
     );
   }
 
