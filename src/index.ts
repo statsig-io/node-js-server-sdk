@@ -43,6 +43,8 @@ export { DynamicConfig, IDataAdapter, DataAdapterKey, Layer, StatsigServer };
 // So in order to not make a breaking change, they must be exported as members of
 // that top level object
 const EXPORTS = {
+  StatsigServer,
+  DataAdapterKey,
   DynamicConfig,
   Layer,
   StatsigInvalidArgumentError,
