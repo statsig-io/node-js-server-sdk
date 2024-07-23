@@ -14,6 +14,7 @@ export default class Layer {
   private _allocatedExperimentName: string | null;
   private _logExposure: ExposeLayer | null;
   private _evaluationDetails: EvaluationDetails | null;
+  private _idType: string | null;
 
   public constructor(
     layerName: string,
@@ -23,6 +24,7 @@ export default class Layer {
     allocatedExperimentName: string | null = null,
     logExposure: ExposeLayer | null = null,
     evaluationDetails: EvaluationDetails | null = null,
+    idType: string | null = null,
   ) {
     if (typeof layerName !== 'string' || layerName.length === 0) {
       layerName = '';
@@ -38,6 +40,7 @@ export default class Layer {
     this._allocatedExperimentName = allocatedExperimentName;
     this._logExposure = logExposure;
     this._evaluationDetails = evaluationDetails;
+    this._idType = idType;
   }
 
   public get<T>(
@@ -98,6 +101,10 @@ export default class Layer {
 
   getRuleID(): string {
     return this._ruleID;
+  }
+
+  getIDType(): string | null {
+    return this._idType;
   }
 
   getGroupName(): string | null {

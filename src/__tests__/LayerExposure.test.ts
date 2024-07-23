@@ -57,6 +57,7 @@ describe('Layer Exposure Logging', () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
       const layer = await statsig.getLayer(user, 'unallocated_layer');
+      expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
       statsig.shutdown();
 
@@ -82,6 +83,7 @@ describe('Layer Exposure Logging', () => {
         user,
         'explicit_vs_implicit_parameter_layer',
       );
+      expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
       layer[method]('a_string', 'err');
       statsig.shutdown();
@@ -120,6 +122,7 @@ describe('Layer Exposure Logging', () => {
         user,
         'different_object_type_logging_layer',
       );
+      expect(layer.getIDType()).toEqual('userID');
       layer[method]('a_bool', false);
       layer[method]('an_int', 0);
       layer[method]('a_double', 0.0);
@@ -155,6 +158,7 @@ describe('Layer Exposure Logging', () => {
         { userID: 'dan', email: 'd@n.com' },
         'unallocated_layer',
       );
+      expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
       statsig.shutdown();
 
@@ -171,6 +175,22 @@ describe('Layer Exposure Logging', () => {
         }),
       );
     });
+
+    it('gets custom ids for layers', async () => {
+      await statsig.initialize('secret-123', { disableDiagnostics: true });
+
+      const syncLayer = statsig.getLayerSync(user, 'test_custom_id_layer');
+      expect(syncLayer.getIDType()).toEqual('companyID');
+
+      const expDisabledSyncLayer = statsig.getLayerWithExposureLoggingDisabledSync(user, 'test_custom_id_layer');
+      expect(expDisabledSyncLayer.getIDType()).toEqual('companyID');
+
+      const asyncLayer = await statsig.getLayer(user, 'test_custom_id_layer');
+      expect(asyncLayer.getIDType()).toEqual('companyID');
+
+      const asyncExpDisabledSyncLayer = await statsig.getLayerWithExposureLoggingDisabledSync(user, 'test_custom_id_layer');
+      expect(asyncExpDisabledSyncLayer.getIDType()).toEqual('companyID');
+    })
 
     it('does not log on get layer', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });

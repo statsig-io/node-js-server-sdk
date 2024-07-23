@@ -133,6 +133,30 @@
       "isDeviceBased": false,
       "idType": "userID",
       "entity": "layer"
+    },
+    {
+      "__________________________USED_BY_TESTS": [
+        "test_custom_id_layer"
+      ],
+      "name": "test_custom_id_layer",
+      "type": "dynamic_config",
+      "salt": "3e361046-bc69-4dfd-bbb1-538afe609157",
+      "enabled": true,
+      "defaultValue": {
+        "a_bool": true,
+        "an_int": 99,
+        "a_double": 1.23,
+        "a_long": 9223372036854776000,
+        "a_string": "value",
+        "an_array": ["a", "b"],
+        "an_object": {
+          "key": "value"
+        }
+      },
+      "rules": [],
+      "isDeviceBased": false,
+      "idType": "companyID",
+      "entity": "layer"
     }
   ]
 }

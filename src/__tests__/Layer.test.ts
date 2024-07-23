@@ -166,5 +166,6 @@ describe('Verify behavior of Layer', () => {
     expect(dummyLayer.getValue('obj', { key: 'value' })).toEqual({
       key: 'value',
     });
+    expect(dummyLayer.getIDType()).toBeNull();
   });
 });

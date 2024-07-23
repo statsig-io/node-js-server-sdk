@@ -1009,6 +1009,7 @@ export default class StatsigServer {
       evaluation?.config_delegate,
       exposureLogging === ExposureLogging.Disabled ? null : logFunc,
       evaluation?.evaluation_details,
+      evaluation?.id_type,
     );
   }
 
