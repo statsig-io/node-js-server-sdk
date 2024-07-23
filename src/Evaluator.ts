@@ -544,18 +544,21 @@ export default class Evaluator {
   private _cleanExposures(
     exposures: Record<string, string>[],
   ): Record<string, string>[] {
+    if (exposures.length === 0) {
+      return exposures;
+    }
     const seen: Record<string, boolean> = {};
-    return exposures
-      .filter((exposure) => !exposure.gate.startsWith('segment:'))
-      .map((exposure: Record<string, string>) => {
-        const key = `${exposure.gate}|${exposure.gateValue}|${exposure.ruleID}`;
-        if (seen[key]) {
-          return null;
-        }
-        seen[key] = true;
-        return exposure;
-      })
-      .filter(notEmpty);
+    return exposures.filter((exposure) => {
+      if (exposure.gate.startsWith('segment:')) {
+        return false;
+      }
+      const key = `${exposure.gate}|${exposure.gateValue}|${exposure.ruleID}`;
+      if (seen[key]) {
+        return false;
+      }
+      seen[key] = true;
+      return true;
+    });
   }
 
   public shutdown(): void {
