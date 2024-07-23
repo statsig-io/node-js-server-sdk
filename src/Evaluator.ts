@@ -364,6 +364,8 @@ export default class Evaluator {
       evaluatedKeys['customIDs'] = user.customIDs;
     }
 
+    this.deleteUndefinedFields(user);
+
     return {
       feature_gates: Object.assign(
         {},
@@ -433,6 +435,16 @@ export default class Evaluator {
   public getLayerList(): string[] {
     const layers = this.store.getAllLayers();
     return Object.entries(layers).map(([name, _]) => name);
+  }
+
+  private deleteUndefinedFields<T>(obj: T): void {
+    for (const key in obj) {
+      if (obj[key] === undefined) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object') {
+        this.deleteUndefinedFields(obj[key]);
+      }
+    }
   }
 
   private lookupGateOverride(
