@@ -14,9 +14,12 @@ import safeFetch from './safeFetch';
 import StatsigContext from './StatsigContext';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
+export const STATSIG_API = 'https://statsigapi.net/v1';
+export const STATSIG_CDN = 'https://api.statsigcdn.com/v1';
 
 type RequestOptions = Partial<{
   retries: number;
+  retryURL: string;
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
   signal: AbortSignal;
@@ -25,9 +28,9 @@ type RequestOptions = Partial<{
 }>;
 
 export default class StatsigFetcher {
-  private api: string;
   private apiForDownloadConfigSpecs: string;
   private apiForGetIdLists: string;
+  private fallbackToStatsigAPI: boolean;
   private sessionID: string;
   private leakyBucket: Record<string, number>;
   private pendingTimers: NodeJS.Timer[];
@@ -42,9 +45,9 @@ export default class StatsigFetcher {
     errorBoundry: ErrorBoundary,
     sessionID: string,
   ) {
-    this.api = options.api;
     this.apiForDownloadConfigSpecs = options.apiForDownloadConfigSpecs;
     this.apiForGetIdLists = options.apiForGetIdLists;
+    this.fallbackToStatsigAPI = options.fallbackToStatsigAPI;
     this.sessionID = sessionID;
     this.leakyBucket = {};
     this.pendingTimers = [];
@@ -66,16 +69,30 @@ export default class StatsigFetcher {
   }
 
   public async downloadConfigSpecs(sinceTime: number): Promise<Response> {
-    return await this.get(
-      this.apiForDownloadConfigSpecs +
-        '/download_config_specs' +
-        `/${this.sdkKey}.json` +
-        `?sinceTime=${sinceTime}`,
-    );
+    const path =
+      '/download_config_specs' +
+      `/${this.sdkKey}.json` +
+      `?sinceTime=${sinceTime}`;
+    const url = this.apiForDownloadConfigSpecs + path;
+
+    let options: RequestOptions | undefined;
+    if (this.fallbackToStatsigAPI) {
+      options = { retries: 1, retryURL: STATSIG_CDN + path };
+    }
+
+    return await this.get(url, options);
   }
 
-  public async getIDLists(sinceTime?: number): Promise<Response> {
-    return await this.post(this.apiForGetIdLists + '/get_id_lists', {});
+  public async getIDLists(): Promise<Response> {
+    const path = '/get_id_lists';
+    const url = this.apiForGetIdLists + path;
+
+    let options: RequestOptions | undefined;
+    if (this.fallbackToStatsigAPI) {
+      options = { retries: 1, retryURL: STATSIG_API + path };
+    }
+
+    return await this.post(url, {}, options);
   }
 
   public dispatch(
@@ -95,7 +112,7 @@ export default class StatsigFetcher {
   }
 
   public async get(url: string, options?: RequestOptions): Promise<Response> {
-    return await this.request('GET', url, options);
+    return await this.request('GET', url, undefined, options);
   }
 
   public async request(
@@ -105,6 +122,7 @@ export default class StatsigFetcher {
     options?: RequestOptions,
   ): Promise<Response> {
     const {
+      retryURL = url,
       retries = 0,
       backoff = 1000,
       isRetrying = false,
@@ -172,7 +190,13 @@ export default class StatsigFetcher {
       .then((localRes) => {
         res = localRes;
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
-          return this._retry(method, url, body, retries - 1, backoffAdjusted);
+          return this._retry(
+            method,
+            retryURL,
+            body,
+            retries - 1,
+            backoffAdjusted,
+          );
         } else if (!res.ok) {
           return Promise.reject(
             new Error(

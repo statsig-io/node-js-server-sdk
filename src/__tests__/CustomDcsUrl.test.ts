@@ -22,9 +22,9 @@ describe('Check custom DCS url', () => {
     disableDiagnostics: true,
   });
   const secretKey = 'secret-123';
-  const errorBoundary  = new ErrorBoundary(secretKey, options, "sessionid-1")
+  const errorBoundary = new ErrorBoundary(secretKey, options, 'sessionid-1');
   const fetcher = new StatsigFetcher(secretKey, options);
-  const logger = new LogEventProcessor(fetcher,errorBoundary, options);
+  const logger = new LogEventProcessor(fetcher, errorBoundary, options);
   const store = new SpecStore(fetcher, options);
   Diagnostics.initialize({ logger });
 
@@ -37,7 +37,12 @@ describe('Check custom DCS url', () => {
     logger.log(new LogEvent('test'));
     await logger.flush();
 
-    expect(spy).toHaveBeenCalledWith('GET', customUrl + dcsPath + `/${secretKey}.json?sinceTime=0`, undefined);
+    expect(spy).toHaveBeenCalledWith(
+      'GET',
+      customUrl + dcsPath + `/${secretKey}.json?sinceTime=0`,
+      undefined,
+      undefined,
+    );
     expect(spy).not.toHaveBeenCalledWith(
       'POST',
       customUrl + '/get_id_lists',

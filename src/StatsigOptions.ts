@@ -1,7 +1,6 @@
 import { IDataAdapter } from './interfaces/IDataAdapter';
+import { STATSIG_API, STATSIG_CDN } from './utils/StatsigFetcher';
 
-const DEFAULT_API = 'https://statsigapi.net/v1';
-const DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS = 'https://api.statsigcdn.com/v1';
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
 const MIN_RULESETS_SYNC_INTERVAL = 5 * 1000;
 const DEFAULT_ID_LISTS_SYNC_INTERVAL = 60 * 1000;
@@ -34,6 +33,7 @@ export type ExplicitStatsigOptions = {
   api: string;
   apiForDownloadConfigSpecs: string;
   apiForGetIdLists: string;
+  fallbackToStatsigAPI: boolean;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
@@ -65,15 +65,16 @@ export function OptionsWithDefaults(
 ): ExplicitStatsigOptions {
   return {
     api: normalizeUrl(
-      getString(opts, 'api', DEFAULT_API) ?? DEFAULT_API,
+      getString(opts, 'api', STATSIG_API) ?? STATSIG_API,
     ) as string,
     apiForDownloadConfigSpecs:
       normalizeUrl(
         getString(opts, 'apiForDownloadConfigSpecs', opts.api ?? null),
-      ) ?? DEFAULT_API_FOR_DOWNLOAD_CONFIG_SPECS,
+      ) ?? STATSIG_CDN,
     apiForGetIdLists:
       normalizeUrl(getString(opts, 'apiForGetIdLists', opts.api ?? null)) ??
-      DEFAULT_API,
+      STATSIG_API,
+    fallbackToStatsigAPI: getBoolean(opts, 'fallbackToStatsigAPI', false),
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)
