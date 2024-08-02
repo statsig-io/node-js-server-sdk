@@ -531,7 +531,7 @@ export default class StatsigServer {
           const controller = new AbortController();
           const handle = setTimeout(() => controller.abort(), timeout);
           flushPromise = this._logger
-            .flush(false, controller.signal)
+            .flush(true, controller.signal)
             .then(() => clearTimeout(handle));
         } else {
           flushPromise = this._logger.flush(false);
