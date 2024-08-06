@@ -36,6 +36,10 @@ function clone<T>(obj: T | null): T | null {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function cloneEnforce<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // Return a number if num can be parsed to a number, otherwise return null
 function getNumericValue(num: unknown): number | null {
   if (num == null) {
@@ -112,6 +116,7 @@ function getTypeOf(value: unknown) {
 
 export {
   clone,
+  cloneEnforce,
   getBoolValue,
   getNumericValue,
   getSDKVersion,

@@ -8,7 +8,7 @@ import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
-import { getSDKType, getSDKVersion, notEmpty } from './utils/core';
+import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
 import {
   djb2Hash,
   HashingAlgorithm,
@@ -219,7 +219,7 @@ export default class Evaluator {
   }
 
   public getClientInitializeResponse(
-    user: StatsigUser,
+    inputUser: StatsigUser,
     _ctx: StatsigContext,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
@@ -227,6 +227,7 @@ export default class Evaluator {
     if (!this.store.isServingChecks()) {
       return null;
     }
+    const user = cloneEnforce(inputUser);
     const clientKeyToAppMap = this.store.getClientKeyToAppMap();
     let targetAppID: string | null = null;
     let targetEntities: APIEntityNames | null = null;
@@ -364,6 +365,7 @@ export default class Evaluator {
       evaluatedKeys['customIDs'] = user.customIDs;
     }
 
+    delete user.privateAttributes;
     this.deleteUndefinedFields(user);
 
     return {

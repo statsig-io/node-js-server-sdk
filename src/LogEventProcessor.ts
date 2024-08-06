@@ -1,7 +1,6 @@
 import ConfigEvaluation from './ConfigEvaluation';
-import Diagnostics, { ContextType, Marker } from './Diagnostics';
+import Diagnostics, { Marker } from './Diagnostics';
 import ErrorBoundary from './ErrorBoundary';
-import { StatsigLocalModeNetworkError } from './Errors';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData } from './LogEvent';
 import OutputLogger from './OutputLogger';
