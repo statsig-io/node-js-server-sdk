@@ -10,7 +10,13 @@ export type LogEventData = {
   user: StatsigUser | null;
   value: string | number | null;
   metadata: Record<string, unknown> | null;
-  secondaryExposures: Record<string, unknown>[];
+  secondaryExposures: SecondaryExposure[];
+};
+
+export type SecondaryExposure = {
+  gate: string;
+  gateValue: string;
+  ruleID: string;
 };
 
 export default class LogEvent {
@@ -19,7 +25,7 @@ export default class LogEvent {
   private user: StatsigUser | null = null;
   private value: string | number | null = null;
   private metadata: Record<string, unknown> | null = null;
-  private secondaryExposures: Record<string, unknown>[] = [];
+  private secondaryExposures: SecondaryExposure[] = [];
 
   public constructor(eventName: string) {
     this.time = Date.now();
@@ -94,7 +100,7 @@ export default class LogEvent {
     this.time = validatedTime;
   }
 
-  public setSecondaryExposures(exposures: Record<string, unknown>[]) {
+  public setSecondaryExposures(exposures: SecondaryExposure[]) {
     this.secondaryExposures = Array.isArray(exposures) ? exposures : [];
   }
 

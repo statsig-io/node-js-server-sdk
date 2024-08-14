@@ -1,14 +1,15 @@
 import { EvaluationDetails } from './EvaluationDetails';
+import { SecondaryExposure } from './LogEvent';
 
 export default class ConfigEvaluation {
   public value: boolean;
   public rule_id: string;
-  public secondary_exposures: Record<string, string>[];
+  public secondary_exposures: SecondaryExposure[];
   public json_value: Record<string, unknown>;
   public explicit_parameters: string[] | null;
   public config_delegate: string | null;
   public unsupported: boolean;
-  public undelegated_secondary_exposures: Record<string, string>[] | undefined;
+  public undelegated_secondary_exposures: SecondaryExposure[] | undefined;
   public is_experiment_group: boolean;
   public group_name: string | null;
   public evaluation_details: EvaluationDetails | undefined;
@@ -19,7 +20,7 @@ export default class ConfigEvaluation {
     rule_id = '',
     group_name: string | null = null,
     id_type: string | null = null,
-    secondary_exposures: Record<string, string>[] = [],
+    secondary_exposures: SecondaryExposure[] = [],
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,

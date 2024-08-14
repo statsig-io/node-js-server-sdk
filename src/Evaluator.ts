@@ -3,6 +3,7 @@ import ip3country from 'ip3country';
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import { EvaluationDetails } from './EvaluationDetails';
+import { SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
 import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
@@ -546,18 +547,16 @@ export default class Evaluator {
   }
 
   private hashSecondaryExposure(
-    secondary_exposures: Record<string, string>[],
+    secondary_exposures: SecondaryExposure[],
     hash: HashingAlgorithm | undefined,
-  ): Record<string, string>[] {
+  ): SecondaryExposure[] {
     secondary_exposures.forEach((exposure) => {
       exposure.gate = hashString(exposure.gate, hash);
     });
     return secondary_exposures;
   }
 
-  private _cleanExposures(
-    exposures: Record<string, string>[],
-  ): Record<string, string>[] {
+  private _cleanExposures(exposures: SecondaryExposure[]): SecondaryExposure[] {
     if (exposures.length === 0) {
       return exposures;
     }
@@ -628,7 +627,7 @@ export default class Evaluator {
       );
     }
 
-    let secondary_exposures: Record<string, string>[] = [];
+    let secondary_exposures: SecondaryExposure[] = [];
     for (let i = 0; i < config.rules.length; i++) {
       const rule = config.rules[i];
       const ruleResult = this._evalRule(user, rule, ctx);
@@ -686,7 +685,7 @@ export default class Evaluator {
   _evalDelegate(
     user: StatsigUser,
     rule: ConfigRule,
-    exposures: Record<string, string>[],
+    exposures: SecondaryExposure[],
     ctx: StatsigContext,
   ) {
     if (rule.configDelegate == null) {
@@ -732,7 +731,7 @@ export default class Evaluator {
   }
 
   _evalRule(user: StatsigUser, rule: ConfigRule, ctx: StatsigContext) {
-    let secondaryExposures: Record<string, string>[] = [];
+    let secondaryExposures: SecondaryExposure[] = [];
     let pass = true;
 
     for (const condition of rule.conditions) {
@@ -772,7 +771,7 @@ export default class Evaluator {
   ): {
     passes: boolean;
     unsupported?: boolean;
-    exposures?: Record<string, string>[];
+    exposures?: SecondaryExposure[];
   } {
     let value = null;
     const field = condition.field;
@@ -809,7 +808,7 @@ export default class Evaluator {
         }
         const gateNames = target as string[];
         let value = false;
-        let exposures: Record<string, string>[] = [];
+        let exposures: SecondaryExposure[] = [];
         for (const gateName of gateNames) {
           const gateResult = this.checkGate(user, gateName, ctx);
           if (gateResult?.unsupported) {

@@ -1,4 +1,5 @@
 import type { EvaluationDetails } from './EvaluationDetails';
+import { SecondaryExposure } from './LogEvent';
 import { clone, getTypeOf } from './utils/core';
 
 export type OnDefaultValueFallback = (
@@ -17,7 +18,7 @@ export default class DynamicConfig {
   private _ruleID: string;
   private _groupName: string | null;
   private _idType: string | null;
-  private _secondaryExposures: Record<string, unknown>[];
+  private _secondaryExposures: SecondaryExposure[];
   private _onDefaultValueFallback: OnDefaultValueFallback | null = null;
   private _evaluationDetails: EvaluationDetails | null;
 
@@ -27,7 +28,7 @@ export default class DynamicConfig {
     ruleID = '',
     groupName: string | null = null,
     idType: string | null = null,
-    secondaryExposures: Record<string, unknown>[] = [],
+    secondaryExposures: SecondaryExposure[] = [],
     onDefaultValueFallback: OnDefaultValueFallback | null = null,
     evaluationDetails: EvaluationDetails | null = null,
   ) {
@@ -115,7 +116,7 @@ export default class DynamicConfig {
     return this._evaluationDetails;
   }
 
-  _getSecondaryExposures(): Record<string, unknown>[] {
+  _getSecondaryExposures(): SecondaryExposure[] {
     return this._secondaryExposures;
   }
 }

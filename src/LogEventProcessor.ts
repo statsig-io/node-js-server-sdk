@@ -2,7 +2,7 @@ import ConfigEvaluation from './ConfigEvaluation';
 import Diagnostics, { Marker } from './Diagnostics';
 import ErrorBoundary from './ErrorBoundary';
 import { EvaluationDetails } from './EvaluationDetails';
-import LogEvent, { LogEventData } from './LogEvent';
+import LogEvent, { LogEventData, SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
@@ -161,7 +161,7 @@ export default class LogEventProcessor {
     user: StatsigUser | null,
     eventName: string,
     metadata: Record<string, unknown> | null,
-    secondaryExposures: Record<string, unknown>[] | null = null,
+    secondaryExposures: SecondaryExposure[] | null = null,
     value: string | number | null = null,
   ) {
     if (!this.isUniqueExposure(user, eventName, metadata)) {
