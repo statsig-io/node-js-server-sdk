@@ -5,17 +5,29 @@ import ErrorBoundary from '../ErrorBoundary';
 import Evaluator from '../Evaluator';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
-import { OptionsWithDefaults } from '../StatsigOptions';
+import { OptionsLoggingCopy, OptionsWithDefaults } from '../StatsigOptions';
+import { EvaluationContext, StatsigContext } from '../utils/StatsigContext';
 import StatsigFetcher from '../utils/StatsigFetcher';
 const exampleConfigSpecs = require('./jest.setup');
 
 describe('Test condition evaluation', () => {
   const options = OptionsWithDefaults({ loggingMaxBufferSize: 1 });
   const logger = new LogEventProcessor(
-    new StatsigFetcher('secret-asdf1234', options),
-    new ErrorBoundary('secret-asdf1234', options, "sessionid-a"),
-    options
-      );
+    new StatsigFetcher(
+      'secret-asdf1234',
+      options,
+      new ErrorBoundary(
+        'secret-asdf1234',
+        OptionsLoggingCopy(options),
+        'sessionid-a',
+      ),
+      'sessionid-a',
+    ),
+    new ErrorBoundary('secret-asdf1234', options, 'sessionid-a'),
+    options,
+    OptionsLoggingCopy(options),
+    'sessionid-a',
+  );
   beforeEach(() => {
     Diagnostics.initialize({ logger });
   });
@@ -267,7 +279,17 @@ describe('Test condition evaluation', () => {
     ['user_field', 'eq', null, 'nullable', { custom: { nullable: 'sth' } }, false],
   ]
 
-  const fetcher = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
+  const defaultOptions = OptionsWithDefaults({});
+  const fetcher = new StatsigFetcher(
+    'secret-123',
+    defaultOptions,
+    new ErrorBoundary(
+      'secret-123',
+      OptionsLoggingCopy(defaultOptions),
+      'session-123',
+    ),
+    'session-123',
+  );
   const mockedEvaluator = new Evaluator(fetcher, OptionsWithDefaults({}));
   jest
     .spyOn(mockedEvaluator, 'checkGate')
@@ -293,7 +315,17 @@ describe('Test condition evaluation', () => {
   const dynamicConfigSpec = new ConfigSpec(exampleConfigSpecs.config);
 
   it('works', () => {
-    const network = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
+    const defaultOptions = OptionsWithDefaults({});
+    const network = new StatsigFetcher(
+      'secret-123',
+      defaultOptions,
+      new ErrorBoundary(
+        'secret-123',
+        OptionsLoggingCopy(defaultOptions),
+        'session-123',
+      ),
+      'session-123',
+    );
     const store = new SpecStore(
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
@@ -360,32 +392,84 @@ describe('Test condition evaluation', () => {
   });
 
   it('evals gates correctly', () => {
-    expect(mockedEvaluator._eval({}, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', null, 'teamID', [], {}),
-    );
-    expect(mockedEvaluator._eval({ userID: 'jkw' }, gateSpec)).toEqual(
-      new ConfigEvaluation(false, 'default', null, 'teamID', [], {}),
-    );
     expect(
-      mockedEvaluator._eval({ email: 'tore@packers.com' }, gateSpec),
-    ).toEqual(
-      new ConfigEvaluation(true, 'rule_id_gate', 'group_name_gate', 'teamID', [], {}),
-    );
-    expect(
-      mockedEvaluator._eval({ custom: { email: 'tore@nfl.com' } }, gateSpec),
-    ).toEqual(
-      new ConfigEvaluation(true, 'rule_id_gate', 'group_name_gate', 'teamID', [], {}),
-    );
-    expect(
-      mockedEvaluator._eval({ email: 'jkw@seahawks.com' }, gateSpec),
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-ignore
+          user: {},
+          spec: gateSpec,
+        }),
+      ),
     ).toEqual(new ConfigEvaluation(false, 'default', null, 'teamID', [], {}));
     expect(
-      mockedEvaluator._eval({ email: 'tore@packers.com' }, disabledGateSpec),
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          user: { userID: 'jkw' },
+          spec: gateSpec,
+        }),
+      ),
+    ).toEqual(new ConfigEvaluation(false, 'default', null, 'teamID', [], {}));
+    expect(
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-ignore
+          user: { email: 'tore@packers.com' },
+          spec: gateSpec,
+        }),
+      ),
+    ).toEqual(
+      new ConfigEvaluation(
+        true,
+        'rule_id_gate',
+        'group_name_gate',
+        'teamID',
+        [],
+        {},
+      ),
+    );
+    expect(
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-ignore
+          user: { custom: { email: 'tore@nfl.com' } },
+          spec: gateSpec,
+        }),
+      ),
+    ).toEqual(
+      new ConfigEvaluation(
+        true,
+        'rule_id_gate',
+        'group_name_gate',
+        'teamID',
+        [],
+        {},
+      ),
+    );
+    expect(
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-ignore
+          user: { email: 'jkw@seahawks.com' },
+          spec: gateSpec,
+        }),
+      ),
+    ).toEqual(new ConfigEvaluation(false, 'default', null, 'teamID', [], {}));
+    expect(
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-ignore
+          user: { custom: { email: 'tore@packers.com' } },
+          spec: disabledGateSpec,
+        }),
+      ),
     ).toEqual(new ConfigEvaluation(false, 'disabled', null, 'teamID', [], {}));
     expect(
       mockedEvaluator._eval(
-        { custom: { email: 'tore@nfl.com' } },
-        disabledGateSpec,
+        EvaluationContext.new({
+          // @ts-ignore
+          user: { custom: { email: 'tore@nfl.com' } },
+          spec: disabledGateSpec,
+        }),
       ),
     ).toEqual(new ConfigEvaluation(false, 'disabled', null, 'teamID', [], {}));
   });
@@ -395,12 +479,13 @@ describe('Test condition evaluation', () => {
     for (let i = 0; i < 1000; i++) {
       if (
         mockedEvaluator._eval(
-          {
-            userID: Math.random() + '',
-            email: 'tore@packers.com',
-            // @ts-ignore
-          },
-          halfPassGateSpec,
+          EvaluationContext.new({
+            user: {
+              userID: Math.random() + '',
+              email: 'tore@packers.com',
+            },
+            spec: halfPassGateSpec,
+          }),
         ).value
       ) {
         passCount++;
@@ -412,36 +497,44 @@ describe('Test condition evaluation', () => {
 
   it('implements pass percentage correctly', () => {
     const valueID1 = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-        customIDs: { teamID: '3' },
-      },
-      halfPassGateCustomIDSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+          customIDs: { teamID: '3' },
+        },
+        spec: halfPassGateCustomIDSpec,
+      }),
     ).value;
     const valueID2 = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-        customIDs: { teamid: '2' },
-      },
-      halfPassGateCustomIDSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+          customIDs: { teamid: '2' },
+        },
+        spec: halfPassGateCustomIDSpec,
+      }),
     ).value;
     const valueID3 = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-        customIDs: { teamId: '3' },
-      },
-      halfPassGateCustomIDSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+          customIDs: { teamId: '3' },
+        },
+        spec: halfPassGateCustomIDSpec,
+      }),
     ).value;
     const valueID4 = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-        customIDs: { TeamID: '2' },
-      },
-      halfPassGateCustomIDSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+          customIDs: { TeamID: '2' },
+        },
+        spec: halfPassGateCustomIDSpec,
+      }),
     ).value;
     expect(valueID1).toEqual(true);
     expect(valueID2).toEqual(false);
@@ -454,12 +547,13 @@ describe('Test condition evaluation', () => {
       return false;
     });
     const failResult = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-        // @ts-ignore
-      },
-      halfPassGateSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+        },
+        spec: halfPassGateSpec,
+      }),
     );
 
     expect(failResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
@@ -469,11 +563,13 @@ describe('Test condition evaluation', () => {
       return true;
     });
     const passResult = mockedEvaluator._eval(
-      {
-        userID: Math.random() + '',
-        email: 'tore@packers.com',
-      },
-      halfPassGateSpec,
+      EvaluationContext.new({
+        user: {
+          userID: Math.random() + '',
+          email: 'tore@packers.com',
+        },
+        spec: halfPassGateSpec,
+      }),
     );
 
     expect(passResult.rule_id).toEqual(halfPassGateSpec.rules[0].id);
@@ -482,11 +578,21 @@ describe('Test condition evaluation', () => {
   });
 
   it('evals dynamic configs correctly', () => {
-    expect(mockedEvaluator._eval({}, dynamicConfigSpec).json_value).toEqual({});
     expect(
       mockedEvaluator._eval(
-        { userID: 'jkw', custom: { level: 10 } },
-        dynamicConfigSpec,
+        EvaluationContext.new({
+          // @ts-ignore
+          user: {},
+          spec: dynamicConfigSpec,
+        }),
+      ).json_value,
+    ).toEqual({});
+    expect(
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          user: { userID: 'jkw', custom: { level: 10 } },
+          spec: dynamicConfigSpec,
+        }),
       ).json_value,
     ).toEqual({
       packers: {
@@ -500,19 +606,31 @@ describe('Test condition evaluation', () => {
     });
 
     let res = mockedEvaluator._eval(
-      { userID: 'jkw', custom: { level: 10 } },
-      dynamicConfigSpec,
+      EvaluationContext.new({
+        user: { userID: 'jkw', custom: { level: 10 } },
+        spec: dynamicConfigSpec,
+      }),
     );
     expect(res.rule_id).toEqual('rule_id_config');
     expect(res.group_name).toEqual('group_name_config');
 
     expect(
-      // @ts-expect-error
-      mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec).json_value,
+      mockedEvaluator._eval(
+        EvaluationContext.new({
+          // @ts-expect-error
+          user: { level: 5 },
+          spec: dynamicConfigSpec,
+        }),
+      ).json_value,
     ).toEqual({});
 
-    // @ts-expect-error
-    res = mockedEvaluator._eval({ level: 5 }, dynamicConfigSpec);
+    res = mockedEvaluator._eval(
+      EvaluationContext.new({
+        // @ts-expect-error
+        user: { level: 5 },
+        spec: dynamicConfigSpec,
+      }),
+    );
     expect(res.rule_id).toEqual('rule_id_config_public');
     expect(res.group_name).toEqual('group_name_config_public');
   });
@@ -549,7 +667,16 @@ describe('testing checkGate and getConfig', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    const network = new StatsigFetcher('secret-123', OptionsWithDefaults({}));
+    const network = new StatsigFetcher(
+      'secret-123',
+      options,
+      new ErrorBoundary(
+        'secret-123',
+        OptionsLoggingCopy(options),
+        'session-123',
+      ),
+      'session-123',
+    );
 
     evaluator = new Evaluator(
       network,
@@ -565,6 +692,7 @@ describe('testing checkGate and getConfig', () => {
       evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.gate.name,
+        StatsigContext.new({}),
       ),
     ).toMatchObject({ value: false });
 
@@ -572,6 +700,7 @@ describe('testing checkGate and getConfig', () => {
     let result = evaluator.checkGate(
       { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
       exampleConfigSpecs.gate.name,
+      StatsigContext.new({}),
     );
     expect(result.value).toEqual(true);
     expect(result.rule_id).toEqual(exampleConfigSpecs.gate.rules[0].id);
@@ -579,6 +708,7 @@ describe('testing checkGate and getConfig', () => {
     result = evaluator.checkGate(
       { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
       exampleConfigSpecs.gate.name,
+      StatsigContext.new({}),
     );
     expect(result.value).toEqual(false);
     expect(result.rule_id).toEqual('default');
@@ -588,6 +718,7 @@ describe('testing checkGate and getConfig', () => {
       evaluator.checkGate(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.gate.name + 'non-existent-gate',
+        StatsigContext.new({}),
       ),
     ).toMatchObject({ value: false });
   });
@@ -597,6 +728,7 @@ describe('testing checkGate and getConfig', () => {
       evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
         exampleConfigSpecs.config.name,
+        StatsigContext.new({}),
       ),
     ).toMatchObject({ json_value: {} });
 
@@ -606,6 +738,7 @@ describe('testing checkGate and getConfig', () => {
     const result = evaluator.getConfig(
       { userID: 'jkw', custom: { email: 'jkw@nfl.com', level: 10 } },
       exampleConfigSpecs.config.name,
+      StatsigContext.new({}),
     );
     expect(result.value).toEqual(true);
     expect(result.rule_id).toEqual(exampleConfigSpecs.config.rules[0].id);
@@ -621,6 +754,7 @@ describe('testing checkGate and getConfig', () => {
       evaluator.getConfig(
         { userID: 'jkw', custom: { email: 'jkw@gmail.com' } },
         exampleConfigSpecs.config.name + 'non-existent-config',
+        StatsigContext.new({}),
       ),
     ).toMatchObject({ json_value: {} });
   });
@@ -628,7 +762,11 @@ describe('testing checkGate and getConfig', () => {
   describe('getLayer()', () => {
     it('returns {} when not initialized', () => {
       expect(
-        evaluator.getLayer({ userID: 'dloomb' }, 'unallocated_layer'),
+        evaluator.getLayer(
+          { userID: 'dloomb' },
+          'unallocated_layer',
+          StatsigContext.new({}),
+        ),
       ).toMatchObject({ json_value: {} });
     });
 
@@ -639,7 +777,11 @@ describe('testing checkGate and getConfig', () => {
 
       it('returns {} when a non existant layer name is given', async () => {
         expect(
-          evaluator.getLayer({ userID: 'dloomb' }, 'not_a_layer'),
+          evaluator.getLayer(
+            { userID: 'dloomb' },
+            'not_a_layer',
+            StatsigContext.new({}),
+          ),
         ).toMatchObject({ json_value: {} });
       });
 
@@ -647,6 +789,7 @@ describe('testing checkGate and getConfig', () => {
         const layer = evaluator.getLayer(
           { userID: 'dloomb' },
           'unallocated_layer',
+          StatsigContext.new({}),
         );
         expect(layer.json_value).toEqual({ b_param: 'layer_default' });
         expect(layer.rule_id).toEqual('default');

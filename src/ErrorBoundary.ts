@@ -9,7 +9,7 @@ import OutputLogger from './OutputLogger';
 import { StatsigOptions } from './StatsigOptions';
 import { getSDKType, getSDKVersion, getStatsigMetadata } from './utils/core';
 import safeFetch from './utils/safeFetch';
-import StatsigContext from './utils/StatsigContext';
+import { StatsigContext } from './utils/StatsigContext';
 
 export const ExceptionEndpoint = 'https://statsigapi.net/v1/sdk_exception';
 

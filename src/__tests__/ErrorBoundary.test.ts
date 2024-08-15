@@ -7,7 +7,7 @@ import {
 } from '../Errors';
 import { InitStrategy, OptionsLoggingCopy } from '../StatsigOptions';
 import { getStatsigMetadata } from '../utils/core';
-import StatsigContext from '../utils/StatsigContext';
+import { StatsigContext } from '../utils/StatsigContext';
 import { getDecodedBody } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
 const TestDataAdapter: IDataAdapter = {

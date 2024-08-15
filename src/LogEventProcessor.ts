@@ -7,7 +7,7 @@ import OutputLogger from './OutputLogger';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
-import StatsigContext from './utils/StatsigContext';
+import { StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';

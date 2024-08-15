@@ -29,7 +29,7 @@ import asyncify from './utils/asyncify';
 import { isUserIdentifiable, notEmptyObject } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
-import StatsigContext from './utils/StatsigContext';
+import { StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 let hasLoggedNoUserIdWarning = false;

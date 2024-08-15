@@ -2,7 +2,7 @@ import Evaluator, { ClientInitializeResponse } from '../Evaluator';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import safeFetch from '../utils/safeFetch';
-import StatsigContext from '../utils/StatsigContext';
+import { StatsigContext } from '../utils/StatsigContext';
 import StatsigTestUtils from './StatsigTestUtils';
 
 const secret: string = process.env.test_api_key ?? '';

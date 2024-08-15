@@ -28,7 +28,7 @@ import {
   hashString,
   hashUnitIDForIDList,
 } from './utils/Hashing';
-import StatsigContext from './utils/StatsigContext';
+import { EvaluationContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -162,7 +162,9 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, gate, ctx);
+    return this._evalSpec(
+      EvaluationContext.get(ctx.getRequestContext(), { user, spec: gate }),
+    );
   }
 
   public getConfig(
@@ -194,7 +196,9 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, config, ctx);
+    return this._evalSpec(
+      EvaluationContext.get(ctx.getRequestContext(), { user, spec: config }),
+    );
   }
 
   public getLayer(
@@ -226,12 +230,14 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(user, layer, ctx);
+    return this._evalSpec(
+      EvaluationContext.get(ctx.getRequestContext(), { user, spec: layer }),
+    );
   }
 
   public getClientInitializeResponse(
     inputUser: StatsigUser,
-    _ctx: StatsigContext,
+    ctx: StatsigContext,
     clientSDKKey?: string,
     options?: ClientInitializeResponseOptions,
   ): ClientInitializeResponse | null {
@@ -251,7 +257,6 @@ export default class Evaluator {
     if (clientSDKKey != null && targetAppID == null) {
       targetAppID = clientKeyToAppMap[clientSDKKey] ?? null;
     }
-    const ctx = targetAppID ? _ctx.withTargetAppID(targetAppID) : _ctx;
 
     const filterTargetAppID = (spec: ConfigSpec) => {
       if (
@@ -286,7 +291,15 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupGateOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec, ctx);
+        const res =
+          localOverride ??
+          this._eval(
+            EvaluationContext.get(ctx.getRequestContext(), {
+              user,
+              spec,
+              targetAppID: targetAppID ?? undefined,
+            }),
+          );
         return {
           name: hashString(gate, options?.hash),
           value: res.unsupported ? false : res.value,
@@ -304,7 +317,15 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupConfigOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec, ctx);
+        const res =
+          localOverride ??
+          this._eval(
+            EvaluationContext.get(ctx.getRequestContext(), {
+              user,
+              spec,
+              targetAppID: targetAppID ?? undefined,
+            }),
+          );
         const format = this._specToInitializeResponse(spec, res, options?.hash);
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
@@ -342,7 +363,15 @@ export default class Evaluator {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupLayerOverride(user, spec.name)
           : null;
-        const res = localOverride ?? this._eval(user, spec, ctx);
+        const res =
+          localOverride ??
+          this._eval(
+            EvaluationContext.get(ctx.getRequestContext(), {
+              user,
+              spec,
+              targetAppID: targetAppID ?? undefined,
+            }),
+          );
         const format = this._specToInitializeResponse(spec, res, options?.hash);
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
@@ -602,12 +631,8 @@ export default class Evaluator {
     );
   }
 
-  _evalSpec(
-    user: StatsigUser,
-    config: ConfigSpec,
-    ctx: StatsigContext,
-  ): ConfigEvaluation {
-    const evaulation = this._eval(user, config, ctx);
+  _evalSpec(ctx: EvaluationContext): ConfigEvaluation {
+    const evaulation = this._eval(ctx);
     if (evaulation.evaluation_details) {
       return evaulation;
     }
@@ -621,11 +646,8 @@ export default class Evaluator {
     );
   }
 
-  _eval(
-    user: StatsigUser,
-    config: ConfigSpec,
-    ctx: StatsigContext,
-  ): ConfigEvaluation {
+  _eval(ctx: EvaluationContext): ConfigEvaluation {
+    const { user, spec: config } = ctx;
     if (!config.enabled) {
       return new ConfigEvaluation(
         false,
@@ -654,7 +676,6 @@ export default class Evaluator {
 
       if (ruleResult.value === true) {
         const delegatedResult = this._evalDelegate(
-          user,
           rule,
           secondary_exposures,
           ctx,
@@ -693,10 +714,9 @@ export default class Evaluator {
   }
 
   _evalDelegate(
-    user: StatsigUser,
     rule: ConfigRule,
     exposures: SecondaryExposure[],
-    ctx: StatsigContext,
+    ctx: EvaluationContext,
   ) {
     if (rule.configDelegate == null) {
       return null;
@@ -706,7 +726,12 @@ export default class Evaluator {
       return null;
     }
 
-    const delegatedResult = this._eval(user, config, ctx);
+    const delegatedResult = this._eval(
+      EvaluationContext.get(ctx.getRequestContext(), {
+        user: ctx.user,
+        spec: config,
+      }),
+    );
     delegatedResult.config_delegate = rule.configDelegate;
     delegatedResult.undelegated_secondary_exposures = exposures;
     delegatedResult.explicit_parameters = config.explicitParameters;
@@ -729,7 +754,7 @@ export default class Evaluator {
     );
   }
 
-  _evalRule(user: StatsigUser, rule: ConfigRule, ctx: StatsigContext) {
+  _evalRule(user: StatsigUser, rule: ConfigRule, ctx: EvaluationContext) {
     let secondaryExposures: SecondaryExposure[] = [];
     let pass = true;
 
@@ -766,7 +791,7 @@ export default class Evaluator {
   _evalCondition(
     user: StatsigUser,
     condition: ConfigCondition,
-    ctx: StatsigContext,
+    ctx: EvaluationContext,
   ): {
     passes: boolean;
     unsupported?: boolean;
@@ -1059,7 +1084,12 @@ export default class Evaluator {
     if (experimentConfig == null) {
       return false;
     }
-    const evalResult = this._eval(user, experimentConfig, ctx);
+    const evalResult = this._eval(
+      EvaluationContext.get(ctx.getRequestContext(), {
+        user,
+        spec: experimentConfig,
+      }),
+    );
     return evalResult.is_experiment_group;
   }
 

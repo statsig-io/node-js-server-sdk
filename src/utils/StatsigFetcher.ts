@@ -11,7 +11,7 @@ import Dispatcher from './Dispatcher';
 import getCompressionFunc from './getCompressionFunc';
 import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
-import StatsigContext from './StatsigContext';
+import { StatsigContext } from './StatsigContext';
 
 const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
 export const STATSIG_API = 'https://statsigapi.net/v1';
