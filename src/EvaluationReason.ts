@@ -5,4 +5,5 @@ export type EvaluationReason =
   | 'Uninitialized'
   | 'Bootstrap'
   | 'DataAdapter'
-  | 'Unsupported';
+  | 'Unsupported'
+  | 'Persisted';

@@ -1,4 +1,5 @@
 import { EvaluationDetails } from './EvaluationDetails';
+import type { StickyValues } from './interfaces/IUserPersistentStorage';
 import { SecondaryExposure } from './LogEvent';
 
 export default class ConfigEvaluation {
@@ -9,7 +10,7 @@ export default class ConfigEvaluation {
   public explicit_parameters: string[] | null;
   public config_delegate: string | null;
   public unsupported: boolean;
-  public undelegated_secondary_exposures: SecondaryExposure[] | undefined;
+  public undelegated_secondary_exposures: SecondaryExposure[];
   public is_experiment_group: boolean;
   public group_name: string | null;
   public evaluation_details: EvaluationDetails | undefined;
@@ -69,5 +70,44 @@ export default class ConfigEvaluation {
     ).withEvaluationDetails(
       EvaluationDetails.unsupported(configSyncTime, initialUpdateTime),
     );
+  }
+
+  public toStickyValues(): StickyValues {
+    return {
+      value: this.value,
+      json_value: this.json_value,
+      rule_id: this.rule_id,
+      group_name: this.group_name,
+      secondary_exposures: this.secondary_exposures,
+      undelegated_secondary_exposures: this.undelegated_secondary_exposures,
+      config_delegate: this.config_delegate,
+      explicit_parameters: this.explicit_parameters,
+      time: this.evaluation_details?.configSyncTime ?? Date.now(),
+    };
+  }
+
+  public static fromStickyValues(
+    stickyValues: StickyValues,
+    initialUpdateTime: number,
+  ): ConfigEvaluation {
+    const evaluation = new ConfigEvaluation(
+      stickyValues.value,
+      stickyValues.rule_id,
+      stickyValues.group_name,
+      null,
+      stickyValues.secondary_exposures,
+      stickyValues.json_value,
+      stickyValues.explicit_parameters,
+      stickyValues.config_delegate,
+    );
+    evaluation.evaluation_details = EvaluationDetails.persisted(
+      stickyValues.time,
+      initialUpdateTime,
+    );
+    evaluation.undelegated_secondary_exposures =
+      stickyValues.undelegated_secondary_exposures;
+    evaluation.is_experiment_group = true;
+
+    return evaluation;
   }
 }

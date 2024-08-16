@@ -3,12 +3,14 @@ import ip3country from 'ip3country';
 import ConfigEvaluation from './ConfigEvaluation';
 import { ConfigCondition, ConfigRule, ConfigSpec } from './ConfigSpec';
 import { EvaluationDetails } from './EvaluationDetails';
+import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
 import { SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
 import SpecStore, { APIEntityNames } from './SpecStore';
 import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { ClientInitializeResponseOptions } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
+import UserPersistentStorageHandler from './UserPersistentStorageHandler';
 import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
 import {
   arrayAny,
@@ -74,9 +76,8 @@ export default class Evaluator {
     Record<string, Record<string, unknown>>
   >;
   private initialized = false;
-
   private store: SpecStore;
-
+  private persistentStore: UserPersistentStorageHandler;
   private initStrategyForIP3Country: InitStrategy;
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
@@ -85,6 +86,9 @@ export default class Evaluator {
     this.gateOverrides = {};
     this.configOverrides = {};
     this.layerOverrides = {};
+    this.persistentStore = new UserPersistentStorageHandler(
+      options.userPersistentStorage,
+    );
   }
 
   public async init(): Promise<void> {
@@ -196,8 +200,11 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(
-      EvaluationContext.get(ctx.getRequestContext(), { user, spec: config }),
+    return this._evalConfig(
+      EvaluationContext.get(ctx.getRequestContext(), {
+        user,
+        spec: config,
+      }),
     );
   }
 
@@ -230,9 +237,16 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
-    return this._evalSpec(
+    return this._evalLayer(
       EvaluationContext.get(ctx.getRequestContext(), { user, spec: layer }),
     );
+  }
+
+  public getUserPersistedValues(
+    user: StatsigUser,
+    idType: string,
+  ): UserPersistedValues {
+    return this.persistentStore.load(user, idType) ?? {};
   }
 
   public getClientInitializeResponse(
@@ -629,6 +643,76 @@ export default class Evaluator {
         'Unrecognized',
       ),
     );
+  }
+
+  _evalConfig(ctx: EvaluationContext): ConfigEvaluation {
+    const { user, spec, userPersistedValues } = ctx;
+    if (userPersistedValues == null || !spec.isActive) {
+      this.persistentStore.delete(user, spec.idType, spec.name);
+      return this._evalSpec(ctx);
+    }
+
+    const stickyConfig = userPersistedValues[spec.name];
+    const stickyEvaluation = stickyConfig
+      ? ConfigEvaluation.fromStickyValues(
+          stickyConfig,
+          this.store.getInitialUpdateTime(),
+        )
+      : null;
+
+    if (stickyEvaluation) {
+      return stickyEvaluation;
+    }
+
+    const evaluation = this._evalSpec(ctx);
+
+    if (evaluation.is_experiment_group) {
+      this.persistentStore.save(user, spec.idType, spec.name, evaluation);
+    }
+
+    return evaluation;
+  }
+
+  _evalLayer(ctx: EvaluationContext): ConfigEvaluation {
+    const { user, spec, userPersistedValues } = ctx;
+    if (!userPersistedValues) {
+      this.persistentStore.delete(user, spec.idType, spec.name);
+      return this._evalSpec(ctx);
+    }
+
+    const stickyConfig = userPersistedValues[spec.name];
+    const stickyEvaluation = stickyConfig
+      ? ConfigEvaluation.fromStickyValues(
+          stickyConfig,
+          this.store.getInitialUpdateTime(),
+        )
+      : null;
+
+    const isAllocatedExperimentActive = (evaluation: ConfigEvaluation) =>
+      this._isExperimentActive(
+        evaluation.config_delegate
+          ? this.store.getConfig(evaluation.config_delegate)
+          : null,
+      );
+
+    if (stickyEvaluation) {
+      if (isAllocatedExperimentActive(stickyEvaluation)) {
+        return stickyEvaluation;
+      } else {
+        this.persistentStore.delete(user, spec.idType, spec.name);
+        return this._evalSpec(ctx);
+      }
+    } else {
+      const evaluation = this._evalSpec(ctx);
+      if (isAllocatedExperimentActive(evaluation)) {
+        if (evaluation.is_experiment_group) {
+          this.persistentStore.save(user, spec.idType, spec.name, evaluation);
+        }
+      } else {
+        this.persistentStore.delete(user, spec.idType, spec.name);
+      }
+      return evaluation;
+    }
   }
 
   _evalSpec(ctx: EvaluationContext): ConfigEvaluation {

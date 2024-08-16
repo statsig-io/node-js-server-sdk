@@ -14,12 +14,15 @@ import {
   makeEmptyFeatureGate,
   makeFeatureGate,
 } from './FeatureGate';
+import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
 import OutputLogger from './OutputLogger';
 import {
   ExplicitStatsigOptions,
+  GetExperimentOptions,
+  GetLayerOptions,
   OptionsLoggingCopy,
   OptionsWithDefaults,
   StatsigOptions,
@@ -298,6 +301,7 @@ export default class StatsigServer {
   public getExperimentSync(
     user: StatsigUser,
     experimentName: string,
+    options?: GetExperimentOptions,
   ): DynamicConfig {
     return this._errorBoundary.capture(
       (ctx) =>
@@ -306,6 +310,7 @@ export default class StatsigServer {
       StatsigContext.new({
         caller: 'getExperiment',
         configName: experimentName,
+        userPersistedValues: options?.userPersistedValues,
       }),
     );
   }
@@ -313,6 +318,7 @@ export default class StatsigServer {
   public getExperimentWithExposureLoggingDisabledSync(
     user: StatsigUser,
     experimentName: string,
+    options?: GetExperimentOptions,
   ): DynamicConfig {
     return this._errorBoundary.capture(
       (ctx) =>
@@ -321,6 +327,7 @@ export default class StatsigServer {
       StatsigContext.new({
         caller: 'getExperimentWithExposureLoggingDisabled',
         configName: experimentName,
+        userPersistedValues: options?.userPersistedValues,
       }),
     );
   }
@@ -369,17 +376,26 @@ export default class StatsigServer {
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
    */
-  public getLayerSync(user: StatsigUser, layerName: string): Layer {
+  public getLayerSync(
+    user: StatsigUser,
+    layerName: string,
+    options?: GetLayerOptions,
+  ): Layer {
     return this._errorBoundary.capture(
       (ctx) => this.getLayerImpl(user, layerName, ExposureLogging.Enabled, ctx),
       () => new Layer(layerName),
-      StatsigContext.new({ caller: 'getLayer', configName: layerName }),
+      StatsigContext.new({
+        caller: 'getLayer',
+        configName: layerName,
+        userPersistedValues: options?.userPersistedValues,
+      }),
     );
   }
 
   public getLayerWithExposureLoggingDisabledSync(
     user: StatsigUser,
     layerName: string,
+    options?: GetLayerOptions,
   ): Layer {
     return this._errorBoundary.capture(
       (ctx) =>
@@ -388,6 +404,7 @@ export default class StatsigServer {
       StatsigContext.new({
         caller: 'getLayerWithExposureLoggingDisabled',
         configName: layerName,
+        userPersistedValues: options?.userPersistedValues,
       }),
     );
   }
@@ -416,6 +433,17 @@ export default class StatsigServer {
   }
 
   //#endregion
+
+  public getUserPersistedValues(
+    user: StatsigUser,
+    idType: string,
+  ): UserPersistedValues {
+    return this._errorBoundary.capture(
+      () => this._evaluator.getUserPersistedValues(user, idType),
+      () => ({}),
+      StatsigContext.new({ caller: 'getUserPersistedValues' }),
+    );
+  }
 
   /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment

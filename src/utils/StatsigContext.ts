@@ -1,4 +1,5 @@
 import { ConfigSpec } from '../ConfigSpec';
+import { UserPersistedValues } from '../interfaces/IUserPersistentStorage';
 import { StatsigUser } from '../StatsigUser';
 
 type Context = {
@@ -11,6 +12,7 @@ type Context = {
   targetAppID?: string;
   user?: StatsigUser;
   spec?: ConfigSpec;
+  userPersistedValues?: UserPersistedValues | null;
 };
 
 export class StatsigContext {
@@ -20,6 +22,7 @@ export class StatsigContext {
   readonly clientKey?: string;
   readonly hash?: string;
   readonly bypassDedupe?: boolean;
+  readonly userPersistedValues?: UserPersistedValues | null;
 
   protected constructor(protected ctx: Context) {
     this.caller = ctx.caller;
@@ -28,6 +31,7 @@ export class StatsigContext {
     this.clientKey = ctx.clientKey;
     this.hash = ctx.clientKey;
     this.bypassDedupe = ctx.bypassDedupe;
+    this.userPersistedValues = ctx.userPersistedValues;
   }
 
   // Create a new context to avoid modifying context up the stack

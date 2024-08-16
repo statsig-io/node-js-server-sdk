@@ -80,10 +80,10 @@ export function getFromEnvironment(user: StatsigUser, field: string) {
   return getParameterCaseInsensitive(user?.statsigEnvironment, field);
 }
 
-export function getParameterCaseInsensitive(
-  object: Record<string, unknown> | undefined | null,
+export function getParameterCaseInsensitive<T>(
+  object: Record<string, T> | undefined | null,
   key: string,
-): unknown | undefined {
+): T | undefined {
   if (object == null) {
     return undefined;
   }

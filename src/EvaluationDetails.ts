@@ -29,6 +29,14 @@ export class EvaluationDetails {
     );
   }
 
+  static persisted(configSyncTime: number, initialUpdateTime: number) {
+    return new EvaluationDetails(
+      configSyncTime,
+      initialUpdateTime,
+      'Persisted',
+    );
+  }
+
   static make(
     configSyncTime: number,
     initialUpdateTime: number,

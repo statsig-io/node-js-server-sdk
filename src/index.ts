@@ -12,10 +12,13 @@ import {
   DataAdapterKey,
   IDataAdapter,
 } from './interfaces/IDataAdapter';
+import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
 import Layer from './Layer';
 import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
+  GetExperimentOptions,
+  GetLayerOptions,
   InitStrategy,
   RulesUpdatedCallback,
   StatsigEnvironment,
@@ -34,6 +37,8 @@ export type {
   RulesUpdatedCallback,
   StatsigEnvironment,
   StatsigOptions,
+  GetExperimentOptions,
+  GetLayerOptions,
   StatsigUser,
 };
 
@@ -193,11 +198,20 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the experiment
    * @param {string} experimentName - the name of the experiment to get
+   * @param {GetExperimentOptions} options - options for experiment evaluation
    * @returns {DynamicConfig} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
    */
-  getExperimentSync(user: StatsigUser, experimentName: string): DynamicConfig {
-    return this._enforceServer().getExperimentSync(user, experimentName);
+  getExperimentSync(
+    user: StatsigUser,
+    experimentName: string,
+    options?: GetExperimentOptions,
+  ): DynamicConfig {
+    return this._enforceServer().getExperimentSync(
+      user,
+      experimentName,
+      options,
+    );
   },
 
   /**
@@ -206,16 +220,19 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the experiment
    * @param {string} experimentName - the name of the experiment to get
+   * @param {GetExperimentOptions} options - options for experiment evaluation
    * @returns {DynamicConfig} - the experiment for the user, represented by a Dynamic Config object
    * @throws Error if initialize() was not called first
    */
   getExperimentWithExposureLoggingDisabledSync(
     user: StatsigUser,
     experimentName: string,
+    options?: GetExperimentOptions,
   ): DynamicConfig {
     return this._enforceServer().getExperimentWithExposureLoggingDisabledSync(
       user,
       experimentName,
+      options,
     );
   },
 
@@ -248,11 +265,16 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the layer
    * @param {string} layerName - the name of the layer to get
+   * @param {GetLayerOptions} options - options for layer evaluation
    * @returns {Layer} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
    */
-  getLayerSync(user: StatsigUser, layerName: string): Layer {
-    return this._enforceServer().getLayerSync(user, layerName);
+  getLayerSync(
+    user: StatsigUser,
+    layerName: string,
+    options?: GetLayerOptions,
+  ): Layer {
+    return this._enforceServer().getLayerSync(user, layerName, options);
   },
 
   /**
@@ -261,6 +283,7 @@ export const Statsig = {
    *
    * @param {StatsigUser} user - the user to evaluate for the layer
    * @param {string} layerName - the name of the layer to get
+   * @param {GetLayerOptions} options - options for layer evaluation
    * @returns {Layer} - the layer for the user, represented by a Layer
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
@@ -268,10 +291,12 @@ export const Statsig = {
   getLayerWithExposureLoggingDisabledSync(
     user: StatsigUser,
     layerName: string,
+    options?: GetLayerOptions,
   ): Layer {
     return this._enforceServer().getLayerWithExposureLoggingDisabledSync(
       user,
       layerName,
+      options,
     );
   },
 
@@ -292,6 +317,13 @@ export const Statsig = {
       layerName,
       parameterName,
     );
+  },
+
+  getUserPersistedValues(
+    user: StatsigUser,
+    idType: string,
+  ): UserPersistedValues {
+    return this._enforceServer().getUserPersistedValues(user, idType);
   },
 
   /**

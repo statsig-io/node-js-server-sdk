@@ -1,4 +1,8 @@
 import { IDataAdapter } from './interfaces/IDataAdapter';
+import {
+  IUserPersistentStorage,
+  UserPersistedValues,
+} from './interfaces/IUserPersistentStorage';
 import { STATSIG_API, STATSIG_CDN } from './utils/StatsigFetcher';
 
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
@@ -53,6 +57,7 @@ export type ExplicitStatsigOptions = {
   disableRulesetsSync: boolean;
   disableIdListsSync: boolean;
   disableAllLogging: boolean;
+  userPersistentStorage: IUserPersistentStorage | null;
 };
 
 /**
@@ -130,6 +135,7 @@ export function OptionsWithDefaults(
     disableRulesetsSync: opts.disableRulesetsSync ?? false,
     disableIdListsSync: opts.disableIdListsSync ?? false,
     disableAllLogging: opts.disableAllLogging ?? false,
+    userPersistentStorage: opts.userPersistentStorage ?? null,
   };
 }
 
@@ -230,3 +236,11 @@ function getNumber(
 function normalizeUrl(url: string | null): string | null {
   return url && url.endsWith('/') ? url.slice(0, -1) : url;
 }
+
+export type GetExperimentOptions = {
+  userPersistedValues?: UserPersistedValues | null;
+};
+
+export type GetLayerOptions = {
+  userPersistedValues?: UserPersistedValues | null;
+};
