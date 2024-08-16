@@ -17,9 +17,7 @@ export type StickyValues = {
 export type UserPersistedValues = Record<string, StickyValues>;
 
 /**
- * An adapter for implementing custom storage of config specs.
- * Useful for backing up data in memory.
- * Can also be used to bootstrap Statsig server.
+ * A storage adapter for persisted values. Can be used for sticky bucketing users in experiments.
  */
 export interface IUserPersistentStorage {
   /**
