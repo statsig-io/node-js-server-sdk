@@ -232,3 +232,19 @@ export function arrayAny(
   }
   return false;
 }
+
+export function arrayHasValue(
+  value: unknown[],
+  target: string[] | number[],
+): boolean {
+  const valueSet = new Set(value);
+  for (let i = 0; i < target.length; i++) {
+    if (
+      valueSet.has(target[i]) ||
+      valueSet.has(parseInt(target[i] as string))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}

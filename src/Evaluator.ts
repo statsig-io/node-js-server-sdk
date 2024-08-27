@@ -14,6 +14,7 @@ import UserPersistentStorageHandler from './UserPersistentStorageHandler';
 import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
 import {
   arrayAny,
+  arrayHasValue,
   computeUserHash,
   dateCompare,
   getFromEnvironment,
@@ -1145,6 +1146,30 @@ export default class Evaluator {
         value = hashUnitIDForIDList(value);
         const inList = typeof list === 'object' && list[value] === true;
         evalResult = op === 'in_segment_list' ? inList : !inList;
+        break;
+      }
+      case 'array_contains_any': {
+        if (!Array.isArray(target)) {
+          evalResult = false;
+          break;
+        }
+        if (!Array.isArray(value)) {
+          evalResult = false;
+          break;
+        }
+        evalResult = arrayHasValue(value as unknown[], target as string[]);
+        break;
+      }
+      case 'array_contains_none': {
+        if (!Array.isArray(target)) {
+          evalResult = false;
+          break;
+        }
+        if (!Array.isArray(value)) {
+          evalResult = false;
+          break;
+        }
+        evalResult = !arrayHasValue(value as unknown[], target as string[]);
         break;
       }
       default:
