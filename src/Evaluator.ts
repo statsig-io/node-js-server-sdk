@@ -14,6 +14,7 @@ import UserPersistentStorageHandler from './UserPersistentStorageHandler';
 import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
 import {
   arrayAny,
+  arrayHasAllValues,
   arrayHasValue,
   computeUserHash,
   dateCompare,
@@ -1170,6 +1171,30 @@ export default class Evaluator {
           break;
         }
         evalResult = !arrayHasValue(value as unknown[], target as string[]);
+        break;
+      }
+      case 'array_contains_all': {
+        if (!Array.isArray(target)) {
+          evalResult = false;
+          break;
+        }
+        if (!Array.isArray(value)) {
+          evalResult = false;
+          break;
+        }
+        evalResult = arrayHasAllValues(value as unknown[], target as string[]);
+        break;
+      }
+      case 'not_array_contains_all': {
+        if (!Array.isArray(target)) {
+          evalResult = false;
+          break;
+        }
+        if (!Array.isArray(value)) {
+          evalResult = false;
+          break;
+        }
+        evalResult = !arrayHasAllValues(value as unknown[], target as string[]);
         break;
       }
       default:

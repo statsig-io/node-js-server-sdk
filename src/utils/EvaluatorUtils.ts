@@ -248,3 +248,19 @@ export function arrayHasValue(
   }
   return false;
 }
+
+export function arrayHasAllValues(
+  value: unknown[],
+  target: string[] | number[],
+): boolean {
+  const valueSet = new Set(value);
+  for (let i = 0; i < target.length; i++) {
+    if (
+      !valueSet.has(target[i]) &&
+      !valueSet.has(parseInt(target[i] as string))
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
