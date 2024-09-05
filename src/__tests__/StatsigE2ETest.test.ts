@@ -225,7 +225,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
   test('Verify getConfig and exposure logs', async () => {
     await statsig.initialize('secret-123', { disableDiagnostics: true });
     let config = await statsig.getConfig(statsigUser, 'test_config');
-    expect(config.getGroupName()).toBe('statsig emails');
+    expect(config.getGroupName()).toBeNull();
     expect(config.getRuleID()).toBe('4lInPNRUnjUzaWNkEWLFA9');
     expect(config.getIDType()).toBe('userID');
     expect(config.getEvaluationDetails()?.configSyncTime).toBe(

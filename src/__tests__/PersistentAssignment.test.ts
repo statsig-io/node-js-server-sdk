@@ -55,7 +55,7 @@ describe('Persistent Assignment', () => {
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
     exp = statsig.getExperimentSync(userNotInExp, experimentName);
-    expect(exp.getGroupName()).toEqual('Layer Assignment');
+    expect(exp.getGroupName()).toBeNull();
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
     expect(Object.keys(persistentStorage.store).length).toEqual(0);
@@ -121,7 +121,7 @@ describe('Persistent Assignment', () => {
         'userID',
       ),
     });
-    expect(exp.getGroupName()).toEqual('Layer Assignment');
+    expect(exp.getGroupName()).toBeNull();
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
     // Use sticky bucketing on a different ID type that hasn't been saved to storage

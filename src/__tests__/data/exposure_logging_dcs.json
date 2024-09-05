@@ -13,7 +13,6 @@
       "rules": [
         {
           "name": "experimentAssignment",
-          "groupName": "Experiment Assignment",
           "passPercentage": 100,
           "conditions": [],
           "returnValue": {

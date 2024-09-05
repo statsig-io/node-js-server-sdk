@@ -28,7 +28,7 @@ describe('ConfigGroupName', () => {
       ['Is Beta Release', { userID: 'c-user', appVersion: '1.1.1-beta' }],
     ])('has group name `%s`', async (expected, user) => {
       const gate = await Statsig.getFeatureGate(user, 'test_many_rules');
-      expect(gate.groupName).toEqual(expected);
+      expect(gate.groupName).toBeNull();
     });
 
     it('returns null when no gate is found', async () => {
@@ -56,7 +56,7 @@ describe('ConfigGroupName', () => {
 
   describe('getExperiment', () => {
     it.each([
-      ['user-not-allocated-to-experiment-1', 'Layer Assignment'],
+      ['user-not-allocated-to-experiment-1', null],
       ['user-allocated-to-test-6', 'Test #2'],
       ['user-allocated-to-control-3', 'Control'],
     ])('%s has group name %s', async (userID, expected) => {
@@ -102,6 +102,83 @@ describe('ConfigGroupName', () => {
       const experiment = await Statsig.getExperiment(user, 'disabled_config');
 
       expect(experiment.getGroupName()).toBeNull();
+    });
+  });
+
+  describe('getClientInitializeResponse', () => {
+    describe('GroupName in FeatureGates', () => {
+      let gate: any;
+
+      beforeEach(() => {
+        const user = { userID: 'user-a' };
+        const response = Statsig.getClientInitializeResponse(user, undefined, {
+          hash: 'none',
+        })!;
+        gate = response.feature_gates['test_many_rules'];
+      });
+
+      it('group name is not included in gate results', () => {
+        expect(gate.group_name).toBeUndefined();
+      });
+    });
+
+    describe('GroupName in DynamicConfigs', () => {
+      let config: any;
+
+      beforeEach(() => {
+        const user = { userID: 'user-a' };
+        const response = Statsig.getClientInitializeResponse(user, undefined, {
+          hash: 'none',
+        })!;
+        config = response.dynamic_configs['disabled_config'];
+      });
+
+      it('group name is not included in dynamic config results', () => {
+        expect(config.group_name).toBeUndefined();
+      });
+    });
+
+    describe('User not in Experiment', () => {
+      let experiment: any;
+      let layer: any;
+
+      beforeEach(() => {
+        const user = { userID: 'user-a' };
+        const response = Statsig.getClientInitializeResponse(user, undefined, {
+          hash: 'none',
+        })!;
+
+        experiment = response.dynamic_configs['experiment_with_many_params'];
+        layer = response.layer_configs['layer_with_many_params'];
+      });
+
+      it('returns null when group name is not an experiment group', () => {
+        expect(experiment.group_name).toBeUndefined();
+        expect(layer.group_name).toBeUndefined();
+      });
+    });
+
+    describe('User is in Experiment', () => {
+      let experiment: any;
+      let layer: any;
+
+      beforeEach(() => {
+        const user = { userID: 'user-b' };
+        const response = Statsig.getClientInitializeResponse(user, undefined, {
+          hash: 'none',
+        })!;
+
+        experiment = response.dynamic_configs['experiment_with_many_params'];
+        layer = response.layer_configs['layer_with_many_params'];
+      });
+
+      it('includes group name in experiments', () => {
+        expect(experiment.group_name).toBe('Control');
+      });
+
+      it('includes group name in layers', () => {
+        expect(layer.group_name).toBe('Control');
+      });
     });
   });
 });

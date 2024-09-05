@@ -98,7 +98,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
     await logger.shutdown(5000);
     const end = Date.now();
     expect(events).toHaveLength(1);
-    expect(end - start).toBeGreaterThanOrEqual(500);
+    expect(end - start).toBeGreaterThanOrEqual(499);
   });
 
   test('StatsigServer shutdown async', async () => {

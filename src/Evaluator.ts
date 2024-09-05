@@ -45,6 +45,7 @@ type InitializeResponse = {
   rule_id: string;
   is_device_based: boolean;
   secondary_exposures: Record<string, string>[];
+  group_name?: string | null;
   is_experiment_active?: boolean;
   is_user_in_experiment?: boolean;
   is_in_layer?: boolean;
@@ -392,6 +393,21 @@ export default class Evaluator {
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
           const delegateSpec = this.store.getConfig(res.config_delegate);
+          if (delegateSpec != null) {
+            const delegateRes = this._eval(
+              EvaluationContext.get(ctx.getRequestContext(), {
+                user,
+                spec: delegateSpec,
+                targetAppID: targetAppID ?? undefined,
+              }),
+            );
+            if (
+              delegateRes.group_name != null &&
+              delegateRes.group_name !== ''
+            ) {
+              format.group_name = delegateRes.group_name;
+            }
+          }
           format.allocated_experiment_name = hashString(
             res.config_delegate,
             options?.hash,
@@ -593,6 +609,10 @@ export default class Evaluator {
         hash,
       ),
     };
+
+    if (res.group_name != null) {
+      output.group_name = res.group_name;
+    }
 
     if (res.explicit_parameters) {
       output.explicit_parameters = res.explicit_parameters;

@@ -9,7 +9,6 @@
       "rules": [
         {
           "name": "1kNmlB23wylPFZi1M0Divl",
-          "groupName": "statsig email",
           "passPercentage": 100,
           "conditions": [
             {
@@ -35,7 +34,6 @@
       "rules": [
         {
           "name": "",
-          "groupName": "experimentSize",
           "passPercentage": 100,
           "conditions": [
             {
@@ -191,7 +189,6 @@
       "rules": [
         {
           "name": "6N6Z8ODekNYZ7F8gFdoLP5",
-          "groupName": "everyone",
           "passPercentage": 100,
           "conditions": [
             {
@@ -217,7 +214,6 @@
       "rules": [
         {
           "name": "7w9rbTSffLT89pxqpyhuqK",
-          "groupName": "on for statsig emails",
           "passPercentage": 100,
           "conditions": [
             {
@@ -243,7 +239,6 @@
       "rules": [
         {
           "name": "7w9rbTSffLT89pxqpyhuqA",
-          "groupName": "on for people in id list",
           "passPercentage": 100,
           "conditions": [
             {
@@ -271,7 +266,6 @@
       "rules": [
         {
           "name": "experimentAssignment",
-          "groupName": "Experiment Assignment",
           "passPercentage": 100,
           "conditions": [
             {
@@ -402,7 +396,6 @@
       "rules": [
         {
           "name": "7d2E854TtGmfETdmJFip1L",
-          "groupName": "master_holdout",
           "passPercentage": 100,
           "conditions": [
             {

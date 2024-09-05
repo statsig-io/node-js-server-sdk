@@ -17,7 +17,6 @@
       "rules": [
         {
           "name": "alwaysPass",
-          "groupName": "Public",
           "passPercentage": 100,
           "conditions": [
             {
@@ -82,7 +81,6 @@
       "rules": [
         {
           "name": "experimentAssignment",
-          "groupName": "Experiment Assignment",
           "passPercentage": 100,
           "conditions": [
             {
@@ -135,9 +133,7 @@
       "entity": "layer"
     },
     {
-      "__________________________USED_BY_TESTS": [
-        "test_custom_id_layer"
-      ],
+      "__________________________USED_BY_TESTS": ["test_custom_id_layer"],
       "name": "test_custom_id_layer",
       "type": "dynamic_config",
       "salt": "3e361046-bc69-4dfd-bbb1-538afe609157",
