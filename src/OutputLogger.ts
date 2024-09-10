@@ -10,32 +10,37 @@ export default abstract class OutputLogger {
   }
 
   static debug(message?: any, ...optionalParams: any[]) {
-    if (_logger.logLevel !== 'none') {
+    if (_logger.logLevel === 'debug') {
       const sanitizedMessage = this.sanitizeError(message);
       _logger.debug && _logger.debug(sanitizedMessage, ...optionalParams);
     }
   }
 
   static info(message?: any, ...optionalParams: any[]) {
-    if (
-      _logger.logLevel === 'info' ||
-      _logger.logLevel === 'warn' ||
-      _logger.logLevel === 'error'
-    ) {
+    if (_logger.logLevel === 'debug' || _logger.logLevel === 'info') {
       const sanitizedMessage = this.sanitizeError(message);
       _logger.info && _logger.info(sanitizedMessage, ...optionalParams);
     }
   }
 
   static warn(message?: any, ...optionalParams: any[]) {
-    if (_logger.logLevel === 'warn' || _logger.logLevel === 'error') {
+    if (
+      _logger.logLevel === 'debug' ||
+      _logger.logLevel === 'info' ||
+      _logger.logLevel === 'warn'
+    ) {
       const sanitizedMessage = this.sanitizeError(message);
       _logger.warn(sanitizedMessage, ...optionalParams);
     }
   }
 
   static error(message?: any, ...optionalParams: any[]) {
-    if (_logger.logLevel === 'error') {
+    if (
+      _logger.logLevel === 'debug' ||
+      _logger.logLevel === 'info' ||
+      _logger.logLevel === 'warn' ||
+      _logger.logLevel === 'error'
+    ) {
       const sanitizedMessage = this.sanitizeError(message);
       _logger.error(sanitizedMessage, ...optionalParams);
     }

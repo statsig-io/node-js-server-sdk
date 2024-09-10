@@ -3,7 +3,7 @@ import { StatsigInitializeFromNetworkError, StatsigInitializeIDListsError } from
 import LogEvent from '../LogEvent';
 import { LoggerInterface } from '../StatsigOptions';
 
-const logLevels = ['warn', 'error'] as ('warn' | 'error')[]
+const logLevels = ['none', 'error'] as const
 describe('Output Logger Interface', () => {
   it.each(logLevels)('verify calls to logger with log level %s', async (level) => {
     const warnings: unknown[] = [];
