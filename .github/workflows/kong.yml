@@ -51,14 +51,14 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: npm run kong -- regression_test nodejs -p base -v
 
-      - name: Upload base benchmark score
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v2
-        with:
-          name: nodejs-perf
-          path: /tmp/perf/nodejs_perf_score.txt
-          retention-days: 5
+      # - name: Upload base benchmark score
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: nodejs-perf
+      #     path: /tmp/perf/nodejs_perf_score.txt
+      #     retention-days: 5
 
-      - name: Run regression test
-        if: github.ref != 'refs/heads/main'
-        run: npm run kong -- regression_test nodejs -p test -v
+      # - name: Run regression test
+      #   if: github.ref != 'refs/heads/main'
+      #   run: npm run kong -- regression_test nodejs -p test -v

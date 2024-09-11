@@ -4,6 +4,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData, SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
+import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
@@ -114,7 +115,7 @@ export default class LogEventProcessor {
         retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: false,
+        compress: SDKFlags.on('stop_log_event_compression') === false,
         additionalHeaders: {
           'STATSIG-EVENT-COUNT': String(oldQueue.length),
         },
