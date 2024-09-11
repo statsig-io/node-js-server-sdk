@@ -281,7 +281,7 @@ export default class SpecStore {
         this.rulesUpdatedCallback(specsString, this.lastUpdateTime);
       }
       if (hasUpdates) {
-        this._saveConfigSpecsToAdapter(specsString);
+        await this._saveConfigSpecsToAdapter(specsString);
         Diagnostics.mark.downloadConfigSpecs.process.end({
           success: this.initReason === 'Network',
         });
