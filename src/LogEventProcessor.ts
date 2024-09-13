@@ -115,7 +115,7 @@ export default class LogEventProcessor {
         retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: SDKFlags.on('stop_log_event_compression') === false,
+        compress: false,
         additionalHeaders: {
           'STATSIG-EVENT-COUNT': String(oldQueue.length),
         },
