@@ -848,6 +848,12 @@ export default class Evaluator {
   }
 
   _evalPassPercent(user: StatsigUser, rule: ConfigRule, config: ConfigSpec) {
+    if (rule.passPercentage === 0.0) {
+      return false;
+    }
+    if (rule.passPercentage === 100.0) {
+      return true;
+    }
     const hash = computeUserHash(
       config.salt +
         '.' +
