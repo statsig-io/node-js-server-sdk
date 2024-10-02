@@ -325,6 +325,7 @@ export default class StatsigServer {
         caller: 'getExperiment',
         configName: experimentName,
         userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
   }
@@ -342,6 +343,7 @@ export default class StatsigServer {
         caller: 'getExperimentWithExposureLoggingDisabled',
         configName: experimentName,
         userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
   }
@@ -402,6 +404,7 @@ export default class StatsigServer {
         caller: 'getLayer',
         configName: layerName,
         userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
   }
@@ -419,6 +422,7 @@ export default class StatsigServer {
         caller: 'getLayerWithExposureLoggingDisabled',
         configName: layerName,
         userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
   }

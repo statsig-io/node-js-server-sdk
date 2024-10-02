@@ -237,10 +237,21 @@ function normalizeUrl(url: string | null): string | null {
   return url && url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
+export type PersistentAssignmentOptions = {
+  /* Whether or not to enforce targeting rules before assigning persisted values */
+  enforceTargeting?: boolean;
+};
+
 export type GetExperimentOptions = {
+  /* Persisted values to use for experiment assignment */
   userPersistedValues?: UserPersistedValues | null;
+  /* Additional options for using persistent assignment */
+  persistentAssignmentOptions?: PersistentAssignmentOptions;
 };
 
 export type GetLayerOptions = {
+  /* Persisted values to use for layer assignment */
   userPersistedValues?: UserPersistedValues | null;
+  /* Additional options for using persistent assignment */
+  persistentAssignmentOptions?: PersistentAssignmentOptions;
 };

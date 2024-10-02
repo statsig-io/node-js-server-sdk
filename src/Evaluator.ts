@@ -672,7 +672,8 @@ export default class Evaluator {
   }
 
   _evalConfig(ctx: EvaluationContext): ConfigEvaluation {
-    const { user, spec, userPersistedValues } = ctx;
+    const { user, spec, userPersistedValues, persistentAssignmentOptions } =
+      ctx;
     if (userPersistedValues == null || !spec.isActive) {
       this.persistentStore.delete(user, spec.idType, spec.name);
       return this._evalSpec(ctx);
@@ -687,7 +688,14 @@ export default class Evaluator {
       : null;
 
     if (stickyEvaluation) {
-      return stickyEvaluation;
+      if (persistentAssignmentOptions?.enforceTargeting) {
+        const passesTargeting = this._evalTargeting(ctx);
+        if (passesTargeting) {
+          return stickyEvaluation;
+        }
+      } else {
+        return stickyEvaluation;
+      }
     }
 
     const evaluation = this._evalSpec(ctx);
@@ -700,7 +708,8 @@ export default class Evaluator {
   }
 
   _evalLayer(ctx: EvaluationContext): ConfigEvaluation {
-    const { user, spec, userPersistedValues } = ctx;
+    const { user, spec, userPersistedValues, persistentAssignmentOptions } =
+      ctx;
     if (!userPersistedValues) {
       this.persistentStore.delete(user, spec.idType, spec.name);
       return this._evalSpec(ctx);
@@ -714,31 +723,49 @@ export default class Evaluator {
         )
       : null;
 
-    const isAllocatedExperimentActive = (evaluation: ConfigEvaluation) =>
-      this._isExperimentActive(
-        evaluation.config_delegate
-          ? this.store.getConfig(evaluation.config_delegate)
-          : null,
-      );
-
     if (stickyEvaluation) {
-      if (isAllocatedExperimentActive(stickyEvaluation)) {
-        return stickyEvaluation;
+      const delegateSpec = stickyEvaluation.config_delegate
+        ? this.store.getConfig(stickyEvaluation.config_delegate)
+        : null;
+      if (delegateSpec && delegateSpec.isActive) {
+        if (persistentAssignmentOptions?.enforceTargeting) {
+          const passesTargeting = this._evalTargeting(ctx, delegateSpec);
+          if (passesTargeting) {
+            return stickyEvaluation;
+          }
+        } else {
+          return stickyEvaluation;
+        }
       } else {
         this.persistentStore.delete(user, spec.idType, spec.name);
         return this._evalSpec(ctx);
       }
-    } else {
-      const evaluation = this._evalSpec(ctx);
-      if (isAllocatedExperimentActive(evaluation)) {
-        if (evaluation.is_experiment_group) {
-          this.persistentStore.save(user, spec.idType, spec.name, evaluation);
-        }
-      } else {
-        this.persistentStore.delete(user, spec.idType, spec.name);
-      }
-      return evaluation;
     }
+
+    const evaluation = this._evalSpec(ctx);
+    const delegateSpec = evaluation.config_delegate
+      ? this.store.getConfig(evaluation.config_delegate)
+      : null;
+    if (delegateSpec && delegateSpec.isActive) {
+      if (evaluation.is_experiment_group) {
+        this.persistentStore.save(user, spec.idType, spec.name, evaluation);
+      }
+    } else {
+      this.persistentStore.delete(user, spec.idType, spec.name);
+    }
+    return evaluation;
+  }
+
+  _evalTargeting(ctx: EvaluationContext, delegateSpec?: ConfigSpec): boolean {
+    return (
+      this._evalSpec(
+        EvaluationContext.get(ctx.getRequestContext(), {
+          user: ctx.user,
+          spec: delegateSpec ?? ctx.spec,
+          onlyEvaluateTargeting: true,
+        }),
+      ).value === false
+    ); // Fail evaluation means to pass targeting (fall through logic)
   }
 
   _evalSpec(ctx: EvaluationContext): ConfigEvaluation {
@@ -769,9 +796,16 @@ export default class Evaluator {
       );
     }
 
+    let rules = config.rules;
+    if (ctx.onlyEvaluateTargeting) {
+      rules = config.rules.filter((rule) => rule.isTargetingRule());
+      if (rules.length === 0) {
+        return new ConfigEvaluation(true);
+      }
+    }
+
     let secondary_exposures: SecondaryExposure[] = [];
-    for (let i = 0; i < config.rules.length; i++) {
-      const rule = config.rules[i];
+    for (const rule of rules) {
       const ruleResult = this._evalRule(user, rule, ctx);
       if (ruleResult.unsupported) {
         return ConfigEvaluation.unsupported(

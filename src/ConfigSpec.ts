@@ -82,6 +82,10 @@ export class ConfigRule {
     });
     return conditions;
   }
+
+  isTargetingRule(): boolean {
+    return this.id === 'inlineTargetingRules' || this.id === 'targetingGate';
+  }
 }
 
 export class ConfigCondition {

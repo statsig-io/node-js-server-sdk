@@ -4,6 +4,7 @@ import {
   InitializationSource,
 } from '../InitializationDetails';
 import { UserPersistedValues } from '../interfaces/IUserPersistentStorage';
+import { PersistentAssignmentOptions } from '../StatsigOptions';
 import { StatsigUser } from '../StatsigUser';
 
 type RequestContext = {
@@ -17,6 +18,7 @@ type RequestContext = {
   user?: StatsigUser;
   spec?: ConfigSpec;
   userPersistedValues?: UserPersistedValues | null;
+  persistentAssignmentOptions?: PersistentAssignmentOptions;
 };
 
 export class StatsigContext {
@@ -28,6 +30,7 @@ export class StatsigContext {
   readonly hash?: string;
   readonly bypassDedupe?: boolean;
   readonly userPersistedValues?: UserPersistedValues | null;
+  readonly persistentAssignmentOptions?: PersistentAssignmentOptions;
 
   protected constructor(protected ctx: RequestContext) {
     this.startTime = Date.now();
@@ -38,6 +41,7 @@ export class StatsigContext {
     this.hash = ctx.clientKey;
     this.bypassDedupe = ctx.bypassDedupe;
     this.userPersistedValues = ctx.userPersistedValues;
+    this.persistentAssignmentOptions = ctx.persistentAssignmentOptions;
   }
 
   // Create a new context to avoid modifying context up the stack
@@ -64,17 +68,20 @@ export class EvaluationContext extends StatsigContext {
   readonly user: StatsigUser;
   readonly spec: ConfigSpec;
   readonly targetAppID?: string;
+  readonly onlyEvaluateTargeting?: boolean;
 
   protected constructor(
     ctx: RequestContext,
     user: StatsigUser,
     spec: ConfigSpec,
     targetAppID?: string,
+    onlyEvaluateTargeting?: boolean,
   ) {
     super(ctx);
     this.user = user;
     this.spec = spec;
     this.targetAppID = targetAppID;
+    this.onlyEvaluateTargeting = onlyEvaluateTargeting;
   }
 
   public static new(
@@ -90,6 +97,7 @@ export class EvaluationContext extends StatsigContext {
       user: StatsigUser;
       spec: ConfigSpec;
       targetAppID?: string;
+      onlyEvaluateTargeting?: boolean;
     },
   ): EvaluationContext {
     return new EvaluationContext(
@@ -97,15 +105,7 @@ export class EvaluationContext extends StatsigContext {
       evalCtx.user,
       evalCtx.spec,
       evalCtx.targetAppID,
-    );
-  }
-
-  public withTargetAppID(targetAppID: string): EvaluationContext {
-    return new EvaluationContext(
-      this.getRequestContext(),
-      this.user,
-      this.spec,
-      targetAppID,
+      evalCtx.onlyEvaluateTargeting,
     );
   }
 }
