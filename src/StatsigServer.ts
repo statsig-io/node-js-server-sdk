@@ -14,6 +14,7 @@ import {
   makeEmptyFeatureGate,
   makeFeatureGate,
 } from './FeatureGate';
+import { InitializationDetails } from './InitializationDetails';
 import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
 import Layer from './Layer';
 import LogEvent from './LogEvent';
@@ -32,7 +33,7 @@ import asyncify from './utils/asyncify';
 import { isUserIdentifiable, notEmptyObject } from './utils/core';
 import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
-import { StatsigContext } from './utils/StatsigContext';
+import { InitializeContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 let hasLoggedNoUserIdWarning = false;
@@ -69,7 +70,7 @@ export type ClientInitializeResponseOptions = {
  * The global statsig class for interacting with gates, configs, experiments configured in the statsig developer console.  Also used for event logging to view in the statsig console, or for analyzing experiment impacts using pulse.
  */
 export default class StatsigServer {
-  private _pendingInitPromise: Promise<void> | null = null;
+  private _pendingInitPromise: Promise<InitializeContext> | null = null;
   private _ready = false;
   private _options: ExplicitStatsigOptions;
   private _logger: LogEventProcessor;
@@ -111,19 +112,24 @@ export default class StatsigServer {
     this._evaluator = new Evaluator(this._fetcher, this._options);
   }
 
+  public async initializeAsync(): Promise<InitializationDetails> {
+    const res = await this.initializeImpl();
+    return res.getInitDetails();
+  }
+
   /**
    * Initializes the statsig server SDK. This must be called before checking gates/configs or logging events.
    * @throws Error if a Server Secret Key is not provided
    */
-  public initializeAsync(): Promise<void> {
+  private async initializeImpl(): Promise<InitializeContext> {
     return this._errorBoundary.capture(
-      () => {
+      (ctx) => {
         if (this._pendingInitPromise != null) {
           return this._pendingInitPromise;
         }
 
         if (this._ready === true) {
-          return Promise.resolve();
+          return Promise.resolve(ctx);
         }
         if (
           !this._options.localMode &&
@@ -140,20 +146,23 @@ export default class StatsigServer {
         Diagnostics.setContext('initialize');
         Diagnostics.mark.overall.start({});
 
-        const initPromise = this._evaluator.init().finally(() => {
-          this._ready = true;
-          this._pendingInitPromise = null;
-          Diagnostics.mark.overall.end({ success: true });
-          Diagnostics.logDiagnostics('initialize');
-          Diagnostics.setContext('config_sync');
-        });
+        const initPromise = this._evaluator
+          .init(ctx)
+          .then(() => Promise.resolve(ctx))
+          .finally(() => {
+            this._ready = true;
+            this._pendingInitPromise = null;
+            Diagnostics.mark.overall.end({ success: true });
+            Diagnostics.logDiagnostics('initialize');
+            Diagnostics.setContext('config_sync');
+          });
         if (
           this._options.initTimeoutMs != null &&
           this._options.initTimeoutMs > 0
         ) {
           this._pendingInitPromise = Promise.race([
             initPromise,
-            new Promise<void>((resolve) => {
+            new Promise<InitializeContext>((resolve) => {
               setTimeout(() => {
                 Diagnostics.mark.overall.end({
                   success: false,
@@ -163,21 +172,26 @@ export default class StatsigServer {
                 Diagnostics.setContext('config_sync');
                 this._ready = true;
                 this._pendingInitPromise = null;
-                resolve();
+                ctx.setFailed(new Error('Timed out waiting for initialize'));
+                resolve(ctx);
               }, this._options.initTimeoutMs);
             }),
           ]);
         } else {
           this._pendingInitPromise = initPromise;
         }
-        return this._pendingInitPromise ?? Promise.resolve();
+        return this._pendingInitPromise ?? Promise.resolve(ctx);
       },
-      () => {
+      (ctx, err) => {
         this._ready = true;
         this._pendingInitPromise = null;
-        return Promise.resolve();
+        ctx.setFailed(err instanceof Error ? err : undefined);
+        return Promise.resolve(ctx);
       },
-      StatsigContext.new({ caller: 'initializeAsync' }),
+      InitializeContext.new({
+        caller: 'initializeAsync',
+        sdkKey: this._secretKey,
+      }),
     );
   }
 

@@ -4,6 +4,7 @@ import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { ExplicitStatsigOptions, OptionsWithDefaults } from '../StatsigOptions';
 import StatsigServer from '../StatsigServer';
+import { InitializeContext } from '../utils/StatsigContext';
 import StatsigFetcher from '../utils/StatsigFetcher';
 import { getDecodedBody } from './StatsigTestUtils';
 
@@ -111,7 +112,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
   });
 
   test('SpecStore shutdown', async () => {
-    await store.init();
+    await store.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     expect(store.getInitReason()).toEqual('Uninitialized');
     // Wait for next sync to start
     await new Promise((r) => setTimeout(r, 100));
@@ -124,7 +125,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
   });
 
   test('SpecStore shutdown async', async () => {
-    await store.init();
+    await store.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     expect(store.getInitReason()).toEqual('Uninitialized');
     const start = Date.now();
     // Wait for next sync to start

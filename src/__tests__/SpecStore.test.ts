@@ -4,6 +4,7 @@ import ErrorBoundary from '../ErrorBoundary';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
+import { InitializeContext } from '../utils/StatsigContext';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 const exampleConfigSpecs = require('./jest.setup');
@@ -72,7 +73,11 @@ fetch.mockImplementation((url, params) => {
 describe('Verify behavior of SpecStore', () => {
   let store;
   const options = OptionsWithDefaults({});
-  const errorBoundary = new ErrorBoundary('secret-asdf1234', options, "sessionid-a")
+  const errorBoundary = new ErrorBoundary(
+    'secret-asdf1234',
+    options,
+    'sessionid-a',
+  );
   const logger = new LogEventProcessor(
     new StatsigFetcher('secret-asdf1234', options),
     errorBoundary,
@@ -98,7 +103,7 @@ describe('Verify behavior of SpecStore', () => {
   });
 
   test('init() does things correctly and kicks off a sync() which gets updated values', async () => {
-    await store.init();
+    await store.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     expect(Object.keys(store.store.gates).length).toEqual(2);
     expect(Object.keys(store.store.configs).length).toEqual(1);
     expect(Object.keys(store.store.layers).length).toEqual(1);

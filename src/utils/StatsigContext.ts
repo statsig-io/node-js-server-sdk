@@ -1,8 +1,12 @@
 import { ConfigSpec } from '../ConfigSpec';
+import {
+  InitializationDetails,
+  InitializationSource,
+} from '../InitializationDetails';
 import { UserPersistedValues } from '../interfaces/IUserPersistentStorage';
 import { StatsigUser } from '../StatsigUser';
 
-type Context = {
+type RequestContext = {
   caller?: string;
   configName?: string;
   clientKey?: string;
@@ -16,6 +20,7 @@ type Context = {
 };
 
 export class StatsigContext {
+  readonly startTime: number;
   readonly caller?: string;
   readonly eventCount?: number;
   readonly configName?: string;
@@ -24,7 +29,8 @@ export class StatsigContext {
   readonly bypassDedupe?: boolean;
   readonly userPersistedValues?: UserPersistedValues | null;
 
-  protected constructor(protected ctx: Context) {
+  protected constructor(protected ctx: RequestContext) {
+    this.startTime = Date.now();
     this.caller = ctx.caller;
     this.eventCount = ctx.eventCount;
     this.configName = ctx.configName;
@@ -35,7 +41,7 @@ export class StatsigContext {
   }
 
   // Create a new context to avoid modifying context up the stack
-  static new(ctx: Context): StatsigContext {
+  static new(ctx: RequestContext): StatsigContext {
     return new this(ctx);
   }
 
@@ -49,7 +55,7 @@ export class StatsigContext {
     };
   }
 
-  getRequestContext(): Context {
+  getRequestContext(): RequestContext {
     return this.ctx;
   }
 }
@@ -60,7 +66,7 @@ export class EvaluationContext extends StatsigContext {
   readonly targetAppID?: string;
 
   protected constructor(
-    ctx: Context,
+    ctx: RequestContext,
     user: StatsigUser,
     spec: ConfigSpec,
     targetAppID?: string,
@@ -72,14 +78,14 @@ export class EvaluationContext extends StatsigContext {
   }
 
   public static new(
-    ctx: Context & Required<Pick<Context, 'user' | 'spec'>>,
+    ctx: RequestContext & Required<Pick<RequestContext, 'user' | 'spec'>>,
   ): EvaluationContext {
     const { user, spec, ...optionalCtx } = ctx;
     return new this(optionalCtx, user, spec);
   }
 
   public static get(
-    ctx: Context,
+    ctx: RequestContext,
     evalCtx: {
       user: StatsigUser;
       spec: ConfigSpec;
@@ -101,5 +107,45 @@ export class EvaluationContext extends StatsigContext {
       this.spec,
       targetAppID,
     );
+  }
+}
+
+export class InitializeContext extends StatsigContext {
+  readonly sdkKey: string;
+  private success: boolean;
+  private error?: Error;
+  private source?: InitializationSource;
+
+  protected constructor(ctx: RequestContext, sdkKey: string) {
+    super(ctx);
+    this.sdkKey = sdkKey;
+    this.success = true;
+  }
+
+  public static new(
+    ctx: RequestContext & {
+      sdkKey: string;
+    },
+  ): InitializeContext {
+    return new this(ctx, ctx.sdkKey);
+  }
+
+  public setSuccess(source: InitializationSource): void {
+    this.success = true;
+    this.source = source;
+  }
+
+  public setFailed(error?: Error): void {
+    this.success = false;
+    this.error = error;
+  }
+
+  public getInitDetails(): InitializationDetails {
+    return {
+      duration: Date.now() - this.startTime,
+      success: this.success,
+      error: this.error,
+      source: this.source,
+    };
   }
 }

@@ -10,6 +10,7 @@ import {
   StatsigLocalModeNetworkError,
 } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
+import { InitializationSource } from './InitializationDetails';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
 import SDKFlags from './SDKFlags';
@@ -17,6 +18,7 @@ import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
+import { InitializeContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const SYNC_OUTDATED_MAX = 120 * 1000;
@@ -151,7 +153,7 @@ export default class SpecStore {
     return this.primaryTargetAppID;
   }
 
-  public async init(): Promise<void> {
+  public async init(ctx: InitializeContext): Promise<void> {
     let specsJSON = null;
 
     if (this.dataAdapter) {
@@ -161,7 +163,13 @@ export default class SpecStore {
         );
       }
       await this.dataAdapter.initialize();
-      await this._fetchConfigSpecsFromAdapter();
+      const { synced, error } = await this._fetchConfigSpecsFromAdapter();
+      if (synced) {
+        ctx.setSuccess('DataAdapter');
+      }
+      if (error) {
+        ctx.setFailed(error);
+      }
     }
 
     if (this.initReason === 'Uninitialized' && this.bootstrapValues != null) {
@@ -171,9 +179,12 @@ export default class SpecStore {
         this._process(specsJSON);
         if (this.lastUpdateTime !== 0) {
           this.initReason = 'Bootstrap';
+          ctx.setSuccess('Bootstrap');
         }
-      } catch (e) {
-        OutputLogger.error(new StatsigInvalidBootstrapValuesError());
+      } catch {
+        const error = new StatsigInvalidBootstrapValuesError();
+        OutputLogger.error(error);
+        ctx.setFailed(error);
       }
 
       Diagnostics.mark.bootstrap.process.end({
@@ -182,9 +193,14 @@ export default class SpecStore {
     }
 
     if (this.initReason === 'Uninitialized') {
-      const { error } = await this._fetchConfigSpecsFromServer();
+      const { synced, error } = await this._fetchConfigSpecsFromServer();
+      if (synced) {
+        ctx.setSuccess('Network');
+      }
       if (error) {
-        OutputLogger.error(new StatsigInitializeFromNetworkError(error));
+        const err = new StatsigInitializeFromNetworkError(error);
+        OutputLogger.error(err);
+        ctx.setFailed(err);
       }
     }
 

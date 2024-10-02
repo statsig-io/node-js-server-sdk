@@ -39,10 +39,10 @@ export default class ErrorBoundary {
     );
   }
 
-  capture<T>(
-    task: (ctx: StatsigContext) => T,
-    recover: (e: unknown) => T,
-    ctx: StatsigContext,
+  capture<T, C extends StatsigContext>(
+    task: (ctx: C) => T,
+    recover: (ctx: C, e: unknown) => T,
+    ctx: C,
   ): T {
     let markerID: string | null = null;
     try {
@@ -65,10 +65,10 @@ export default class ErrorBoundary {
     this.sdkKey = sdkKey;
   }
 
-  private onCaught<T>(
+  private onCaught<T, C extends StatsigContext>(
     error: unknown,
-    recover: (e: unknown) => T,
-    ctx: StatsigContext,
+    recover: (ctx: C, e: unknown) => T,
+    ctx: C,
   ): T {
     if (
       error instanceof StatsigUninitializedError ||
@@ -78,7 +78,7 @@ export default class ErrorBoundary {
       throw error; // Don't catch these
     }
     if (error instanceof StatsigLocalModeNetworkError) {
-      return recover(error);
+      return recover(ctx, error);
     }
 
     OutputLogger.error(
@@ -88,7 +88,7 @@ export default class ErrorBoundary {
 
     this.logError(error, ctx);
 
-    return recover(error);
+    return recover(ctx, error);
   }
 
   public logError(error: unknown, ctx: StatsigContext) {

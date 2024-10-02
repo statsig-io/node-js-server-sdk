@@ -32,7 +32,11 @@ import {
   hashString,
   hashUnitIDForIDList,
 } from './utils/Hashing';
-import { EvaluationContext, StatsigContext } from './utils/StatsigContext';
+import {
+  EvaluationContext,
+  InitializeContext,
+  StatsigContext,
+} from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
@@ -94,8 +98,8 @@ export default class Evaluator {
     );
   }
 
-  public async init(): Promise<void> {
-    await this.store.init();
+  public async init(ctx: InitializeContext): Promise<void> {
+    await this.store.init(ctx);
     try {
       if (this.initStrategyForIP3Country === 'lazy') {
         setTimeout(() => {

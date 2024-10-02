@@ -7,6 +7,7 @@ import {
 } from './Errors';
 import { ClientInitializeResponse } from './Evaluator';
 import { FeatureGate } from './FeatureGate';
+import { InitializationDetails } from './InitializationDetails';
 import {
   AdapterResponse,
   DataAdapterKey,
@@ -40,6 +41,7 @@ export type {
   GetExperimentOptions,
   GetLayerOptions,
   StatsigUser,
+  InitializationDetails,
 };
 
 export { DynamicConfig, IDataAdapter, DataAdapterKey, Layer, StatsigServer };
@@ -73,7 +75,7 @@ export const Statsig = {
   async initialize(
     secretKey: string,
     options: StatsigOptions = {},
-  ): Promise<void> {
+  ): Promise<InitializationDetails> {
     if (options.logger) {
       OutputLogger.setLogger(options.logger, secretKey);
     }

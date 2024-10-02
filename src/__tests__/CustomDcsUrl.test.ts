@@ -4,6 +4,7 @@ import LogEvent from '../LogEvent';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsWithDefaults } from '../StatsigOptions';
+import { InitializeContext } from '../utils/StatsigContext';
 import StatsigFetcher from '../utils/StatsigFetcher';
 
 const jsonResponse = {
@@ -33,7 +34,7 @@ describe('Check custom DCS url', () => {
   });
 
   it('works', async () => {
-    await store.init();
+    await store.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     logger.log(new LogEvent('test'));
     await logger.flush();
 

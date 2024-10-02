@@ -6,7 +6,11 @@ import Evaluator from '../Evaluator';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsLoggingCopy, OptionsWithDefaults } from '../StatsigOptions';
-import { EvaluationContext, StatsigContext } from '../utils/StatsigContext';
+import {
+  EvaluationContext,
+  InitializeContext,
+  StatsigContext,
+} from '../utils/StatsigContext';
 import StatsigFetcher from '../utils/StatsigFetcher';
 const exampleConfigSpecs = require('./jest.setup');
 
@@ -696,7 +700,7 @@ describe('testing checkGate and getConfig', () => {
       ),
     ).toMatchObject({ value: false });
 
-    await evaluator.init();
+    await evaluator.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     let result = evaluator.checkGate(
       { userID: 'jkw', custom: { email: 'jkw@nfl.com' } },
       exampleConfigSpecs.gate.name,
@@ -732,7 +736,7 @@ describe('testing checkGate and getConfig', () => {
       ),
     ).toMatchObject({ json_value: {} });
 
-    await evaluator.init();
+    await evaluator.init(InitializeContext.new({ sdkKey: 'secret-key' }));
 
     // check a config that should evaluate to real return value
     const result = evaluator.getConfig(
@@ -772,7 +776,7 @@ describe('testing checkGate and getConfig', () => {
 
     describe('when initialized', () => {
       beforeEach(async () => {
-        await evaluator.init();
+        await evaluator.init(InitializeContext.new({ sdkKey: 'secret-key' }));
       });
 
       it('returns {} when a non existant layer name is given', async () => {
@@ -799,7 +803,7 @@ describe('testing checkGate and getConfig', () => {
 
   test('ip2country() behavior', async () => {
     expect(evaluator.ip2country('1.0.0.255')).toEqual(null);
-    await evaluator.init();
+    await evaluator.init(InitializeContext.new({ sdkKey: 'secret-key' }));
     expect(evaluator.ip2country('1.0.0.255')).toEqual('US');
     expect(evaluator.ip2country(16777471)).toEqual('US');
     expect(evaluator.ip2country({})).toEqual(null);
