@@ -56,6 +56,7 @@ type InitializeResponse = {
   allocated_experiment_name?: string;
   explicit_parameters?: string[];
   undelegated_secondary_exposures?: Record<string, string>[];
+  id_type?: string;
 };
 
 export type ClientInitializeResponse = {
@@ -329,6 +330,7 @@ export default class Evaluator {
             res.secondary_exposures,
             options?.hash,
           ),
+          id_type: spec.idType,
         };
       });
 
@@ -348,6 +350,7 @@ export default class Evaluator {
             }),
           );
         const format = this._specToInitializeResponse(spec, res, options?.hash);
+        format.id_type = spec.idType ?? null;
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
             user,

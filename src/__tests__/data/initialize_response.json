@@ -1,24 +1,28 @@
 {
   "feature_gates": {
     "KfJ1sBBfnL8SwCIxTAyfnj6DiWIyR7uSqimZADQi4Jg=": {
+      "id_type": "userID",
       "name": "KfJ1sBBfnL8SwCIxTAyfnj6DiWIyR7uSqimZADQi4Jg=",
       "rule_id": "",
       "secondary_exposures": [],
       "value": false
     },
     "OqAaBJ4fpvUSJVicA+jDgotK2OKGJmKxbu+Icyq30P4=": {
+      "id_type": "userID",
       "name": "OqAaBJ4fpvUSJVicA+jDgotK2OKGJmKxbu+Icyq30P4=",
       "rule_id": "2DWuOvXQZWKvoaNm27dqcs",
       "secondary_exposures": [],
       "value": true
     },
     "rGc+6rvo48V4j1sXkvsGHeSfJfY7kMp1OHfQnw+3XbI=": {
+      "id_type": "userID",
       "name": "rGc+6rvo48V4j1sXkvsGHeSfJfY7kMp1OHfQnw+3XbI=",
       "value": true,
       "rule_id": "2DWuOvXQZWKvoaNm27dqcs",
       "secondary_exposures": []
     },
     "srhBjpz3NFHATrntxEsdHManNXJQZawtJUkQ3s0XT3Q=": {
+      "id_type": "userID",
       "name": "srhBjpz3NFHATrntxEsdHManNXJQZawtJUkQ3s0XT3Q=",
       "value": true,
       "rule_id": "3jdTW54SQWbbxFFZJe7wYZ",
@@ -35,11 +39,13 @@
       },
       "rule_id": "4lInPNRUnjUzaWNkEWLFA9",
       "group": "4lInPNRUnjUzaWNkEWLFA9",
+      "id_type": "userID",
       "is_device_based": false,
       "secondary_exposures": []
     },
     "S52jGlsKiXpNsVbAbe/hcTxLnaHOVT+rNsVP/ibJitY=": {
       "group": "prestart",
+      "id_type": "userID",
       "is_device_based": false,
       "name": "S52jGlsKiXpNsVbAbe/hcTxLnaHOVT+rNsVP/ibJitY=",
       "rule_id": "prestart",
@@ -54,6 +60,7 @@
       "rule_id": "5yQbPMfmKQdiRV35hS3B2l",
       "group": "5yQbPMfmKQdiRV35hS3B2l",
       "group_name": "Control",
+      "id_type": "userID",
       "is_device_based": false,
       "secondary_exposures": [],
       "is_experiment_active": true,
@@ -61,6 +68,7 @@
     },
     "BYdogc4bXxkqfoDOnfjlh1Ij+5QKjNp0rACKdwBL+vc=": {
       "group": "",
+      "id_type": null,
       "is_device_based": false,
       "is_experiment_active": false,
       "is_user_in_experiment": false,
@@ -74,6 +82,7 @@
       "value": {},
       "rule_id": "prestart",
       "group": "prestart",
+      "id_type": "userID",
       "secondary_exposures": [],
       "is_device_based": false,
       "is_experiment_active": false,
