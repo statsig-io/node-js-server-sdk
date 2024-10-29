@@ -94,10 +94,12 @@ describe('Verify behavior of top level index functions', () => {
 
   test('Verify initialize() doesnt re-use a bad instance', async () => {
     try {
-      await Statsig.initialize("bad-key");
+      await Statsig.initialize('bad-key');
     } catch {
       // @ts-ignore
-      return expect(Statsig.initialize("secret-blah", {localMode: true})).resolves.not.toThrow();;
+      return expect(
+        Statsig.initialize('secret-blah', { localMode: true }),
+      ).resolves.not.toThrow();
     }
   });
 
@@ -392,7 +394,7 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
         .mockImplementation((_user, _gateName) => {
-          return ConfigEvaluation.unsupported(-1, -2);
+          return ConfigEvaluation.unsupported(-1, -2, undefined);
         });
       const user = {
         userID: '123',
@@ -426,7 +428,7 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(StatsigTestUtils.getEvaluator(), 'checkGate')
         .mockImplementation((_user, _gateName) => {
-          return ConfigEvaluation.unsupported(-1, -2);
+          return ConfigEvaluation.unsupported(-1, -2, undefined);
         });
       const user = {
         userID: '123',
@@ -468,7 +470,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.unsupported(-1, -1);
+          return ConfigEvaluation.unsupported(-1, -1, undefined);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '');
@@ -513,7 +515,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.unsupported(-1, -1);
+          return ConfigEvaluation.unsupported(-1, -1, undefined);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '');
@@ -559,7 +561,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.unsupported(-1, -1);
+          return ConfigEvaluation.unsupported(-1, -1, undefined);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '', 'userID', []);
@@ -605,7 +607,7 @@ describe('Verify behavior of top level index functions', () => {
         }
 
         if (gateName === 'gate_server') {
-          return ConfigEvaluation.unsupported(-1, -1);
+          return ConfigEvaluation.unsupported(-1, -1, undefined);
         }
 
         return new ConfigEvaluation(false, 'rule_id_fail', '', 'userID', []);
@@ -646,7 +648,7 @@ describe('Verify behavior of top level index functions', () => {
       jest
         .spyOn(StatsigTestUtils.getEvaluator(), 'getConfig')
         .mockImplementation(() => {
-          return ConfigEvaluation.unsupported(-1, -2);
+          return ConfigEvaluation.unsupported(-1, -2, undefined);
         });
 
       const user = {
@@ -705,6 +707,7 @@ describe('Verify behavior of top level index functions', () => {
     configExposure.setMetadata({
       config: configName,
       ruleID: 'rule_id_config',
+      rulePassed: 'true',
     });
     configExposure.setSecondaryExposures([]);
 

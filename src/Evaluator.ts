@@ -796,6 +796,9 @@ export default class Evaluator {
         config.idType,
         [],
         config.defaultValue as Record<string, unknown>,
+        undefined, // explicit parameters
+        undefined, // config delegate
+        config.version,
       );
     }
 
@@ -814,6 +817,7 @@ export default class Evaluator {
         return ConfigEvaluation.unsupported(
           this.store.getLastUpdateTime(),
           this.store.getInitialUpdateTime(),
+          config.version,
         );
       }
 
@@ -843,6 +847,7 @@ export default class Evaluator {
             : (config.defaultValue as Record<string, unknown>),
           config.explicitParameters,
           ruleResult.config_delegate,
+          config.version,
         );
         evaluation.setIsExperimentGroup(ruleResult.is_experiment_group);
         return evaluation;
@@ -857,6 +862,8 @@ export default class Evaluator {
       secondary_exposures,
       config.defaultValue as Record<string, unknown>,
       config.explicitParameters,
+      undefined, // config delegate
+      config.version,
     );
   }
 
@@ -917,6 +924,7 @@ export default class Evaluator {
         return ConfigEvaluation.unsupported(
           this.store.getLastUpdateTime(),
           this.store.getInitialUpdateTime(),
+          undefined,
         );
       }
 
@@ -1032,7 +1040,7 @@ export default class Evaluator {
       case 'user_bucket': {
         const salt = condition.additionalValues?.salt;
         const userHash = computeUserHash(
-          salt + '.' + getUnitID(user, idType) ?? '',
+          salt + '.' + (getUnitID(user, idType) ?? ''),
         );
         value = Number(userHash % BigInt(USER_BUCKET_COUNT));
         break;

@@ -204,6 +204,10 @@ export default class LogEventProcessor {
       ruleID: evaluation.rule_id,
     };
 
+    if (evaluation.configVersion != null) {
+      metadata['configVersion'] = evaluation.configVersion;
+    }
+
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
 
     this.safeAddEvaulationDetailsToEvent(
@@ -228,7 +232,12 @@ export default class LogEventProcessor {
     const metadata: Record<string, unknown> = {
       config: configName,
       ruleID: evaluation.rule_id,
+      rulePassed: String(evaluation.value),
     };
+
+    if (evaluation.configVersion != null) {
+      metadata['configVersion'] = evaluation.configVersion;
+    }
 
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
 
@@ -268,6 +277,10 @@ export default class LogEventProcessor {
       parameterName,
       isExplicitParameter: String(isExplicit),
     };
+
+    if (evaluation.configVersion != null) {
+      metadata['configVersion'] = evaluation.configVersion;
+    }
 
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
 

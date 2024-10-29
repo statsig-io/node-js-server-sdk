@@ -15,6 +15,7 @@ export default class ConfigEvaluation {
   public group_name: string | null;
   public evaluation_details: EvaluationDetails | undefined;
   public id_type: string | null;
+  public configVersion?: number | undefined;
 
   constructor(
     value: boolean,
@@ -25,6 +26,7 @@ export default class ConfigEvaluation {
     json_value: Record<string, unknown> | boolean = {},
     explicit_parameters: string[] | null = null,
     config_delegate: string | null = null,
+    configVersion?: number,
     unsupported = false,
   ) {
     this.value = value;
@@ -43,6 +45,7 @@ export default class ConfigEvaluation {
     this.is_experiment_group = false;
     this.group_name = group_name;
     this.id_type = id_type;
+    this.configVersion = configVersion;
   }
 
   public withEvaluationDetails(
@@ -56,7 +59,11 @@ export default class ConfigEvaluation {
     this.is_experiment_group = isExperimentGroup;
   }
 
-  public static unsupported(configSyncTime: number, initialUpdateTime: number) {
+  public static unsupported(
+    configSyncTime: number,
+    initialUpdateTime: number,
+    version: number | undefined,
+  ): ConfigEvaluation {
     return new ConfigEvaluation(
       false,
       '',
@@ -66,6 +73,7 @@ export default class ConfigEvaluation {
       {},
       undefined,
       undefined,
+      version,
       true,
     ).withEvaluationDetails(
       EvaluationDetails.unsupported(configSyncTime, initialUpdateTime),
@@ -83,6 +91,7 @@ export default class ConfigEvaluation {
       config_delegate: this.config_delegate,
       explicit_parameters: this.explicit_parameters,
       time: this.evaluation_details?.configSyncTime ?? Date.now(),
+      configVersion: this.configVersion,
     };
   }
 
@@ -99,6 +108,7 @@ export default class ConfigEvaluation {
       stickyValues.json_value,
       stickyValues.explicit_parameters,
       stickyValues.config_delegate,
+      stickyValues.configVersion,
     );
     evaluation.evaluation_details = EvaluationDetails.persisted(
       stickyValues.time,

@@ -12,6 +12,7 @@ export type StickyValues = {
   config_delegate: string | null;
   explicit_parameters: string[] | null;
   time: number;
+  configVersion?: number | undefined;
 };
 
 export type UserPersistedValues = Record<string, StickyValues>;
