@@ -6,7 +6,7 @@ import {
   StatsigUninitializedError,
 } from './Errors';
 import OutputLogger from './OutputLogger';
-import { StatsigOptions } from './StatsigOptions';
+import { NetworkOverrideFunc, StatsigOptions } from './StatsigOptions';
 import { getSDKType, getSDKVersion, getStatsigMetadata } from './utils/core';
 import safeFetch from './utils/safeFetch';
 import { StatsigContext } from './utils/StatsigContext';
@@ -18,6 +18,7 @@ export default class ErrorBoundary {
   private optionsLoggingCopy: StatsigOptions;
   private statsigMetadata = getStatsigMetadata();
   private seen = new Set<string>();
+  private networkOverrideFunc: NetworkOverrideFunc | null;
 
   constructor(
     sdkKey: string,
@@ -27,6 +28,7 @@ export default class ErrorBoundary {
     this.sdkKey = sdkKey;
     this.optionsLoggingCopy = optionsLoggingCopy;
     this.statsigMetadata['sessionID'] = sessionID;
+    this.networkOverrideFunc = optionsLoggingCopy.networkOverrideFunc ?? null;
   }
 
   swallow<T>(task: (ctx: StatsigContext) => T, ctx: StatsigContext) {
@@ -113,7 +115,9 @@ export default class ErrorBoundary {
         statsigOptions: this.optionsLoggingCopy,
         ...ctx.getContextForLogging(),
       });
-      safeFetch(ExceptionEndpoint, {
+
+      const fetcher = this.networkOverrideFunc ?? safeFetch;
+      fetcher(ExceptionEndpoint, {
         method: 'POST',
         headers: {
           'STATSIG-API-KEY': this.sdkKey,

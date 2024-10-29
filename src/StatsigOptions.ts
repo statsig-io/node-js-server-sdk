@@ -33,11 +33,17 @@ export interface LoggerInterface {
   logLevel: 'none' | 'debug' | 'info' | 'warn' | 'error';
 }
 
+export type NetworkOverrideFunc = (
+  url: string,
+  params: RequestInit,
+) => Promise<Response>;
+
 export type ExplicitStatsigOptions = {
   api: string;
   apiForDownloadConfigSpecs: string;
   apiForGetIdLists: string;
   fallbackToStatsigAPI: boolean;
+  networkOverrideFunc: NetworkOverrideFunc | null;
   bootstrapValues: string | null;
   environment: StatsigEnvironment | null;
   rulesUpdatedCallback: RulesUpdatedCallback | null;
@@ -80,6 +86,7 @@ export function OptionsWithDefaults(
       normalizeUrl(getString(opts, 'apiForGetIdLists', opts.api ?? null)) ??
       STATSIG_API,
     fallbackToStatsigAPI: getBoolean(opts, 'fallbackToStatsigAPI', false),
+    networkOverrideFunc: opts.networkOverrideFunc ?? null,
     bootstrapValues: getString(opts, 'bootstrapValues', null),
     environment: opts.environment
       ? (getObject(opts, 'environment', {}) as StatsigEnvironment)

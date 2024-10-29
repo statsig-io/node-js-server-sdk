@@ -14,7 +14,11 @@ import { InitializationSource } from './InitializationDetails';
 import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
 import SDKFlags from './SDKFlags';
-import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
+import {
+  ExplicitStatsigOptions,
+  InitStrategy,
+  NetworkOverrideFunc,
+} from './StatsigOptions';
 import { poll } from './utils/core';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
@@ -64,6 +68,7 @@ export default class SpecStore {
   private hashedClientSDKKeyToAppMap: Record<string, string> = {};
   private hashedSDKKeysToEntities: Record<string, APIEntityNames> = {};
   private primaryTargetAppID: string | null;
+  private networkOverrideFunc: NetworkOverrideFunc | null;
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
@@ -77,6 +82,7 @@ export default class SpecStore {
       layers: {},
       experimentToLayer: {},
     };
+    this.networkOverrideFunc = options.networkOverrideFunc ?? null;
     this.rulesetsSyncInterval = options.rulesetsSyncIntervalMs;
     this.idListsSyncInterval = options.idListsSyncIntervalMs;
     this.disableRulesetsSync = options.disableRulesetsSync;
@@ -756,7 +762,9 @@ export default class SpecStore {
         url: url,
         markerID,
       });
-      res = await safeFetch(url, {
+
+      const fetcher = this.networkOverrideFunc ?? safeFetch;
+      res = await fetcher(url, {
         method: 'GET',
         headers: {
           Range: `bytes=${readSize}-`,
@@ -771,9 +779,11 @@ export default class SpecStore {
         markerID,
       });
     }
+
     if (threwNetworkError || !res) {
       return;
     }
+
     try {
       diagnostics?.process.start({ markerID });
       const contentLength = res.headers.get('content-length');

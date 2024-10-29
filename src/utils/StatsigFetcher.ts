@@ -5,7 +5,11 @@ import {
   StatsigSDKKeyMismatchError,
   StatsigTooManyRequestsError,
 } from '../Errors';
-import { ExplicitStatsigOptions, RetryBackoffFunc } from '../StatsigOptions';
+import {
+  ExplicitStatsigOptions,
+  NetworkOverrideFunc,
+  RetryBackoffFunc,
+} from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import getCompressionFunc from './getCompressionFunc';
@@ -38,6 +42,7 @@ export default class StatsigFetcher {
   private localMode: boolean;
   private sdkKey: string;
   private errorBoundry: ErrorBoundary;
+  private networkOverrideFunc: NetworkOverrideFunc | null;
 
   public constructor(
     secretKey: string,
@@ -55,6 +60,7 @@ export default class StatsigFetcher {
     this.localMode = options.localMode;
     this.sdkKey = secretKey;
     this.errorBoundry = errorBoundry;
+    this.networkOverrideFunc = options.networkOverrideFunc;
   }
 
   public validateSDKKeyUsed(hashedSDKKeyUsed: string): boolean {
@@ -158,11 +164,11 @@ export default class StatsigFetcher {
       ...options?.additionalHeaders,
       'Content-type': 'application/json; charset=UTF-8',
       'STATSIG-API-KEY': this.sdkKey,
-      'STATSIG-CLIENT-TIME': Date.now(),
+      'STATSIG-CLIENT-TIME': `${Date.now()}`,
       'STATSIG-SERVER-SESSION-ID': this.sessionID,
       'STATSIG-SDK-TYPE': getSDKType(),
       'STATSIG-SDK-VERSION': getSDKVersion(),
-    } as Record<string, string | number>;
+    } as Record<string, string>;
 
     let contents: BodyInit | undefined = undefined;
     const gzipSync = getCompressionFunc();
@@ -173,12 +179,6 @@ export default class StatsigFetcher {
     } else if (body) {
       contents = JSON.stringify(body);
     }
-    const params = {
-      method: method,
-      body: contents,
-      headers,
-      signal: signal,
-    };
 
     if (!isRetrying) {
       markDiagnostic?.start({});
@@ -186,7 +186,13 @@ export default class StatsigFetcher {
 
     let res: Response | undefined;
     let error: unknown;
-    return safeFetch(url, params)
+    const fetcher = this.networkOverrideFunc ?? safeFetch;
+    return fetcher(url, {
+      method: method,
+      body: contents,
+      headers,
+      signal: signal,
+    })
       .then((localRes) => {
         res = localRes;
         if ((!res.ok || retryStatusCodes.includes(res.status)) && retries > 0) {
