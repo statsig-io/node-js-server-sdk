@@ -205,7 +205,7 @@ export default class LogEventProcessor {
     };
 
     if (evaluation.configVersion != null) {
-      metadata['configVersion'] = evaluation.configVersion;
+      metadata['configVersion'] = String(evaluation.configVersion);
     }
 
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
@@ -236,7 +236,7 @@ export default class LogEventProcessor {
     };
 
     if (evaluation.configVersion != null) {
-      metadata['configVersion'] = evaluation.configVersion;
+      metadata['configVersion'] = String(evaluation.configVersion);
     }
 
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
@@ -279,7 +279,7 @@ export default class LogEventProcessor {
     };
 
     if (evaluation.configVersion != null) {
-      metadata['configVersion'] = evaluation.configVersion;
+      metadata['configVersion'] = String(evaluation.configVersion);
     }
 
     this.maybeAddManualExposureFlagToMetadata(metadata, isManualExposure);
