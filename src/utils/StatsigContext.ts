@@ -149,3 +149,8 @@ export class InitializeContext extends StatsigContext {
     };
   }
 }
+
+export class GlobalContext {
+  // @ts-ignore
+  static isEdgeEnvironment = typeof EdgeRuntime === 'string';
+}

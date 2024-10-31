@@ -8,7 +8,7 @@ import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
-import { StatsigContext } from './utils/StatsigContext';
+import { GlobalContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONFIG_EXPOSURE_EVENT = 'config_exposure';
@@ -115,7 +115,9 @@ export default class LogEventProcessor {
         retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
-        compress: false,
+        compress:
+          !GlobalContext.isEdgeEnvironment &&
+          SDKFlags.on('stop_log_event_compression') === false,
         additionalHeaders: {
           'STATSIG-EVENT-COUNT': String(oldQueue.length),
         },

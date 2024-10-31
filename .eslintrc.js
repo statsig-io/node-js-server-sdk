@@ -43,7 +43,7 @@ module.exports = {
   overrides: [
     // Exceptions
     {
-      files: ['**/safeFetch.ts'],
+      files: ['**/safeFetch.ts', '**/StatsigContext.ts'],
       rules: {
         '@typescript-eslint/ban-ts-comment': 'off',
       },

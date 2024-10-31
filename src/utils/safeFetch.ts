@@ -1,7 +1,9 @@
+import { GlobalContext } from './StatsigContext';
+
 // @ts-ignore
 let nodeFetch: (...args) => Promise<Response> = null;
 // @ts-ignore
-if (typeof EdgeRuntime !== 'string') {
+if (!GlobalContext.isEdgeEnvironment) {
   try {
     nodeFetch = require('node-fetch');
     const nfDefault = (nodeFetch as any).default;
