@@ -1,7 +1,7 @@
 import * as statsigsdk from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { LoggerInterface } from '../StatsigOptions';
-import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
+import { checkGateAssertion } from '../test_utils/CheckGateTestUtils';
 
 // @ts-ignore
 const statsig = statsigsdk.default;
@@ -30,23 +30,13 @@ describe('Test local mode with overrides', () => {
   it('initializes fine when localMode is true and wrong secret key is provided', async () => {
     await statsig.initialize('wrong-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      { userID: 'test' },
-      'any_gate',
-      false,
-    );
+    await checkGateAssertion(statsig, { userID: 'test' }, 'any_gate', false);
   });
 
   it('initalize resolves and all values are defualts', async () => {
     await statsig.initialize('secret-key', { localMode: true });
     expect(hitNetwork).toEqual(false);
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      { userID: 'test' },
-      'any_gate',
-      false,
-    );
+    await checkGateAssertion(statsig, { userID: 'test' }, 'any_gate', false);
 
     const config = await statsig.getConfig({ userID: 'test' }, 'any_config');
     expect(config.getValue()).toEqual({});
@@ -66,102 +56,32 @@ describe('Test local mode with overrides', () => {
     expect(hitNetwork).toEqual(false);
     const userOne = { userID: '1', email: 'testuser@statsig.com' };
     const userTwo = { userID: '2', email: 'test@statsig.com' };
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'override_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'override_gate',
-      false,
-    );
+    checkGateAssertion(statsig, userOne, 'override_gate', false);
+    checkGateAssertion(statsig, userTwo, 'override_gate', false);
 
     statsig.overrideGate('override_gate', true, '1');
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'override_gate',
-      true,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'override_gate',
-      false,
-    );
+    checkGateAssertion(statsig, userOne, 'override_gate', true);
+    checkGateAssertion(statsig, userTwo, 'override_gate', false);
     statsig.overrideGate('override_gate', false, '1');
     statsig.overrideGate('override_gate', true, '2');
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'override_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'override_gate',
-      true,
-    );
+    checkGateAssertion(statsig, userOne, 'override_gate', false);
+    checkGateAssertion(statsig, userTwo, 'override_gate', true);
 
     statsig.overrideGate('override_gate', true);
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'override_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'override_gate',
-      true,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      { userID: 'new_user' },
-      'override_gate',
-      true,
-    );
+    checkGateAssertion(statsig, userOne, 'override_gate', false);
+    checkGateAssertion(statsig, userTwo, 'override_gate', true);
+    checkGateAssertion(statsig, { userID: 'new_user' }, 'override_gate', true);
 
     statsig.clearAllGateOverrides();
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'override_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'override_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      { userID: 'new_user' },
-      'override_gate',
-      false,
-    );
+    checkGateAssertion(statsig, userOne, 'override_gate', false);
+    checkGateAssertion(statsig, userTwo, 'override_gate', false);
+    checkGateAssertion(statsig, { userID: 'new_user' }, 'override_gate', false);
 
     // non boolean wont override
     // @ts-ignore
     statsig.overrideGate('different_gate', 'not a boolean');
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userOne,
-      'different_gate',
-      false,
-    );
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      userTwo,
-      'different_gate',
-      false,
-    );
+    checkGateAssertion(statsig, userOne, 'different_gate', false);
+    checkGateAssertion(statsig, userTwo, 'different_gate', false);
 
     statsig.shutdown();
     expect(hitNetwork).toEqual(false);

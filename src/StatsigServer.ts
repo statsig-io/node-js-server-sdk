@@ -22,7 +22,9 @@ import LogEventProcessor from './LogEventProcessor';
 import OutputLogger from './OutputLogger';
 import SpecStore from './SpecStore';
 import {
+  CheckGateOptions,
   ExplicitStatsigOptions,
+  GetConfigOptions,
   GetExperimentOptions,
   GetLayerOptions,
   OptionsLoggingCopy,
@@ -205,37 +207,31 @@ export default class StatsigServer {
    * @throws Error if initialize() was not called first
    * @throws Error if the gateName is not provided or not a non-empty string
    */
-  public checkGateSync(user: StatsigUser, gateName: string): boolean {
-    return this.getFeatureGateSync(user, gateName).value;
-  }
-
-  public getFeatureGateSync(user: StatsigUser, gateName: string): FeatureGate {
-    return this._errorBoundary.capture(
-      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Enabled, ctx),
-      () => makeEmptyFeatureGate(gateName),
-      StatsigContext.new({ caller: 'checkGate', configName: gateName }),
-    );
-  }
-
-  public checkGateWithExposureLoggingDisabledSync(
+  public checkGate(
     user: StatsigUser,
     gateName: string,
+    options?: CheckGateOptions,
   ): boolean {
-    return this.getFeatureGateWithExposureLoggingDisabledSync(user, gateName)
-      .value;
+    return this.getFeatureGate(user, gateName, options).value;
   }
 
-  public getFeatureGateWithExposureLoggingDisabledSync(
+  public getFeatureGate(
     user: StatsigUser,
     gateName: string,
+    options?: CheckGateOptions,
   ): FeatureGate {
     return this._errorBoundary.capture(
-      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Disabled, ctx),
+      (ctx) =>
+        this.getGateImpl(
+          user,
+          gateName,
+          options?.disableExposureLogging == true
+            ? ExposureLogging.Disabled
+            : ExposureLogging.Enabled,
+          ctx,
+        ),
       () => makeEmptyFeatureGate(gateName),
-      StatsigContext.new({
-        caller: 'getFeatureGateWithExposureLoggingDisabled',
-        configName: gateName,
-      }),
+      StatsigContext.new({ caller: 'checkGate', configName: gateName }),
     );
   }
 
@@ -260,27 +256,23 @@ export default class StatsigServer {
   /**
    * Checks the value of a config for a given user
    */
-  public getConfigSync(user: StatsigUser, configName: string): DynamicConfig {
-    return this._errorBoundary.capture(
-      (ctx) =>
-        this.getConfigImpl(user, configName, ExposureLogging.Enabled, ctx),
-      () => new DynamicConfig(configName),
-      StatsigContext.new({ caller: 'getConfig', configName: configName }),
-    );
-  }
-
-  public getConfigWithExposureLoggingDisabledSync(
+  public getConfig(
     user: StatsigUser,
     configName: string,
+    options?: GetConfigOptions,
   ): DynamicConfig {
     return this._errorBoundary.capture(
       (ctx) =>
-        this.getConfigImpl(user, configName, ExposureLogging.Disabled, ctx),
+        this.getConfigImpl(
+          user,
+          configName,
+          options?.disableExposureLogging == true
+            ? ExposureLogging.Disabled
+            : ExposureLogging.Enabled,
+          ctx,
+        ),
       () => new DynamicConfig(configName),
-      StatsigContext.new({
-        caller: 'getConfigWithExposureLoggingDisabled',
-        configName: configName,
-      }),
+      StatsigContext.new({ caller: 'getConfig', configName: configName }),
     );
   }
 
@@ -315,35 +307,24 @@ export default class StatsigServer {
    * @throws Error if initialize() was not called first
    * @throws Error if the experimentName is not provided or not a non-empty string
    */
-  public getExperimentSync(
+  public getExperiment(
     user: StatsigUser,
     experimentName: string,
     options?: GetExperimentOptions,
   ): DynamicConfig {
     return this._errorBoundary.capture(
       (ctx) =>
-        this.getConfigImpl(user, experimentName, ExposureLogging.Enabled, ctx),
+        this.getConfigImpl(
+          user,
+          experimentName,
+          options?.disableExposureLogging == true
+            ? ExposureLogging.Disabled
+            : ExposureLogging.Enabled,
+          ctx,
+        ),
       () => new DynamicConfig(experimentName),
       StatsigContext.new({
         caller: 'getExperiment',
-        configName: experimentName,
-        userPersistedValues: options?.userPersistedValues,
-        persistentAssignmentOptions: options?.persistentAssignmentOptions,
-      }),
-    );
-  }
-
-  public getExperimentWithExposureLoggingDisabledSync(
-    user: StatsigUser,
-    experimentName: string,
-    options?: GetExperimentOptions,
-  ): DynamicConfig {
-    return this._errorBoundary.capture(
-      (ctx) =>
-        this.getConfigImpl(user, experimentName, ExposureLogging.Disabled, ctx),
-      () => new DynamicConfig(experimentName),
-      StatsigContext.new({
-        caller: 'getExperimentWithExposureLoggingDisabled',
         configName: experimentName,
         userPersistedValues: options?.userPersistedValues,
         persistentAssignmentOptions: options?.persistentAssignmentOptions,
@@ -395,34 +376,24 @@ export default class StatsigServer {
    * @throws Error if initialize() was not called first
    * @throws Error if the layerName is not provided or not a non-empty string
    */
-  public getLayerSync(
-    user: StatsigUser,
-    layerName: string,
-    options?: GetLayerOptions,
-  ): Layer {
-    return this._errorBoundary.capture(
-      (ctx) => this.getLayerImpl(user, layerName, ExposureLogging.Enabled, ctx),
-      () => new Layer(layerName),
-      StatsigContext.new({
-        caller: 'getLayer',
-        configName: layerName,
-        userPersistedValues: options?.userPersistedValues,
-        persistentAssignmentOptions: options?.persistentAssignmentOptions,
-      }),
-    );
-  }
-
-  public getLayerWithExposureLoggingDisabledSync(
+  public getLayer(
     user: StatsigUser,
     layerName: string,
     options?: GetLayerOptions,
   ): Layer {
     return this._errorBoundary.capture(
       (ctx) =>
-        this.getLayerImpl(user, layerName, ExposureLogging.Disabled, ctx),
+        this.getLayerImpl(
+          user,
+          layerName,
+          options?.disableExposureLogging == true
+            ? ExposureLogging.Disabled
+            : ExposureLogging.Enabled,
+          ctx,
+        ),
       () => new Layer(layerName),
       StatsigContext.new({
-        caller: 'getLayerWithExposureLoggingDisabled',
+        caller: 'getLayer',
         configName: layerName,
         userPersistedValues: options?.userPersistedValues,
         persistentAssignmentOptions: options?.persistentAssignmentOptions,
@@ -749,137 +720,266 @@ export default class StatsigServer {
     return this._evaluator.getLayerList();
   }
 
-  //#region Deprecated Async Methods
-
+  //#region Deprecated _sync and withExposureDisabled Methods
   /**
-   * @deprecated Please use checkGateSync instead.
+   * @deprecated Please use checkGate instead.
    * @see https://docs.statsig.com/server/deprecation-notices
    */
-  public checkGate(user: StatsigUser, gateName: string): Promise<boolean> {
-    return asyncify(() => this.getFeatureGateSync(user, gateName).value);
+  public checkGateSync(user: StatsigUser, gateName: string): boolean {
+    return this.getFeatureGateSync(user, gateName).value;
   }
 
   /**
-   * @deprecated Please use getFeatureGateSync instead.
+   * @deprecated Please use getFeatureGate instead.
    * @see https://docs.statsig.com/server/deprecation-notices
    */
-  public getFeatureGate(
-    user: StatsigUser,
-    gateName: string,
-  ): Promise<FeatureGate> {
-    return asyncify(() => this.getFeatureGateSync(user, gateName));
-  }
-
-  /**
-   * @deprecated Please use checkGateWithExposureLoggingDisabledSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
-   */
-  public async checkGateWithExposureLoggingDisabled(
-    user: StatsigUser,
-    gateName: string,
-  ): Promise<boolean> {
-    return asyncify(
-      () =>
-        this.getFeatureGateWithExposureLoggingDisabledSync(user, gateName)
-          .value,
+  public getFeatureGateSync(user: StatsigUser, gateName: string): FeatureGate {
+    return this._errorBoundary.capture(
+      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Enabled, ctx),
+      () => makeEmptyFeatureGate(gateName),
+      StatsigContext.new({ caller: 'checkGate', configName: gateName }),
     );
   }
 
   /**
-   * @deprecated Please use getFeatureGateWithExposureLoggingDisabledSync instead.
+   * @deprecated Please use checkGate() with CheckGateOptions instead.
    * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public checkGateWithExposureLoggingDisabledSync(
+    user: StatsigUser,
+    gateName: string,
+  ): boolean {
+    return this.getFeatureGateWithExposureLoggingDisabledSync(user, gateName)
+      .value;
+  }
+
+  /**
+   * @deprecated Please use getFeatureGate with CheckGateOptions instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getFeatureGateWithExposureLoggingDisabledSync(
+    user: StatsigUser,
+    gateName: string,
+  ): FeatureGate {
+    return this._errorBoundary.capture(
+      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Disabled, ctx),
+      () => makeEmptyFeatureGate(gateName),
+      StatsigContext.new({
+        caller: 'getFeatureGateWithExposureLoggingDisabled',
+        configName: gateName,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getConfig instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getConfigSync(user: StatsigUser, configName: string): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, configName, ExposureLogging.Enabled, ctx),
+      () => new DynamicConfig(configName),
+      StatsigContext.new({ caller: 'getConfig', configName: configName }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getConfigWithExposureLoggingDisabled instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getConfigWithExposureLoggingDisabledSync(
+    user: StatsigUser,
+    configName: string,
+  ): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, configName, ExposureLogging.Disabled, ctx),
+      () => new DynamicConfig(configName),
+      StatsigContext.new({
+        caller: 'getConfigWithExposureLoggingDisabled',
+        configName: configName,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getExperiment instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getExperimentSync(
+    user: StatsigUser,
+    experimentName: string,
+    options?: GetExperimentOptions,
+  ): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, experimentName, ExposureLogging.Enabled, ctx),
+      () => new DynamicConfig(experimentName),
+      StatsigContext.new({
+        caller: 'getExperiment',
+        configName: experimentName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getExperimentWithExposureLoggingDisabled instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getExperimentWithExposureLoggingDisabledSync(
+    user: StatsigUser,
+    experimentName: string,
+    options?: GetExperimentOptions,
+  ): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, experimentName, ExposureLogging.Disabled, ctx),
+      () => new DynamicConfig(experimentName),
+      StatsigContext.new({
+        caller: 'getExperimentWithExposureLoggingDisabled',
+        configName: experimentName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getLayer instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getLayerSync(
+    user: StatsigUser,
+    layerName: string,
+    options?: GetLayerOptions,
+  ): Layer {
+    return this._errorBoundary.capture(
+      (ctx) => this.getLayerImpl(user, layerName, ExposureLogging.Enabled, ctx),
+      () => new Layer(layerName),
+      StatsigContext.new({
+        caller: 'getLayer',
+        configName: layerName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use getLayer with GetLayerOptions instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public getLayerWithExposureLoggingDisabledSync(
+    user: StatsigUser,
+    layerName: string,
+    options?: GetLayerOptions,
+  ): Layer {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getLayerImpl(user, layerName, ExposureLogging.Disabled, ctx),
+      () => new Layer(layerName),
+      StatsigContext.new({
+        caller: 'getLayerWithExposureLoggingDisabled',
+        configName: layerName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
+    );
+  }
+
+  /**
+   * @deprecated Please use checkGate with CheckGateOptions instead.
+   * @see https://docs.statsig.com/server/deprecation-notices
+   */
+  public checkGateWithExposureLoggingDisabled(
+    user: StatsigUser,
+    gateName: string,
+  ): boolean {
+    return this.getFeatureGateWithExposureLoggingDisabled(user, gateName).value;
+  }
+
+  /**
+   * @deprecated use getFeatureGate() with CheckGateOptions instead
    */
   public getFeatureGateWithExposureLoggingDisabled(
     user: StatsigUser,
     gateName: string,
-  ): Promise<FeatureGate> {
-    return asyncify(() =>
-      this.getFeatureGateWithExposureLoggingDisabledSync(user, gateName),
+  ): FeatureGate {
+    return this._errorBoundary.capture(
+      (ctx) => this.getGateImpl(user, gateName, ExposureLogging.Disabled, ctx),
+      () => makeEmptyFeatureGate(gateName),
+      StatsigContext.new({
+        caller: 'getFeatureGateWithExposureLoggingDisabled',
+        configName: gateName,
+      }),
     );
   }
 
   /**
-   * @deprecated Please use getConfigSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
-   */
-  public getConfig(
-    user: StatsigUser,
-    configName: string,
-  ): Promise<DynamicConfig> {
-    return asyncify(() => this.getConfigSync(user, configName));
-  }
-
-  /**
-   * @deprecated Please use getConfigWithExposureLoggingDisabledSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
+   * @deprecated use getConfig() with GetConfigOptions instead
    */
   public getConfigWithExposureLoggingDisabled(
     user: StatsigUser,
     configName: string,
-  ): Promise<DynamicConfig> {
-    return asyncify(() =>
-      this.getConfigWithExposureLoggingDisabledSync(user, configName),
+  ): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, configName, ExposureLogging.Disabled, ctx),
+      () => new DynamicConfig(configName),
+      StatsigContext.new({
+        caller: 'getConfigWithExposureLoggingDisabled',
+        configName: configName,
+      }),
     );
   }
 
   /**
-   * @deprecated Please use getExperimentSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
-   */
-  public getExperiment(
-    user: StatsigUser,
-    experimentName: string,
-  ): Promise<DynamicConfig> {
-    return asyncify(() => this.getExperimentSync(user, experimentName));
-  }
-
-  /**
-   * @deprecated Please use getExperimentWithExposureLoggingDisabledSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
+   * @deprecated use getExperiment() with GetExperimentOptions instead
+   * GetExperimentOptions.disableExposureDisabled will be ignored
    */
   public getExperimentWithExposureLoggingDisabled(
     user: StatsigUser,
     experimentName: string,
-  ): Promise<DynamicConfig> {
-    return asyncify(() =>
-      this.getExperimentWithExposureLoggingDisabledSync(user, experimentName),
+    options?: GetExperimentOptions,
+  ): DynamicConfig {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getConfigImpl(user, experimentName, ExposureLogging.Disabled, ctx),
+      () => new DynamicConfig(experimentName),
+      StatsigContext.new({
+        caller: 'getExperimentWithExposureLoggingDisabled',
+        configName: experimentName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
     );
   }
 
   /**
-   * @deprecated Please use getLayerSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
-   */
-  public getLayer(user: StatsigUser, layerName: string): Promise<Layer> {
-    return asyncify(() => this.getLayerSync(user, layerName));
-  }
-
-  /**
-   * @deprecated Please use getLayerWithExposureLoggingDisabledSync instead.
-   * @see https://docs.statsig.com/server/deprecation-notices
+   * @deprecated use getLayer() with GetLayerOptions instead
+   * GetLayerOptions.disableExposureDisabled will be ignored
    */
   public getLayerWithExposureLoggingDisabled(
     user: StatsigUser,
     layerName: string,
-  ): Promise<Layer> {
-    return asyncify(() =>
-      this.getLayerWithExposureLoggingDisabledSync(user, layerName),
+    options?: GetLayerOptions,
+  ): Layer {
+    return this._errorBoundary.capture(
+      (ctx) =>
+        this.getLayerImpl(user, layerName, ExposureLogging.Disabled, ctx),
+      () => new Layer(layerName),
+      StatsigContext.new({
+        caller: 'getLayerWithExposureLoggingDisabled',
+        configName: layerName,
+        userPersistedValues: options?.userPersistedValues,
+        persistentAssignmentOptions: options?.persistentAssignmentOptions,
+      }),
     );
   }
-
   //#endregion
-
-  /**
-   * Check the value of a gate configured in the statsig console
-   * @deprecated Use checkGateSync instead
-   * @see https://docs.statsig.com/server/deprecation-notices
-   */
-  public checkGateWithoutServerFallback(
-    user: StatsigUser,
-    gateName: string,
-  ): boolean {
-    return this.checkGateSync(user, gateName);
-  }
 
   //
   // PRIVATE

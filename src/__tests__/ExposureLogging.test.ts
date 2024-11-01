@@ -61,14 +61,6 @@ describe('ExposureLogging', () => {
       expect(events[0].eventName).toEqual('statsig::gate_exposure');
     });
 
-    it('logs check gate exposures for checkGateWithoutServerFallback', async () => {
-      Statsig.checkGateWithoutServerFallback(user, 'a_gate');
-      expect(events.length).toBe(1);
-      expect(events[0].metadata.gate).toEqual('a_gate');
-      expect(events[0].metadata.isManualExposure).toBeUndefined();
-      expect(events[0].eventName).toEqual('statsig::gate_exposure');
-    });
-
     it('logs get feature gate exposures', async () => {
       await Statsig.getFeatureGate(user, 'b_gate');
       expect(events.length).toBe(1);
@@ -133,6 +125,41 @@ describe('ExposureLogging', () => {
       expect(events.length).toBe(0);
     });
   });
+
+  describe('Does not log with exposure disabled ', () => {
+    it('Verify checkGate, getConfig, getExperiment, getLayer disable exposure with option', async () => {
+      const user = { userID: '123' };
+      const disableExposureOption = {disableExposureLogging: true};
+      Statsig.getFeatureGate(user, 'b_gate', disableExposureOption);
+      Statsig.checkGate(user, 'a_gate', disableExposureOption);
+      Statsig.getConfig(user, 'a_config', disableExposureOption)
+      
+      const layer = Statsig.getLayer(
+        user,
+        'a_layer',
+        disableExposureOption
+      );
+      layer.get('a_bool', false);
+      expect(events).toHaveLength(0); 
+      events = []
+      const enableExposureOption = { disableExposureLogging: false };
+      Statsig.getFeatureGate(user, 'b_gate', enableExposureOption);
+      Statsig.checkGate(user, 'a_gate', enableExposureOption);
+      Statsig.getConfig(user, 'a_config', enableExposureOption)
+      
+      const layer_1 = Statsig.getLayer(
+        user,
+        'a_layer',
+        enableExposureOption
+      );
+      layer_1.get('a_bool', false);
+      expect(events).toHaveLength(4);
+      expect(events[0].eventName).toEqual('statsig::gate_exposure');
+      expect(events[1].eventName).toEqual('statsig::gate_exposure');
+      expect(events[2].eventName).toEqual('statsig::config_exposure');
+      expect(events[3].eventName).toEqual('statsig::layer_exposure');
+    });
+  })
 
   describe('logging with bad inputs', () => {
     it('event with invalid event name does not get logged', async () => {

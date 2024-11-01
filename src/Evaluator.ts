@@ -268,6 +268,7 @@ export default class Evaluator {
     }
     const user = cloneEnforce(inputUser);
     const clientKeyToAppMap = this.store.getClientKeyToAppMap();
+    const hashAlgo = options?.hash ?? 'djb2';
     let targetAppID: string | null = null;
     let targetEntities: APIEntityNames | null = null;
     if (clientSDKKey != null) {
@@ -323,12 +324,12 @@ export default class Evaluator {
             }),
           );
         return {
-          name: hashString(gate, options?.hash),
+          name: hashString(gate, hashAlgo),
           value: res.unsupported ? false : res.value,
           rule_id: res.rule_id,
           secondary_exposures: this.hashSecondaryExposure(
             res.secondary_exposures,
-            options?.hash,
+            hashAlgo,
           ),
           id_type: spec.idType,
         };
@@ -349,7 +350,7 @@ export default class Evaluator {
               targetAppID: targetAppID ?? undefined,
             }),
           );
-        const format = this._specToInitializeResponse(spec, res, options?.hash);
+        const format = this._specToInitializeResponse(spec, res, hashAlgo);
         format.id_type = spec.idType ?? null;
         if (spec.entity !== 'dynamic_config' && spec.entity !== 'autotune') {
           format.is_user_in_experiment = this._isUserAllocatedToExperiment(
@@ -396,7 +397,7 @@ export default class Evaluator {
               targetAppID: targetAppID ?? undefined,
             }),
           );
-        const format = this._specToInitializeResponse(spec, res, options?.hash);
+        const format = this._specToInitializeResponse(spec, res, hashAlgo);
         format.explicit_parameters = spec.explicitParameters ?? [];
         if (res.config_delegate != null && res.config_delegate !== '') {
           const delegateSpec = this.store.getConfig(res.config_delegate);
@@ -417,7 +418,7 @@ export default class Evaluator {
           }
           format.allocated_experiment_name = hashString(
             res.config_delegate,
-            options?.hash,
+            hashAlgo,
           );
 
           format.is_experiment_active = this._isExperimentActive(delegateSpec);
@@ -466,7 +467,7 @@ export default class Evaluator {
       sdkInfo: { sdkType: getSDKType(), sdkVersion: getSDKVersion() },
       time: this.store.getLastUpdateTime(),
       evaluated_keys: evaluatedKeys,
-      hash_used: options?.hash ?? 'sha256',
+      hash_used: hashAlgo,
       user: user,
     };
   }

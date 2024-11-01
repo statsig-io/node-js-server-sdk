@@ -4,7 +4,6 @@ import {
   IDataAdapter,
 } from '../interfaces/IDataAdapter';
 import StatsigServer from '../StatsigServer';
-import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import {
   GateForConfigSpecTest,
   GatesForIdListTest,
@@ -103,13 +102,10 @@ describe('Bootstrap with DataAdapter', () => {
           expectedValue: false,
         },
       ].map(
-        async ({ user, expectedValue }) =>
-          await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-            statsig,
-            user,
-            'test_id_list',
-            expectedValue,
-          ),
+        async ({ user, expectedValue }) => {
+          const gateResult = statsig.checkGate(user, 'test_id_list');
+          expect(gateResult).toBe(expectedValue)
+        }
       ),
     );
   });
@@ -124,12 +120,7 @@ describe('Bootstrap with DataAdapter', () => {
       dataAdapter: adapter,
     });
     await statsig.initializeAsync();
-
-    await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-      statsig,
-      { userID: 'a-user' },
-      'test_public',
-      true,
-    );
+    const gateResult = statsig.checkGate({ userID: 'a-user' }, 'test_public');
+    expect(gateResult).toBeTruthy();
   });
 });

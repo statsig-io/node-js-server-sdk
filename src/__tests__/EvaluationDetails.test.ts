@@ -75,10 +75,7 @@ describe('Evaluation Details', () => {
       uninitializedServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    uninitializedServer.checkGateWithoutServerFallback(
-      user,
-      'on_for_statsig_email',
-    );
+    uninitializedServer.checkGate(user, 'on_for_statsig_email');
     uninitializedServer.shutdown();
 
     expect(events.length).toBe(4);
@@ -96,7 +93,7 @@ describe('Evaluation Details', () => {
       server.getLayer(user, 'not_a_layer'),
     ]);
     layer.get('a_value', 'fallback_value');
-    server.checkGateWithoutServerFallback(user, 'not_a_gate_2');
+    server.checkGate(user, 'not_a_gate_2');
     server.shutdown();
 
     expect(events.length).toBe(4);
@@ -114,7 +111,7 @@ describe('Evaluation Details', () => {
       server.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    server.checkGateWithoutServerFallback(user, 'on_for_statsig_email');
+    server.checkGate(user, 'on_for_statsig_email');
     server.shutdown();
 
     expect(events.length).toBe(5);
@@ -134,14 +131,12 @@ describe('Evaluation Details', () => {
       server.checkGate(user, 'always_on_gate'),
       server.getExperiment(user, 'sample_experiment'),
     ]);
-    server.checkGateWithoutServerFallback(user, 'on_for_statsig_email');
 
     server.shutdown();
 
-    expect(events.length).toBe(3);
+    expect(events.length).toBe(2);
     expect(events[0]).toEqual(expectedResult('gate', 'LocalOverride'));
     expect(events[1]).toEqual(expectedResult('config', 'LocalOverride'));
-    expect(events[2]).toEqual(expectedResult('gate', 'LocalOverride'));
   });
 
   it('returns bootstrap as an eval reason', async () => {
@@ -159,10 +154,7 @@ describe('Evaluation Details', () => {
       bootstrapServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    bootstrapServer.checkGateWithoutServerFallback(
-      user,
-      'on_for_statsig_email',
-    );
+    bootstrapServer.checkGate(user, 'on_for_statsig_email');
     bootstrapServer.shutdown();
 
     expect(events.length).toBe(5);
@@ -195,10 +187,7 @@ describe('Evaluation Details', () => {
       dataStoreServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    dataStoreServer.checkGateWithoutServerFallback(
-      user,
-      'on_for_statsig_email',
-    ),
+    dataStoreServer.checkGate(user, 'on_for_statsig_email'),
       dataStoreServer.shutdown();
 
     expect(events.length).toBe(5);

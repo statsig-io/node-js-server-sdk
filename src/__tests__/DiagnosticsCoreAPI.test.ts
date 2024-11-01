@@ -7,19 +7,19 @@ import { assertMarkerEqual, getDecodedBody } from './StatsigTestUtils';
 jest.mock('node-fetch', () => jest.fn());
 
 const CONFIG_SPEC_RESPONSE = {
-    time: Date.now(),
-    feature_gates: [exampleConfigSpecs.gate, exampleConfigSpecs.disabled_gate],
-    dynamic_configs: [exampleConfigSpecs.config],
-    layer_configs: [exampleConfigSpecs.allocated_layer],
-    has_updates: true,
-    diagnostics: {
-      dcs: MAX_SAMPLING_RATE,
-      log: MAX_SAMPLING_RATE,
-      idlist: MAX_SAMPLING_RATE,
-      initialize: MAX_SAMPLING_RATE,
-      api_call: MAX_SAMPLING_RATE
-    },
-  };
+  time: Date.now(),
+  feature_gates: [exampleConfigSpecs.gate, exampleConfigSpecs.disabled_gate],
+  dynamic_configs: [exampleConfigSpecs.config],
+  layer_configs: [exampleConfigSpecs.allocated_layer],
+  has_updates: true,
+  diagnostics: {
+    dcs: MAX_SAMPLING_RATE,
+    log: MAX_SAMPLING_RATE,
+    idlist: MAX_SAMPLING_RATE,
+    initialize: MAX_SAMPLING_RATE,
+    api_call: MAX_SAMPLING_RATE,
+  },
+};
 
 describe('CoreAPIDiagnostics', () => {
   let events: {
@@ -95,82 +95,82 @@ describe('CoreAPIDiagnostics', () => {
   });
 
   // Always initialization data even when diagnostics disabled
-  it.each([true, false])(
-    'test core api',
-    async (disableDiagnostics) => {
-      await Statsig.initialize('secret-key', {
-        disableDiagnostics,
-      });
-      const user = {
-        userID: "testUser"
-      }
-      Statsig.checkGateSync( user,'nfl_gate')
-      Statsig.getExperimentSync( user,'teams')
-      Statsig.getConfigSync( user,'teams')
-      Statsig.getLayerSync(user,"unallocated_layer")
-      Statsig.shutdown();
-      events = events.filter(event => event.eventName === 'statsig::diagnostics')
-      if(disableDiagnostics) {
-        expect(events.length).toBe(1)
-        expect(events[0].metadata['context']).toBe('initialize')
-        return 
-      }
-      expect(events.length).toBe(2);
-      expect(events[1].metadata['context']).toBe('api_call')
-      const markers = events[1].metadata.markers
-      expect(markers.length).toBe(8)
-      assertMarkerEqual(markers[0], {
-        key: 'check_gate',
-        action: 'start',
-        markerID: 'checkGate_0',
-        configName: 'nfl_gate'
-      })
-      assertMarkerEqual(markers[1], {
-        key: 'check_gate',
-        action: 'end',
-        markerID: 'checkGate_0',
-        configName: 'nfl_gate',
-        success: true
-      })
-      assertMarkerEqual(markers[2], {
-        key: 'get_experiment',
-        action: 'start',
-        markerID: 'getExperiment_2',
-        configName: 'teams',
-      })
-      assertMarkerEqual(markers[3], {
-        key: 'get_experiment',
-        action: 'end',
-        markerID: 'getExperiment_2',
-        configName: 'teams',
-        success: true
-      })
-      assertMarkerEqual(markers[4], {
-        key: 'get_config',
-        action: 'start',
-        markerID: 'getConfig_4',
-        configName: 'teams'
-      })
-      assertMarkerEqual(markers[5], {
-        key: 'get_config',
-        action: 'end',
-        markerID: 'getConfig_4',
-        configName: 'teams',
-        success: true
-      })
-      assertMarkerEqual(markers[6], {
-        key: 'get_layer',
-        action: 'start',
-        markerID: 'getLayer_6',
-        configName: 'unallocated_layer'
-      })
-      assertMarkerEqual(markers[7], {
-        key: 'get_layer',
-        action: 'end',
-        markerID: 'getLayer_6',
-        success: true,
-        configName: 'unallocated_layer'
-      })
+  it.each([true, false])('test core api', async (disableDiagnostics) => {
+    await Statsig.initialize('secret-key', {
+      disableDiagnostics,
+    });
+    const user = {
+      userID: 'testUser',
+    };
+    Statsig.checkGate(user, 'nfl_gate');
+    Statsig.getExperiment(user, 'teams');
+    Statsig.getConfig(user, 'teams');
+    Statsig.getLayer(user, 'unallocated_layer');
+    Statsig.shutdown();
+    events = events.filter(
+      (event) => event.eventName === 'statsig::diagnostics',
+    );
+    if (disableDiagnostics) {
+      expect(events.length).toBe(1);
+      expect(events[0].metadata['context']).toBe('initialize');
+      return;
+    }
+    expect(events.length).toBe(2);
+    expect(events[1].metadata['context']).toBe('api_call');
+    const markers = events[1].metadata.markers;
+    expect(markers.length).toBe(8);
+    assertMarkerEqual(markers[0], {
+      key: 'check_gate',
+      action: 'start',
+      markerID: 'checkGate_0',
+      configName: 'nfl_gate',
+    });
+    assertMarkerEqual(markers[1], {
+      key: 'check_gate',
+      action: 'end',
+      markerID: 'checkGate_0',
+      configName: 'nfl_gate',
+      success: true,
+    });
+    assertMarkerEqual(markers[2], {
+      key: 'get_experiment',
+      action: 'start',
+      markerID: 'getExperiment_2',
+      configName: 'teams',
+    });
+    assertMarkerEqual(markers[3], {
+      key: 'get_experiment',
+      action: 'end',
+      markerID: 'getExperiment_2',
+      configName: 'teams',
+      success: true,
+    });
+    assertMarkerEqual(markers[4], {
+      key: 'get_config',
+      action: 'start',
+      markerID: 'getConfig_4',
+      configName: 'teams',
+    });
+    assertMarkerEqual(markers[5], {
+      key: 'get_config',
+      action: 'end',
+      markerID: 'getConfig_4',
+      configName: 'teams',
+      success: true,
+    });
+    assertMarkerEqual(markers[6], {
+      key: 'get_layer',
+      action: 'start',
+      markerID: 'getLayer_6',
+      configName: 'unallocated_layer',
+    });
+    assertMarkerEqual(markers[7], {
+      key: 'get_layer',
+      action: 'end',
+      markerID: 'getLayer_6',
+      success: true,
+      configName: 'unallocated_layer',
+    });
   });
 
   it('test max_markers', async () => {
@@ -180,8 +180,8 @@ describe('CoreAPIDiagnostics', () => {
       disableDiagnostics: false,
     });
     const user = { userID: 'test_user' };
-    for(let i = 0; i < MAX_MARKER_COUNT*4; i++) {
-      Statsig.checkGateSync(user, 'a_gate');
+    for (let i = 0; i < MAX_MARKER_COUNT * 4; i++) {
+      Statsig.checkGate(user, 'a_gate');
     }
     Statsig.shutdown();
     events = events.filter((e) => e['metadata']['context'] === 'api_call');
@@ -189,7 +189,7 @@ describe('CoreAPIDiagnostics', () => {
     expect(events.length).toBe(1);
     const event = events[0];
     expect(event['eventName']).toBe('statsig::diagnostics');
-    
+
     const markers = event['metadata']['markers'];
     expect(markers.length).toBe(MAX_MARKER_COUNT);
   });

@@ -179,16 +179,16 @@ describe('Layer Exposure Logging', () => {
     it('gets custom ids for layers', async () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
-      const syncLayer = statsig.getLayerSync(user, 'test_custom_id_layer');
+      const syncLayer = statsig.getLayer(user, 'test_custom_id_layer');
       expect(syncLayer.getIDType()).toEqual('companyID');
 
-      const expDisabledSyncLayer = statsig.getLayerWithExposureLoggingDisabledSync(user, 'test_custom_id_layer');
+      const expDisabledSyncLayer = statsig.getLayerWithExposureLoggingDisabled(user, 'test_custom_id_layer');
       expect(expDisabledSyncLayer.getIDType()).toEqual('companyID');
 
       const asyncLayer = await statsig.getLayer(user, 'test_custom_id_layer');
       expect(asyncLayer.getIDType()).toEqual('companyID');
 
-      const asyncExpDisabledSyncLayer = await statsig.getLayerWithExposureLoggingDisabledSync(user, 'test_custom_id_layer');
+      const asyncExpDisabledSyncLayer = await statsig.getLayerWithExposureLoggingDisabled(user, 'test_custom_id_layer');
       expect(asyncExpDisabledSyncLayer.getIDType()).toEqual('companyID');
     })
 

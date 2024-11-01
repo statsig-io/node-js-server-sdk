@@ -83,7 +83,7 @@ describe('Test local mode with overrides', () => {
         { userID: 'test_user_id', email: 'test@nfl.com' },
         'nfl_gate',
       ),
-    ).resolves.toBe(false);
+    ).toBe(false);
 
     statsig.shutdown();
     expect(events).toHaveLength(2); // 1 for init and 1 for gate check
@@ -100,7 +100,7 @@ describe('Test local mode with overrides', () => {
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 3000,
-      disableDiagnostics: true
+      disableDiagnostics: true,
     });
     const now = Date.now();
     jest.spyOn(global.Date, 'now').mockImplementation(() => now + 1200);
@@ -113,6 +113,6 @@ describe('Test local mode with overrides', () => {
         { userID: 'test_user_id', email: 'test@nfl.com' },
         'nfl_gate',
       ),
-    ).resolves.toBe(true);
+    ).toBe(true);
   });
 });

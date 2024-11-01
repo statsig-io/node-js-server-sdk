@@ -249,16 +249,23 @@ export type PersistentAssignmentOptions = {
   enforceTargeting?: boolean;
 };
 
-export type GetExperimentOptions = {
+export type CheckGateOptions = CoreApiOptions;
+export type GetConfigOptions = CoreApiOptions;
+
+export type GetExperimentOptions = CoreApiOptions & {
   /* Persisted values to use for experiment assignment */
   userPersistedValues?: UserPersistedValues | null;
   /* Additional options for using persistent assignment */
   persistentAssignmentOptions?: PersistentAssignmentOptions;
 };
 
-export type GetLayerOptions = {
+export type GetLayerOptions = CoreApiOptions & {
   /* Persisted values to use for layer assignment */
   userPersistedValues?: UserPersistedValues | null;
   /* Additional options for using persistent assignment */
   persistentAssignmentOptions?: PersistentAssignmentOptions;
+};
+
+export type CoreApiOptions = {
+  disableExposureLogging?: boolean;
 };

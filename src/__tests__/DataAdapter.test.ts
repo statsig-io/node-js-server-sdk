@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import * as statsigsdk from '../index';
 import { getDataAdapterKey, IDataAdapter } from '../interfaces/IDataAdapter';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
-import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
+import { checkGateAssertion } from '../test_utils/CheckGateTestUtils';
 import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
 import exampleConfigSpecs from './jest.setup';
 import StatsigTestUtils from './StatsigTestUtils';
@@ -141,12 +141,7 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-        statsig,
-        user,
-        'nfl_gate',
-        true,
-      );
+      await checkGateAssertion(statsig, user, 'nfl_gate', true);
 
       // Check configs
       const config = await statsig.getConfig(
@@ -275,12 +270,7 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-        statsig,
-        user,
-        'nfl_gate',
-        false,
-      );
+      await checkGateAssertion(statsig, user, 'nfl_gate', false);
 
       // Check configs
       const config1 = await statsig.getConfig(
@@ -298,12 +288,7 @@ describe('DataAdapter', () => {
       await new Promise((_) => setTimeout(_, 1100));
 
       // Check gates after syncing
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-        statsig,
-        user,
-        'nfl_gate',
-        true,
-      );
+      await checkGateAssertion(statsig, user, 'nfl_gate', true);
 
       // Check configs after syncing
       const config2 = await statsig.getConfig(
@@ -378,21 +363,21 @@ describe('DataAdapter', () => {
         environment: { tier: 'staging' },
       });
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'a-user' },
         'test_id_list',
         true,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'b-user' },
         'test_id_list',
         true,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'c-user' },
         'test_id_list',
@@ -423,21 +408,21 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'a-user' },
         'test_id_list',
         false,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'b-user' },
         'test_id_list',
         false,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'c-user' },
         'test_id_list',
@@ -479,21 +464,21 @@ describe('DataAdapter', () => {
       await new Promise((_) => setTimeout(_, 1100));
 
       // Check gates after syncing
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'a-user' },
         'test_id_list',
         true,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'b-user' },
         'test_id_list',
         true,
       );
 
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'c-user' },
         'test_id_list',
@@ -534,12 +519,7 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
-        statsig,
-        user,
-        'nfl_gate',
-        true,
-      );
+      await checkGateAssertion(statsig, user, 'nfl_gate', true);
 
       // Check configs
       const config = await statsig.getConfig(
@@ -563,7 +543,7 @@ describe('DataAdapter', () => {
       });
 
       // Check gates
-      await checkGateAndValidateWithAndWithoutServerFallbackAreConsistent(
+      await checkGateAssertion(
         statsig,
         { userID: 'a-user' },
         'test_id_list',

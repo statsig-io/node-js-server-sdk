@@ -46,15 +46,15 @@ describe('Persistent Assignment', () => {
   });
 
   test('Not using persistent storage', () => {
-    let exp = statsig.getExperimentSync(userInControl, experimentName);
+    let exp = statsig.getExperiment(userInControl, experimentName);
     expect(exp.getGroupName()).toEqual('Control');
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
-    exp = statsig.getExperimentSync(userInTest, experimentName);
+    exp = statsig.getExperiment(userInTest, experimentName);
     expect(exp.getGroupName()).toEqual('Test');
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
-    exp = statsig.getExperimentSync(userNotInExp, experimentName);
+    exp = statsig.getExperiment(userNotInExp, experimentName);
     expect(exp.getGroupName()).toBeNull();
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
@@ -63,7 +63,7 @@ describe('Persistent Assignment', () => {
   });
 
   test('Assignments saved to persistent storage', () => {
-    let exp = statsig.getExperimentSync(userInControl, experimentName, {
+    let exp = statsig.getExperiment(userInControl, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userInControl,
         'userID',
@@ -72,7 +72,7 @@ describe('Persistent Assignment', () => {
     expect(exp.getGroupName()).toEqual('Control');
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
 
-    exp = statsig.getExperimentSync(userInTest, experimentName, {
+    exp = statsig.getExperiment(userInTest, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(userInTest, 'userID'),
     });
     expect(exp.getGroupName()).toEqual('Test');
@@ -85,7 +85,7 @@ describe('Persistent Assignment', () => {
   test('Evaluating from persistent assignments', () => {
     // Use sticky bucketing with valid persisted values
     // (Should override userInControl to the first evaluation of userInControl)
-    let exp = statsig.getExperimentSync(userInControl, experimentName, {
+    let exp = statsig.getExperiment(userInControl, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userInControl,
         'userID',
@@ -96,7 +96,7 @@ describe('Persistent Assignment', () => {
 
     // Use sticky bucketing with valid persisted values
     // (Should override userInTest to the first evaluation of userInTest)
-    exp = statsig.getExperimentSync(userInTest, experimentName, {
+    exp = statsig.getExperiment(userInTest, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(userInTest, 'userID'),
     });
     expect(exp.getGroupName()).toEqual('Test');
@@ -104,7 +104,7 @@ describe('Persistent Assignment', () => {
 
     // Use sticky bucketing with valid persisted values to assign a user that would otherwise be unallocated
     // (Should override userNotInExp to the first evaluation of userInControl)
-    exp = statsig.getExperimentSync(userNotInExp, experimentName, {
+    exp = statsig.getExperiment(userNotInExp, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userInControl,
         'userID',
@@ -115,7 +115,7 @@ describe('Persistent Assignment', () => {
 
     // Use sticky bucketing with valid persisted values for an unallocated user
     // (Should not override since there are no persisted values)
-    exp = statsig.getExperimentSync(userNotInExp, experimentName, {
+    exp = statsig.getExperiment(userNotInExp, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userNotInExp,
         'userID',
@@ -126,7 +126,7 @@ describe('Persistent Assignment', () => {
 
     // Use sticky bucketing on a different ID type that hasn't been saved to storage
     // (Should not override since there are no persisted values)
-    exp = statsig.getExperimentSync(userInTest, experimentName, {
+    exp = statsig.getExperiment(userInTest, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userInTest,
         'stableID',
@@ -150,7 +150,7 @@ describe('Persistent Assignment', () => {
     await statsig.initializeAsync();
 
     // Persisted assignment for inactive experiment is not used and deleted
-    let exp = statsig.getExperimentSync(userInControl, experimentName, {
+    let exp = statsig.getExperiment(userInControl, experimentName, {
       userPersistedValues: statsig.getUserPersistedValues(
         userInControl,
         'userID',
@@ -165,7 +165,7 @@ describe('Persistent Assignment', () => {
     ).toBeUndefined();
 
     // Persisted assignment for experiment is removed if not provided during evaluation (opt-out)
-    exp = statsig.getExperimentSync(userInTest, experimentName);
+    exp = statsig.getExperiment(userInTest, experimentName);
     expect(exp.getGroupName()).toEqual('Test');
     expect(exp.getEvaluationDetails()?.reason).toEqual('Bootstrap');
     expect(
@@ -186,7 +186,7 @@ describe('Persistent Assignment', () => {
 
     // Does not throw
     try {
-      const exp = statsig.getExperimentSync(userInControl, experimentName, {
+      const exp = statsig.getExperiment(userInControl, experimentName, {
         userPersistedValues: statsig.getUserPersistedValues(
           userInControl,
           'userID',

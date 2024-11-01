@@ -70,21 +70,4 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     jest.runOnlyPendingTimers();
     expect(spy).toHaveBeenCalled();
   });
-
-  test('Verify checkGateWithoutServerFallback and exposure logs', async () => {
-    expect.assertions(2);
-    await statsig.initialize('secret-123');
-
-    const logger = StatsigTestUtils.getLogger();
-    const spy = jest.spyOn(logger['fetcher'], 'post');
-
-    const on1 = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'always_on_gate',
-    );
-    expect(on1).toEqual(true);
-    // trigger the flush
-    jest.runOnlyPendingTimers();
-    expect(spy).toHaveBeenCalled();
-  });
 });

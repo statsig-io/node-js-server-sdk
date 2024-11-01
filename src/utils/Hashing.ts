@@ -34,7 +34,7 @@ export function sha256Hash(name: string): DataView {
 
 export function hashString(
   str: string,
-  algorithm: HashingAlgorithm = 'sha256',
+  algorithm: HashingAlgorithm = 'djb2',
 ): string {
   switch (algorithm) {
     case 'sha256':
@@ -48,7 +48,7 @@ export function hashString(
 
 export function hashUnitIDForIDList(
   unitID: string,
-  algorithm?: HashingAlgorithm,
+  algorithm: HashingAlgorithm = 'sha256', // Big idlists blob use sha256 for hashing
 ) {
   if (typeof unitID !== 'string' || unitID == null) {
     return '';

@@ -88,7 +88,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     const on3 = await statsig.checkGate(statsigUser, 'always_on_gate');
     expect(on3).toEqual(true);
 
-    const gate = statsig.getFeatureGateSync(statsigUser, 'always_on_gate');
+    const gate = statsig.getFeatureGate(statsigUser, 'always_on_gate');
     expect(gate.idType).toEqual('userID');
     expect(gate.evaluationDetails?.configSyncTime).toBe(
       CONFIG_SPEC_RESPONSE.time,
@@ -137,89 +137,6 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(postedLogs.events[3].metadata['gateValue']).toEqual('false');
     expect(postedLogs.events[3].metadata['ruleID']).toEqual('default');
-  });
-
-  test('Verify checkGateWithoutServerFallback and exposure logs', async () => {
-    await statsig.initialize('secret-123', { disableDiagnostics: true });
-    const clientInitializeResponse =
-      statsig.getClientInitializeResponse(statsigUser);
-    if (clientInitializeResponse != null) {
-      expect(clientInitializeResponse.time).toBeGreaterThan(0);
-      delete clientInitializeResponse.time;
-      expect(clientInitializeResponse.sdkInfo.sdkVersion).not.toBeUndefined();
-      delete clientInitializeResponse?.sdkInfo.sdkVersion;
-    }
-    const initResponse = INIT_RESPONSE;
-    delete initResponse.time;
-    expect(clientInitializeResponse).toEqual(initResponse);
-    const on1 = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'always_on_gate',
-    );
-    expect(on1).toEqual(true);
-
-    const on2 = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'always_on_gate',
-    );
-    expect(on2).toEqual(true);
-
-    const on3 = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'always_on_gate',
-    );
-    expect(on3).toEqual(true);
-
-    const passingEmail = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'on_for_statsig_email',
-    );
-    expect(passingEmail).toEqual(true);
-    const failingEmail = statsig.checkGateWithoutServerFallback(
-      randomUser,
-      'on_for_statsig_email',
-    );
-    expect(failingEmail).toEqual(false);
-
-    const unsupportedGate = statsig.checkGateWithoutServerFallback(
-      statsigUser,
-      'unsupported_condition_type',
-    );
-    expect(unsupportedGate).toEqual(false);
-
-    statsig.shutdown();
-    expect(postedLogs.events.length).toEqual(5);
-    expect(postedLogs.events[0].eventName).toEqual('statsig::diagnostics');
-    expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[1].metadata['gate']).toEqual('always_on_gate');
-    expect(postedLogs.events[1].metadata['gateValue']).toEqual('true');
-    expect(postedLogs.events[1].metadata['ruleID']).toEqual(
-      '2DWuOvXQZWKvoaNm27dqcs',
-    );
-
-    expect(postedLogs.events[2].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[2].metadata['gate']).toEqual(
-      'on_for_statsig_email',
-    );
-    expect(postedLogs.events[2].metadata['gateValue']).toEqual('true');
-    expect(postedLogs.events[2].metadata['ruleID']).toEqual(
-      '3jdTW54SQWbbxFFZJe7wYZ',
-    );
-
-    expect(postedLogs.events[3].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[3].metadata['gate']).toEqual(
-      'on_for_statsig_email',
-    );
-    expect(postedLogs.events[3].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[3].metadata['ruleID']).toEqual('default');
-
-    expect(postedLogs.events[4].eventName).toEqual('statsig::gate_exposure');
-    expect(postedLogs.events[4].metadata['gate']).toEqual(
-      'unsupported_condition_type',
-    );
-    expect(postedLogs.events[4].metadata['gateValue']).toEqual('false');
-    expect(postedLogs.events[4].metadata['ruleID']).toEqual('');
-    expect(postedLogs.events[4].metadata['reason']).toEqual('Unsupported');
   });
 
   test('Verify getConfig and exposure logs', async () => {
