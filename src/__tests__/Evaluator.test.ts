@@ -294,7 +294,8 @@ describe('Test condition evaluation', () => {
     ),
     'session-123',
   );
-  const mockedEvaluator = new Evaluator(fetcher, OptionsWithDefaults({}));
+  const store = new SpecStore(fetcher, defaultOptions);
+  const mockedEvaluator = new Evaluator(OptionsWithDefaults({}), store);
   jest
     .spyOn(mockedEvaluator, 'checkGate')
     .mockImplementation((user, gateName) => {
@@ -681,10 +682,13 @@ describe('testing checkGate and getConfig', () => {
       ),
       'session-123',
     );
-
-    evaluator = new Evaluator(
+    const store = new SpecStore(
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
+    );
+    evaluator = new Evaluator(
+      OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
+      store,
     );
 
     const now = Date.now();

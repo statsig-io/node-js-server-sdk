@@ -20,6 +20,7 @@ import Layer from './Layer';
 import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
 import OutputLogger from './OutputLogger';
+import SpecStore from './SpecStore';
 import {
   ExplicitStatsigOptions,
   GetExperimentOptions,
@@ -79,6 +80,7 @@ export default class StatsigServer {
   private _fetcher: StatsigFetcher;
   private _errorBoundary: ErrorBoundary;
   private _sessionID: string;
+  private _store: SpecStore;
 
   public constructor(secretKey: string, options: StatsigOptions = {}) {
     const optionsLoggingcopy = OptionsLoggingCopy(options);
@@ -109,7 +111,8 @@ export default class StatsigServer {
       logger: this._logger,
       options: this._options,
     });
-    this._evaluator = new Evaluator(this._fetcher, this._options);
+    this._store = new SpecStore(this._fetcher, this._options);
+    this._evaluator = new Evaluator(this._options, this._store);
   }
 
   public async initializeAsync(): Promise<InitializationDetails> {
@@ -506,7 +509,7 @@ export default class StatsigServer {
             'statsigSDK::logEvent> No valid userID was provided. Event will be logged but not associated with an identifiable user. This message is only logged once.',
           );
         }
-        user = normalizeUser(user, this._options);
+        user = this._normalizeUser(user, this._options);
 
         const event = new LogEvent(eventName);
         event.setUser(user);
@@ -629,7 +632,7 @@ export default class StatsigServer {
         );
         let normalizedUser = user;
         if (user.statsigEnvironment == null) {
-          normalizedUser = normalizeUser(user, this._options);
+          normalizedUser = this._normalizeUser(user, this._options);
         }
         const response = this._evaluator.getClientInitializeResponse(
           normalizedUser,
@@ -1095,7 +1098,7 @@ export default class StatsigServer {
         'Must pass a valid user with a userID or customID for the server SDK to work. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.',
       );
     } else {
-      result.normalizedUser = normalizeUser(user, this._options);
+      result.normalizedUser = this._normalizeUser(user, this._options);
     }
 
     this._evaluator.resetSyncTimerIfExited();
@@ -1124,17 +1127,22 @@ export default class StatsigServer {
       );
     };
   }
-}
 
-function normalizeUser(
-  user: StatsigUser,
-  options: ExplicitStatsigOptions,
-): StatsigUser {
-  if (user == null) {
-    user = { customIDs: {} }; // Being defensive here
+  private _normalizeUser(
+    user: StatsigUser,
+    options: ExplicitStatsigOptions,
+  ): StatsigUser {
+    if (user == null) {
+      user = { customIDs: {} }; // Being defensive here
+    }
+    if (options?.environment != null) {
+      user['statsigEnvironment'] = options?.environment;
+    } else {
+      const storeEnv = this._store.getDefaultEnvironment();
+      if (storeEnv != null) {
+        user['statsigEnvironment'] = { tier: storeEnv };
+      }
+    }
+    return user;
   }
-  if (options?.environment != null) {
-    user['statsigEnvironment'] = options?.environment;
-  }
-  return user;
 }

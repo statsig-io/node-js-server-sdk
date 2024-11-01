@@ -62,7 +62,7 @@ export default class ConfigEvaluation {
   public static unsupported(
     configSyncTime: number,
     initialUpdateTime: number,
-    version: number | undefined,
+    version?: number | undefined,
   ): ConfigEvaluation {
     return new ConfigEvaluation(
       false,

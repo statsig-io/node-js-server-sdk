@@ -88,8 +88,8 @@ export default class Evaluator {
   private persistentStore: UserPersistentStorageHandler;
   private initStrategyForIP3Country: InitStrategy;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
-    this.store = new SpecStore(fetcher, options);
+  public constructor(options: ExplicitStatsigOptions, store: SpecStore) {
+    this.store = store;
     this.initStrategyForIP3Country = options.initStrategyForIP3Country;
     this.gateOverrides = {};
     this.configOverrides = {};

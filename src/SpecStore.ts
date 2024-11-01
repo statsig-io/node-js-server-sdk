@@ -69,6 +69,7 @@ export default class SpecStore {
   private hashedSDKKeysToEntities: Record<string, APIEntityNames> = {};
   private primaryTargetAppID: string | null;
   private networkOverrideFunc: NetworkOverrideFunc | null;
+  private defaultEnvironemnt: string | null;
 
   public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
     this.fetcher = fetcher;
@@ -97,6 +98,7 @@ export default class SpecStore {
     this.clientSDKKeyToAppMap = {};
     this.hashedClientSDKKeyToAppMap = {};
     this.primaryTargetAppID = null;
+    this.defaultEnvironemnt = null;
   }
 
   public getInitReason() {
@@ -157,6 +159,10 @@ export default class SpecStore {
 
   public getPrimaryTargetAppID(): string | null {
     return this.primaryTargetAppID;
+  }
+
+  public getDefaultEnvironment(): string | null {
+    return this.defaultEnvironemnt;
   }
 
   public async init(ctx: InitializeContext): Promise<void> {
@@ -564,6 +570,9 @@ export default class SpecStore {
     this.hashedSDKKeysToEntities = (specsJSON?.hashed_sdk_keys_to_entities ??
       {}) as Record<string, APIEntityNames>;
     this.primaryTargetAppID = (specsJSON?.app_id ?? null) as string | null;
+    this.defaultEnvironemnt = (specsJSON?.default_environment ?? null) as
+      | string
+      | null;
     return { success: true, hasUpdates: true };
   }
 
