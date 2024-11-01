@@ -4,9 +4,26 @@ export type AdapterResponse = {
   error?: Error;
 };
 
-export enum DataAdapterKey {
-  Rulesets = 'statsig.cache',
-  IDLists = 'statsig.id_lists',
+const STATSIG_PREFIX = 'statsig';
+
+export enum DataAdapterKeyPath {
+  V1Rulesets = 'v1/download_config_specs',
+  V2Rulesets = 'v2/download_config_specs',
+  IDLists = 'id_lists',
+  IDList = 'id_list',
+}
+
+export function getDataAdapterKey(
+  hashedSDKKey: string,
+  path: DataAdapterKeyPath,
+  useGzip = false,
+  idListName: string | undefined = undefined,
+): string {
+  if (path == DataAdapterKeyPath.IDList) {
+    return `${STATSIG_PREFIX}|${path}::${String(idListName)}|${String(useGzip)}|${hashedSDKKey}`;
+  } else {
+    return `${STATSIG_PREFIX}|${path}|${String(useGzip)}|${hashedSDKKey}`;
+  }
 }
 
 /**
@@ -44,5 +61,5 @@ export interface IDataAdapter {
    * the data adapter for the given key
    * @param key - Key of stored item to poll from data adapter
    */
-  supportsPollingUpdatesFor?(key: DataAdapterKey): boolean;
+  supportsPollingUpdatesFor?(key: DataAdapterKeyPath): boolean;
 }

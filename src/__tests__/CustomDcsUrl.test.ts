@@ -26,7 +26,7 @@ describe('Check custom DCS url', () => {
   const errorBoundary = new ErrorBoundary(secretKey, options, 'sessionid-1');
   const fetcher = new StatsigFetcher(secretKey, options);
   const logger = new LogEventProcessor(fetcher, errorBoundary, options);
-  const store = new SpecStore(fetcher, options);
+  const store = new SpecStore(secretKey, fetcher, options);
   Diagnostics.initialize({ logger });
 
   const spy = jest.spyOn(fetcher, 'request').mockImplementation(async () => {

@@ -72,6 +72,7 @@ fetch.mockImplementation((url, params) => {
 
 describe('Verify behavior of SpecStore', () => {
   let store;
+  const sdkKey = 'secret-key';
   const options = OptionsWithDefaults({});
   const errorBoundary = new ErrorBoundary(
     'secret-asdf1234',
@@ -86,7 +87,7 @@ describe('Verify behavior of SpecStore', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.restoreAllMocks();
-    const net = new StatsigFetcher('secret-', OptionsWithDefaults({}));
+    const net = new StatsigFetcher(sdkKey, OptionsWithDefaults({}));
     const options = OptionsWithDefaults({
       rulesetsSyncIntervalMs: 1000,
       idListsSyncIntervalMs: 1000,
@@ -97,7 +98,7 @@ describe('Verify behavior of SpecStore', () => {
     options.rulesetsSyncIntervalMs = 1000;
     options.idListsSyncIntervalMs = 1000;
 
-    store = new SpecStore(net, options);
+    store = new SpecStore(sdkKey,net, options);
 
     jest.spyOn(global.Date, 'now').mockImplementation(() => now);
   });

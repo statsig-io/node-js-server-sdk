@@ -111,7 +111,7 @@ export default class StatsigServer {
       logger: this._logger,
       options: this._options,
     });
-    this._store = new SpecStore(this._fetcher, this._options);
+    this._store = new SpecStore(this._secretKey, this._fetcher, this._options);
     this._evaluator = new Evaluator(this._options, this._store);
   }
 

@@ -294,7 +294,7 @@ describe('Test condition evaluation', () => {
     ),
     'session-123',
   );
-  const store = new SpecStore(fetcher, defaultOptions);
+  const store = new SpecStore('secret-123', fetcher, defaultOptions);
   const mockedEvaluator = new Evaluator(OptionsWithDefaults({}), store);
   jest
     .spyOn(mockedEvaluator, 'checkGate')
@@ -332,6 +332,7 @@ describe('Test condition evaluation', () => {
       'session-123',
     );
     const store = new SpecStore(
+      'secret-123',
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
     );
@@ -683,6 +684,7 @@ describe('testing checkGate and getConfig', () => {
       'session-123',
     );
     const store = new SpecStore(
+      'secret-123',
       network,
       OptionsWithDefaults({ api: 'https://statsigapi.net/v1' }),
     );

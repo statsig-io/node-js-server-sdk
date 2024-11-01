@@ -13,7 +13,7 @@ describe('Evaluator - deleteUndefinedFields', () => {
     const eb = new ErrorBoundary(serverKey, options, "sessionid-a");
     const fetcher = new StatsigFetcher(serverKey, options, eb, "sessionid-a");
 
-    mockedEvaluator = new Evaluator(fetcher, options);
+    mockedEvaluator = new Evaluator("secret-key", fetcher, options);
   });
 
   it('should delete undefined fields from a StatsigUser object', () => {

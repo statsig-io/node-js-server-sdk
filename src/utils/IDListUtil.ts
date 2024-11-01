@@ -1,4 +1,8 @@
-import { DataAdapterKey, IDataAdapter } from '../interfaces/IDataAdapter';
+import {
+  DataAdapterKeyPath,
+  getDataAdapterKey,
+  IDataAdapter,
+} from '../interfaces/IDataAdapter';
 
 export type IDList = {
   creationTime: number;
@@ -90,11 +94,8 @@ export default abstract class IDListUtil {
     }
   }
 
-  static getIdListDataStoreKey(name: string): string {
-    return `${DataAdapterKey.IDLists}::${name}`;
-  }
-
   static async saveToDataAdapter(
+    hashedSDKKey: string,
     dataAdapter: IDataAdapter,
     lists: Record<string, IDList>,
   ): Promise<void> {
@@ -104,16 +105,25 @@ export default abstract class IDListUtil {
       let ids = '';
       for (const prop in value.ids) {
         if (!Object.prototype.hasOwnProperty.call(value.ids, prop)) continue;
-
         ids += `+${prop}\n`;
       }
-      tasks.push(dataAdapter.set(this.getIdListDataStoreKey(key), ids));
+      tasks.push(
+        dataAdapter.set(
+          getDataAdapterKey(
+            hashedSDKKey,
+            DataAdapterKeyPath.IDList,
+            false,
+            key,
+          ),
+          ids,
+        ),
+      );
     }
 
     await Promise.all(tasks);
 
     await dataAdapter.set(
-      DataAdapterKey.IDLists,
+      getDataAdapterKey(hashedSDKKey, DataAdapterKeyPath.IDLists),
       JSON.stringify(Object.keys(lists)),
     );
   }

@@ -3,11 +3,12 @@ import {
   StatsigInvalidBootstrapValuesError,
   StatsigInvalidDataAdapterValuesError,
 } from '../Errors';
-import { DataAdapterKey } from '../interfaces/IDataAdapter';
+import { DataAdapterKeyPath, getDataAdapterKey } from '../interfaces/IDataAdapter';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import TestDataAdapter from './TestDataAdapter';
 import SpecStore from '../SpecStore';
+import { sha256HashBase64 } from '../utils/Hashing';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -20,6 +21,8 @@ describe('InitDetails', () => {
     'Request to https://api.statsigcdn.com/v1/download_config_specs/secret-key.json?sinceTime=0 failed with status 500',
   );
   let dcsStatus: number = 200;
+  let sdkKey = "secret-key"
+  let dcsDataAdapterKey = getDataAdapterKey(sha256HashBase64(sdkKey), DataAdapterKeyPath.V1Rulesets)
 
   beforeEach(async () => {
     const fetch = require('node-fetch');
@@ -52,7 +55,7 @@ describe('InitDetails', () => {
   });
 
   it('Network - success', async () => {
-    const res = await Statsig.initialize('secret-key');
+    const res = await Statsig.initialize(sdkKey);
 
     expect(res.success).toEqual(true);
     expect(res.error).toBeUndefined();
@@ -62,7 +65,7 @@ describe('InitDetails', () => {
 
   it('Network - failure', async () => {
     dcsStatus = 500;
-    const res = await Statsig.initialize('secret-key');
+    const res = await Statsig.initialize(sdkKey);
 
     expect(res.success).toEqual(false);
     expect(res.error).toEqual(
@@ -73,7 +76,7 @@ describe('InitDetails', () => {
   });
 
   it('Network - timeout', async () => {
-    const res = await Statsig.initialize('secret-key', { initTimeoutMs: 1 });
+    const res = await Statsig.initialize(sdkKey, { initTimeoutMs: 1 });
 
     expect(res.success).toEqual(false);
     expect(res.error).toEqual(new Error('Timed out waiting for initialize'));
@@ -82,7 +85,7 @@ describe('InitDetails', () => {
   });
 
   it('Bootstrap - success', async () => {
-    const res = await Statsig.initialize('secret-key', {
+    const res = await Statsig.initialize(sdkKey, {
       bootstrapValues: CONFIG_SPEC_RESPONSE,
     });
 
@@ -93,7 +96,7 @@ describe('InitDetails', () => {
   });
 
   it('Bootstrap - failure (fallback to network success)', async () => {
-    const res = await Statsig.initialize('secret-key', {
+    const res = await Statsig.initialize(sdkKey, {
       bootstrapValues: '',
     });
 
@@ -105,7 +108,7 @@ describe('InitDetails', () => {
 
   it('Bootstrap - failure (fallback to network failure)', async () => {
     dcsStatus = 500;
-    const res = await Statsig.initialize('secret-key', {
+    const res = await Statsig.initialize(sdkKey, {
       bootstrapValues: '',
     });
 
@@ -119,8 +122,9 @@ describe('InitDetails', () => {
 
   it('Data Adapter - success', async () => {
     const dataAdapter = new TestDataAdapter();
-    await dataAdapter.set(DataAdapterKey.Rulesets, CONFIG_SPEC_RESPONSE);
-    const res = await Statsig.initialize('secret-key', {
+    const hashedSDKkey = sha256HashBase64("secret-key")
+    await dataAdapter.set(getDataAdapterKey(hashedSDKkey, DataAdapterKeyPath.V1Rulesets), CONFIG_SPEC_RESPONSE);
+    const res = await Statsig.initialize(sdkKey, {
       dataAdapter: dataAdapter,
     });
 
@@ -132,14 +136,14 @@ describe('InitDetails', () => {
 
   it('Data Adapter - failure (fallback to network success)', async () => {
     const dataAdapter = new TestDataAdapter();
-    await dataAdapter.set(DataAdapterKey.Rulesets, '');
-    const res = await Statsig.initialize('secret-key', {
+    await dataAdapter.set(dcsDataAdapterKey, '');
+    const res = await Statsig.initialize(sdkKey, {
       dataAdapter: dataAdapter,
     });
 
     expect(res.success).toEqual(true);
     expect(res.error).toEqual(
-      new StatsigInvalidDataAdapterValuesError(DataAdapterKey.Rulesets),
+      new StatsigInvalidDataAdapterValuesError(DataAdapterKeyPath.V1Rulesets),
     );
     expect(res.source).toEqual('Network');
     expect(res.duration).toEqual(expect.any(Number));
@@ -148,8 +152,8 @@ describe('InitDetails', () => {
   it('Data Adapter - failure (fallback to network failure)', async () => {
     dcsStatus = 500;
     const dataAdapter = new TestDataAdapter();
-    await dataAdapter.set(DataAdapterKey.Rulesets, '');
-    const res = await Statsig.initialize('secret-key', {
+    await dataAdapter.set(dcsDataAdapterKey, '');
+    const res = await Statsig.initialize(sdkKey, {
       dataAdapter: dataAdapter,
     });
 
@@ -167,7 +171,7 @@ describe('InitDetails', () => {
       .mockImplementation(async () =>
         Promise.reject(new Error('Something bad happened..')),
       );
-    const res = await Statsig.initialize('secret-key');
+    const res = await Statsig.initialize(sdkKey);
 
     expect(res.success).toEqual(false);
     expect(res.error).toEqual(new Error('Something bad happened..'));

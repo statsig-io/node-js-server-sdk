@@ -1,6 +1,6 @@
 import {
   AdapterResponse,
-  DataAdapterKey,
+  DataAdapterKeyPath,
   IDataAdapter,
 } from '../interfaces/IDataAdapter';
 import StatsigServer from '../StatsigServer';
@@ -39,17 +39,14 @@ class BootstrapDataAdapter implements IDataAdapter {
   }
 
   get(key: string): Promise<AdapterResponse> {
-    switch (key) {
-      case DataAdapterKey.Rulesets:
-        return Promise.resolve({ result: this.specs });
-
-      case DataAdapterKey.IDLists:
-        return Promise.resolve({ result: this.idListLookup });
-
-      default: {
-        const idListName = key.replace(DataAdapterKey.IDLists + '::', '');
-        return Promise.resolve({ result: this.idLists[idListName] });
-      }
+    if (key.includes(DataAdapterKeyPath.V1Rulesets)) {
+      return Promise.resolve({ result: this.specs });
+    } else if (key.includes(DataAdapterKeyPath.IDLists)) {
+      return Promise.resolve({ result: this.idListLookup });
+    } else {
+      const second_part = key.split('|')[1]
+      const idListName = second_part.split('::')[1];
+      return Promise.resolve({ result: this.idLists[idListName] });
     }
   }
 

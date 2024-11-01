@@ -1,6 +1,6 @@
 import {
   AdapterResponse,
-  DataAdapterKey,
+  DataAdapterKeyPath,
   IDataAdapter,
 } from '../interfaces/IDataAdapter';
 
@@ -24,9 +24,9 @@ export default class TestDataAdapter implements IDataAdapter {
 }
 
 export class TestSyncingDataAdapter extends TestDataAdapter {
-  private keysToSync: DataAdapterKey[] | undefined;
+  private keysToSync: DataAdapterKeyPath[] | undefined;
 
-  constructor(keysToSync?: DataAdapterKey[]) {
+  constructor(keysToSync?: DataAdapterKeyPath[]) {
     super();
     this.keysToSync = keysToSync;
   }
@@ -46,7 +46,7 @@ export class TestObjectDataAdapter {
     return Promise.resolve({ result: this.store[key], time: Date.now() });
   }
   set(key: string, value: string, time?: number | undefined): Promise<void> {
-    if (key === DataAdapterKey.Rulesets || key === DataAdapterKey.IDLists) {
+    if (key.includes(DataAdapterKeyPath.V1Rulesets) || (key.includes(DataAdapterKeyPath.IDLists))) {
       this.store[key] = JSON.parse(value);
     } else {
       this.store[key] = value;

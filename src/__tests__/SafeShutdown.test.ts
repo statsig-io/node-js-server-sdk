@@ -74,7 +74,7 @@ describe('Verifies safe shutdown of Statsig SDK', () => {
     // @ts-ignore
     logger = server._logger;
     // Need to manually create store to bypass OptionsWithDefaults
-    store = new SpecStore(fetcher, options);
+    store = new SpecStore('secret-key', fetcher, options);
 
     isInit = true;
   });

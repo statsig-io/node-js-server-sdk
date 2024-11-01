@@ -11,7 +11,11 @@ import {
 } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
 import { InitializationSource } from './InitializationDetails';
-import { DataAdapterKey, IDataAdapter } from './interfaces/IDataAdapter';
+import {
+  DataAdapterKeyPath,
+  getDataAdapterKey,
+  IDataAdapter,
+} from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
 import SDKFlags from './SDKFlags';
 import {
@@ -20,6 +24,7 @@ import {
   NetworkOverrideFunc,
 } from './StatsigOptions';
 import { poll } from './utils/core';
+import { sha256HashBase64 } from './utils/Hashing';
 import IDListUtil, { IDList } from './utils/IDListUtil';
 import safeFetch from './utils/safeFetch';
 import { InitializeContext } from './utils/StatsigContext';
@@ -51,6 +56,7 @@ export default class SpecStore {
   private disableRulesetsSync: boolean;
   private disableIdListsSync: boolean;
   private initialized: boolean;
+  private hashedSDKKey: string;
   private rulesetsSyncTimer: NodeJS.Timeout | null;
   private idListsSyncTimer: NodeJS.Timeout | null;
   private rulesetsSyncTimerLastActiveTime: number = Date.now();
@@ -71,7 +77,11 @@ export default class SpecStore {
   private networkOverrideFunc: NetworkOverrideFunc | null;
   private defaultEnvironemnt: string | null;
 
-  public constructor(fetcher: StatsigFetcher, options: ExplicitStatsigOptions) {
+  public constructor(
+    secretKey: string,
+    fetcher: StatsigFetcher,
+    options: ExplicitStatsigOptions,
+  ) {
     this.fetcher = fetcher;
     this.rulesUpdatedCallback = options.rulesUpdatedCallback ?? null;
     this.lastUpdateTime = 0;
@@ -84,6 +94,8 @@ export default class SpecStore {
       experimentToLayer: {},
     };
     this.networkOverrideFunc = options.networkOverrideFunc ?? null;
+    this.hashedSDKKey =
+      secretKey != null ? sha256HashBase64(secretKey) : 'undefined';
     this.rulesetsSyncInterval = options.rulesetsSyncIntervalMs;
     this.idListsSyncInterval = options.idListsSyncIntervalMs;
     this.disableRulesetsSync = options.disableRulesetsSync;
@@ -333,7 +345,11 @@ export default class SpecStore {
         return { synced: false };
       }
       const { result, error } = await this.dataAdapter.get(
-        DataAdapterKey.Rulesets,
+        getDataAdapterKey(
+          this.hashedSDKKey,
+          DataAdapterKeyPath.V1Rulesets,
+          false,
+        ),
       );
       if (result && !error) {
         const configSpecs =
@@ -347,7 +363,7 @@ export default class SpecStore {
       return {
         synced: false,
         error: new StatsigInvalidDataAdapterValuesError(
-          DataAdapterKey.Rulesets,
+          DataAdapterKeyPath.V1Rulesets,
         ),
       };
     } catch (e) {
@@ -360,7 +376,7 @@ export default class SpecStore {
       return;
     }
     await this.dataAdapter.set(
-      DataAdapterKey.Rulesets,
+      getDataAdapterKey(this.hashedSDKKey, DataAdapterKeyPath.V1Rulesets),
       specString,
       this.lastUpdateTime,
     );
@@ -416,7 +432,8 @@ export default class SpecStore {
   public async syncConfigSpecs(): Promise<void> {
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
-      adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.Rulesets) === true;
+      adapter?.supportsPollingUpdatesFor?.(DataAdapterKeyPath.V1Rulesets) ===
+      true;
 
     const { synced, error } = shouldSyncFromAdapter
       ? await this._fetchConfigSpecsFromAdapter()
@@ -431,11 +448,11 @@ export default class SpecStore {
         SYNC_OUTDATED_MAX
       ) {
         OutputLogger.warn(
-          `statsigSDK::sync> Syncing the server SDK from the ${
-            shouldSyncFromAdapter ? 'data adapter' : 'network'
-          } has failed for  ${
-            this.rulesetsSyncFailureCount * this.rulesetsSyncInterval
-          }ms. Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+          `statsigSDK::sync> Syncing the server SDK from the 
+          ${shouldSyncFromAdapter ? 'data adapter' : 'network'}
+           has failed for  
+           ${this.rulesetsSyncFailureCount * this.rulesetsSyncInterval}
+          ms. Your sdk will continue to serve gate/config/experiment definitions as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
         );
         this.rulesetsSyncFailureCount = 0;
       }
@@ -450,7 +467,7 @@ export default class SpecStore {
 
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
-      adapter?.supportsPollingUpdatesFor?.(DataAdapterKey.IDLists) === true;
+      adapter?.supportsPollingUpdatesFor?.(DataAdapterKeyPath.IDLists) === true;
 
     let result = shouldSyncFromAdapter
       ? await this.syncIdListsFromDataAdapter()
@@ -472,11 +489,12 @@ export default class SpecStore {
         SYNC_OUTDATED_MAX
       ) {
         OutputLogger.warn(
-          `statsigSDK::sync> Syncing ID lists from the ${
-            shouldSyncFromAdapter ? 'data adapter' : 'network'
-          } has failed for  ${
+          `statsigSDK::sync> Syncing ID lists from the 
+          ${shouldSyncFromAdapter ? 'data adapter' : 'network'} 
+          has failed for  ${
             this.idListsSyncFailureCount * this.idListsSyncInterval
-          }ms. The SDK will continue to serve gate/config/experiment definitions that depend on ID lists as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
+          }
+          ms. The SDK will continue to serve gate/config/experiment definitions that depend on ID lists as of the last successful sync. See https://docs.statsig.com/messages/serverSDKConnection for more information`,
         );
         this.idListsSyncFailureCount = 0;
       }
@@ -604,13 +622,13 @@ export default class SpecStore {
         return { synced: false };
       }
       const { result: adapterIdLists } = await dataAdapter.get(
-        DataAdapterKey.IDLists,
+        getDataAdapterKey(this.hashedSDKKey, DataAdapterKeyPath.IDLists),
       );
       if (!adapterIdLists) {
         return {
           synced: false,
           error: new StatsigInvalidDataAdapterValuesError(
-            DataAdapterKey.IDLists,
+            DataAdapterKeyPath.IDLists,
           ),
         };
       }
@@ -619,7 +637,7 @@ export default class SpecStore {
         return {
           synced: false,
           error: new StatsigInvalidDataAdapterValuesError(
-            DataAdapterKey.IDLists,
+            DataAdapterKeyPath.IDLists,
           ),
         };
       }
@@ -629,12 +647,19 @@ export default class SpecStore {
         tasks.push(
           new Promise((resolve, reject) => {
             dataAdapter
-              .get(IDListUtil.getIdListDataStoreKey(name))
+              .get(
+                getDataAdapterKey(
+                  this.hashedSDKKey,
+                  DataAdapterKeyPath.IDList,
+                  false,
+                  name,
+                ),
+              )
               .then(({ result: data }) => {
                 if (!data || typeof data !== 'string') {
                   return reject(
                     new StatsigInvalidDataAdapterValuesError(
-                      IDListUtil.getIdListDataStoreKey(name),
+                      DataAdapterKeyPath.V1Rulesets,
                     ),
                   );
                 }
@@ -740,6 +765,7 @@ export default class SpecStore {
 
       if (this.dataAdapter) {
         await IDListUtil.saveToDataAdapter(
+          this.hashedSDKKey,
           this.dataAdapter,
           this.store.idLists,
         );

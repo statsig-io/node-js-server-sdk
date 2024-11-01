@@ -10,7 +10,7 @@ import { FeatureGate } from './FeatureGate';
 import { InitializationDetails } from './InitializationDetails';
 import {
   AdapterResponse,
-  DataAdapterKey,
+  DataAdapterKeyPath,
   IDataAdapter,
 } from './interfaces/IDataAdapter';
 import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
@@ -44,14 +44,20 @@ export type {
   InitializationDetails,
 };
 
-export { DynamicConfig, IDataAdapter, DataAdapterKey, Layer, StatsigServer };
+export {
+  DynamicConfig,
+  IDataAdapter,
+  DataAdapterKeyPath,
+  Layer,
+  StatsigServer,
+};
 
 // These need to be exported, and we currently export a top level Statsig object
 // So in order to not make a breaking change, they must be exported as members of
 // that top level object
 const EXPORTS = {
   StatsigServer,
-  DataAdapterKey,
+  DataAdapterKeyPath,
   DynamicConfig,
   Layer,
   StatsigInvalidArgumentError,

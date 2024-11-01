@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 
 import * as statsigsdk from '../index';
-import { DataAdapterKey, IDataAdapter } from '../interfaces/IDataAdapter';
+import { getDataAdapterKey, IDataAdapter } from '../interfaces/IDataAdapter';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import { checkGateAndValidateWithAndWithoutServerFallbackAreConsistent } from '../test_utils/CheckGateTestUtils';
 import { GatesForIdListTest } from './BootstrapWithDataAdapter.data';
@@ -11,6 +11,8 @@ import TestDataAdapter, {
   TestObjectDataAdapter,
   TestSyncingDataAdapter,
 } from './TestDataAdapter';
+import { sha256HashBase64 } from '../utils/Hashing';
+import { DataAdapterKeyPath } from '../../dist';
 
 jest.mock('node-fetch', () => jest.fn());
 
@@ -31,6 +33,10 @@ describe('DataAdapter', () => {
     email: 'kenny@nfl.com',
     custom: { level: 9 },
   };
+  const sdkKey = 'secret-key';
+  const hashedKey = sha256HashBase64(sdkKey)
+  const dataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.V1Rulesets)
+  const idlistDataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDLists)
 
   async function loadStore(dataAdapter: IDataAdapter) {
     // Manually load data into adapter store
@@ -42,7 +48,7 @@ describe('DataAdapter', () => {
     const time = Date.now();
     await dataAdapter.initialize();
     await dataAdapter.set(
-      DataAdapterKey.Rulesets,
+      dataAdapterKey,
       JSON.stringify({
         dynamic_configs: configs,
         feature_gates: gates,
@@ -52,9 +58,9 @@ describe('DataAdapter', () => {
       }),
       time,
     );
-    await dataAdapter.set(DataAdapterKey.IDLists, '["user_id_list"]');
+    await dataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
     await dataAdapter.set(
-      DataAdapterKey.IDLists + '::user_id_list',
+      getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
       '+Z/hEKLio\n+M5m6a10x\n',
     );
   }
@@ -129,7 +135,7 @@ describe('DataAdapter', () => {
       await loadStore(dataAdapter);
 
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         ...statsigOptions,
       });
@@ -158,9 +164,8 @@ describe('DataAdapter', () => {
 
       isNetworkEnabled = true;
       // Initialize with network
-      await statsig.initialize('secret-key', statsigOptions);
-
-      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
+      await statsig.initialize(sdkKey, statsigOptions);
+      const { result } = await dataAdapter.get(dataAdapterKey);
       expect(result).not.toBeUndefined();
       const configSpecs = JSON.parse(result as string);
 
@@ -186,13 +191,13 @@ describe('DataAdapter', () => {
 
     it('updates id lists when with newer network values', async () => {
       isNetworkEnabled = true;
-      await statsig.initialize('secret-key', statsigOptions);
-
-      const lookup = await dataAdapter.get(DataAdapterKey.IDLists);
+      await statsig.initialize(sdkKey, statsigOptions);
+      
+      const lookup = await dataAdapter.get(idlistDataAdapterKey);
       expect(lookup.result).toEqual('["user_id_list"]');
 
       const ids = await dataAdapter.get(
-        DataAdapterKey.IDLists + '::user_id_list',
+        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
       );
       expect(ids.result).toEqual('+Z/hEKLio\n+M5m6a10x\n');
     });
@@ -211,13 +216,13 @@ describe('DataAdapter', () => {
       };
 
       // Bootstrap with adapter
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         bootstrapValues: JSON.stringify(jsonResponse),
         ...statsigOptions,
       });
 
-      const { result } = await dataAdapter.get(DataAdapterKey.Rulesets);
+      const { result } = await dataAdapter.get(dataAdapterKey);
       expect(result).not.toBeUndefined();
       const configSpecs = JSON.parse(result as string);
 
@@ -239,7 +244,7 @@ describe('DataAdapter', () => {
   });
 
   it('fetches single items', async () => {
-    await statsig.initialize('secret-key', statsigOptions);
+    await statsig.initialize(sdkKey, statsigOptions);
 
     dataAdapter.set('feature_gates', 'test123');
 
@@ -251,7 +256,7 @@ describe('DataAdapter', () => {
 
   describe('when data adapter is used for syncing for rulesets', () => {
     const syncingDataAdapter = new TestSyncingDataAdapter([
-      DataAdapterKey.Rulesets,
+      DataAdapterKeyPath.V1Rulesets,
     ]);
     beforeEach(() => {
       StatsigInstanceUtils.setInstance(null);
@@ -263,7 +268,7 @@ describe('DataAdapter', () => {
 
     it('updates config specs when adapter config spec update', async () => {
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         dataAdapter: syncingDataAdapter,
         environment: { tier: 'staging' },
@@ -313,7 +318,7 @@ describe('DataAdapter', () => {
 
     it('updates config specs from adapter when manually sync', async () => {
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         dataAdapter: syncingDataAdapter,
         environment: { tier: 'staging' },
@@ -357,7 +362,7 @@ describe('DataAdapter', () => {
       const time = Date.now();
       await syncingDataAdapter.initialize();
       await syncingDataAdapter.set(
-        DataAdapterKey.Rulesets,
+        dataAdapterKey,
         JSON.stringify({
           dynamic_configs: [],
           feature_gates: GatesForIdListTest,
@@ -368,7 +373,7 @@ describe('DataAdapter', () => {
         time,
       );
 
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         dataAdapter: syncingDataAdapter,
         environment: { tier: 'staging' },
       });
@@ -398,8 +403,8 @@ describe('DataAdapter', () => {
 
   describe('when data adapter is used for syncing for rulesets and id lists', () => {
     const syncingDataAdapter = new TestSyncingDataAdapter([
-      DataAdapterKey.Rulesets,
-      DataAdapterKey.IDLists,
+      DataAdapterKeyPath.IDLists,
+      DataAdapterKeyPath.V1Rulesets,
     ]);
     beforeEach(() => {
       StatsigInstanceUtils.setInstance(null);
@@ -411,7 +416,7 @@ describe('DataAdapter', () => {
 
     it('updates config specs and id lists when adapter config spec update', async () => {
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         dataAdapter: syncingDataAdapter,
         environment: { tier: 'staging' },
@@ -449,7 +454,7 @@ describe('DataAdapter', () => {
       const time = Date.now();
       await syncingDataAdapter.initialize();
       await syncingDataAdapter.set(
-        DataAdapterKey.Rulesets,
+        dataAdapterKey,
         JSON.stringify({
           dynamic_configs: [exampleConfigSpecs.config],
           feature_gates: GatesForIdListTest,
@@ -459,9 +464,9 @@ describe('DataAdapter', () => {
         }),
         time,
       );
-      syncingDataAdapter.set(DataAdapterKey.IDLists, '["user_id_list"]');
+      syncingDataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
       syncingDataAdapter.set(
-        DataAdapterKey.IDLists + '::user_id_list',
+        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
         '+Z/hEKLio\n+M5m6a10x\n',
       );
 
@@ -522,7 +527,7 @@ describe('DataAdapter', () => {
       await loadStore(dataAdapter);
 
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         ...statsigOptions,
         dataAdapter,
@@ -551,7 +556,7 @@ describe('DataAdapter', () => {
       await loadStore(dataAdapter);
 
       // Initialize without network
-      await statsig.initialize('secret-key', {
+      await statsig.initialize(sdkKey, {
         localMode: true,
         ...statsigOptions,
         dataAdapter,
