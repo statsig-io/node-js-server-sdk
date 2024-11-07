@@ -82,6 +82,7 @@
         "string": "statsig",
         "boolean": false
       },
+      "passed": true,
       "group": "4lInPNRUnjUzaWNkEWLFA9",
       "rule_id": "4lInPNRUnjUzaWNkEWLFA9",
       "is_device_based": false,
