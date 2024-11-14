@@ -36,7 +36,7 @@ describe('DataAdapter', () => {
   const sdkKey = 'secret-key';
   const hashedKey = sha256HashBase64(sdkKey)
   const dataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.V1Rulesets)
-  const idlistDataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDLists)
+  const idlistDataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.V1IDLists)
 
   async function loadStore(dataAdapter: IDataAdapter) {
     // Manually load data into adapter store
@@ -388,7 +388,7 @@ describe('DataAdapter', () => {
 
   describe('when data adapter is used for syncing for rulesets and id lists', () => {
     const syncingDataAdapter = new TestSyncingDataAdapter([
-      DataAdapterKeyPath.IDLists,
+      DataAdapterKeyPath.V1IDLists,
       DataAdapterKeyPath.V1Rulesets,
     ]);
     beforeEach(() => {

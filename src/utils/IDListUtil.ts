@@ -123,7 +123,7 @@ export default abstract class IDListUtil {
     await Promise.all(tasks);
 
     await dataAdapter.set(
-      getDataAdapterKey(hashedSDKKey, DataAdapterKeyPath.IDLists),
+      getDataAdapterKey(hashedSDKKey, DataAdapterKeyPath.V1IDLists),
       JSON.stringify(Object.keys(lists)),
     );
   }

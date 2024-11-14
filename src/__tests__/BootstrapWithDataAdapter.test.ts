@@ -40,7 +40,7 @@ class BootstrapDataAdapter implements IDataAdapter {
   get(key: string): Promise<AdapterResponse> {
     if (key.includes(DataAdapterKeyPath.V1Rulesets)) {
       return Promise.resolve({ result: this.specs });
-    } else if (key.includes(DataAdapterKeyPath.IDLists)) {
+    } else if (key.includes(DataAdapterKeyPath.V1IDLists)) {
       return Promise.resolve({ result: this.idListLookup });
     } else {
       const second_part = key.split('|')[1]

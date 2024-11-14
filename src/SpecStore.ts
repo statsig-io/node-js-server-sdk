@@ -467,7 +467,8 @@ export default class SpecStore {
 
     const adapter = this.dataAdapter;
     const shouldSyncFromAdapter =
-      adapter?.supportsPollingUpdatesFor?.(DataAdapterKeyPath.IDLists) === true;
+      adapter?.supportsPollingUpdatesFor?.(DataAdapterKeyPath.V1IDLists) ===
+      true;
 
     let result = shouldSyncFromAdapter
       ? await this.syncIdListsFromDataAdapter()
@@ -622,13 +623,13 @@ export default class SpecStore {
         return { synced: false };
       }
       const { result: adapterIdLists } = await dataAdapter.get(
-        getDataAdapterKey(this.hashedSDKKey, DataAdapterKeyPath.IDLists),
+        getDataAdapterKey(this.hashedSDKKey, DataAdapterKeyPath.V1IDLists),
       );
       if (!adapterIdLists) {
         return {
           synced: false,
           error: new StatsigInvalidDataAdapterValuesError(
-            DataAdapterKeyPath.IDLists,
+            DataAdapterKeyPath.V1IDLists,
           ),
         };
       }
@@ -637,7 +638,7 @@ export default class SpecStore {
         return {
           synced: false,
           error: new StatsigInvalidDataAdapterValuesError(
-            DataAdapterKeyPath.IDLists,
+            DataAdapterKeyPath.V1IDLists,
           ),
         };
       }
