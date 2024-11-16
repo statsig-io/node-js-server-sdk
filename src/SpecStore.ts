@@ -12,6 +12,7 @@ import {
 import { EvaluationReason } from './EvaluationReason';
 import { InitializationSource } from './InitializationDetails';
 import {
+  CompressFormat,
   DataAdapterKeyPath,
   getDataAdapterKey,
   IDataAdapter,
@@ -345,11 +346,7 @@ export default class SpecStore {
         return { synced: false };
       }
       const { result, error } = await this.dataAdapter.get(
-        getDataAdapterKey(
-          this.hashedSDKKey,
-          DataAdapterKeyPath.V1Rulesets,
-          false,
-        ),
+        getDataAdapterKey(this.hashedSDKKey, DataAdapterKeyPath.V1Rulesets),
       );
       if (result && !error) {
         const configSpecs =
@@ -652,7 +649,7 @@ export default class SpecStore {
                 getDataAdapterKey(
                   this.hashedSDKKey,
                   DataAdapterKeyPath.IDList,
-                  false,
+                  CompressFormat.PlainText,
                   name,
                 ),
               )

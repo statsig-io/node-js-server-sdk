@@ -1,4 +1,5 @@
 import {
+  CompressFormat,
   DataAdapterKeyPath,
   getDataAdapterKey,
   IDataAdapter,
@@ -112,7 +113,7 @@ export default abstract class IDListUtil {
           getDataAdapterKey(
             hashedSDKKey,
             DataAdapterKeyPath.IDList,
-            false,
+            CompressFormat.PlainText,
             key,
           ),
           ids,

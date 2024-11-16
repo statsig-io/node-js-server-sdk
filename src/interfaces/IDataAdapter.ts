@@ -13,16 +13,21 @@ export enum DataAdapterKeyPath {
   IDList = 'id_list',
 }
 
+export enum CompressFormat {
+  PlainText = 'plain_text',
+  Gzip = 'gzip', // We don't support this yet, for future usage
+}
+
 export function getDataAdapterKey(
   hashedSDKKey: string,
   path: DataAdapterKeyPath,
-  useGzip = false,
+  format: CompressFormat = CompressFormat.PlainText,
   idListName: string | undefined = undefined,
 ): string {
   if (path == DataAdapterKeyPath.IDList) {
-    return `${STATSIG_PREFIX}|${path}::${String(idListName)}|${String(useGzip)}|${hashedSDKKey}`;
+    return `${STATSIG_PREFIX}|${path}::${String(idListName)}|${format}|${hashedSDKKey}`;
   } else {
-    return `${STATSIG_PREFIX}|${path}|${String(useGzip)}|${hashedSDKKey}`;
+    return `${STATSIG_PREFIX}|${path}|${format}|${hashedSDKKey}`;
   }
 }
 

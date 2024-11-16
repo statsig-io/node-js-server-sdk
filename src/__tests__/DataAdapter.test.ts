@@ -60,7 +60,7 @@ describe('DataAdapter', () => {
     );
     await dataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
     await dataAdapter.set(
-      getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
+      getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
       '+Z/hEKLio\n+M5m6a10x\n',
     );
   }
@@ -192,7 +192,7 @@ describe('DataAdapter', () => {
       expect(lookup.result).toEqual('["user_id_list"]');
 
       const ids = await dataAdapter.get(
-        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
+        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
       );
       expect(ids.result).toEqual('+Z/hEKLio\n+M5m6a10x\n');
     });
@@ -451,7 +451,7 @@ describe('DataAdapter', () => {
       );
       syncingDataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
       syncingDataAdapter.set(
-        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, false, 'user_id_list'),
+        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
         '+Z/hEKLio\n+M5m6a10x\n',
       );
 
