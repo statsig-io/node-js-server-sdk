@@ -7,9 +7,9 @@ export type AdapterResponse = {
 const STATSIG_PREFIX = 'statsig';
 
 export enum DataAdapterKeyPath {
-  V1Rulesets = 'v1/download_config_specs',
-  V2Rulesets = 'v2/download_config_specs',
-  V1IDLists = 'v1/get_id_lists',
+  V1Rulesets = '/v1/download_config_specs',
+  V2Rulesets = '/v2/download_config_specs',
+  V1IDLists = '/v1/get_id_lists',
   IDList = 'id_list',
 }
 
