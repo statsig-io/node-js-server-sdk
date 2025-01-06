@@ -700,6 +700,8 @@ export default class Evaluator {
         const passesTargeting = this._evalTargeting(ctx);
         if (passesTargeting) {
           return stickyEvaluation;
+        } else {
+          return this._evalSpec(ctx);
         }
       } else {
         return stickyEvaluation;
@@ -740,6 +742,8 @@ export default class Evaluator {
           const passesTargeting = this._evalTargeting(ctx, delegateSpec);
           if (passesTargeting) {
             return stickyEvaluation;
+          } else {
+            return this._evalSpec(ctx);
           }
         } else {
           return stickyEvaluation;
@@ -811,7 +815,7 @@ export default class Evaluator {
     if (ctx.onlyEvaluateTargeting) {
       rules = config.rules.filter((rule) => rule.isTargetingRule());
       if (rules.length === 0) {
-        return new ConfigEvaluation(true);
+        return new ConfigEvaluation(false);
       }
     }
 
