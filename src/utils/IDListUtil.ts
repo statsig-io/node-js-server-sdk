@@ -43,7 +43,10 @@ export default abstract class IDListUtil {
       if (Array.isArray(result)) {
         return result as IDListsLookupBootstrap;
       }
-    } catch {
+      if (typeof result == 'object') {
+        return Object.keys(result);
+      }
+    } catch (e) {
       /* noop */
     }
     return null;
@@ -99,6 +102,7 @@ export default abstract class IDListUtil {
     hashedSDKKey: string,
     dataAdapter: IDataAdapter,
     lists: Record<string, IDList>,
+    lookup: IDListsLookupResponse,
   ): Promise<void> {
     const tasks: Promise<void>[] = [];
 
@@ -125,7 +129,7 @@ export default abstract class IDListUtil {
 
     await dataAdapter.set(
       getDataAdapterKey(hashedSDKKey, DataAdapterKeyPath.V1IDLists),
-      JSON.stringify(Object.keys(lists)),
+      JSON.stringify(lookup),
     );
   }
 }

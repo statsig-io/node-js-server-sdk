@@ -34,9 +34,15 @@ describe('DataAdapter', () => {
     custom: { level: 9 },
   };
   const sdkKey = 'secret-key';
-  const hashedKey = sha256HashBase64(sdkKey)
-  const dataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.V1Rulesets)
-  const idlistDataAdapterKey = getDataAdapterKey(hashedKey, DataAdapterKeyPath.V1IDLists)
+  const hashedKey = sha256HashBase64(sdkKey);
+  const dataAdapterKey = getDataAdapterKey(
+    hashedKey,
+    DataAdapterKeyPath.V1Rulesets,
+  );
+  const idlistDataAdapterKey = getDataAdapterKey(
+    hashedKey,
+    DataAdapterKeyPath.V1IDLists,
+  );
 
   async function loadStore(dataAdapter: IDataAdapter) {
     // Manually load data into adapter store
@@ -60,7 +66,12 @@ describe('DataAdapter', () => {
     );
     await dataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
     await dataAdapter.set(
-      getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
+      getDataAdapterKey(
+        hashedKey,
+        DataAdapterKeyPath.IDList,
+        'plain_text',
+        'user_id_list',
+      ),
       '+Z/hEKLio\n+M5m6a10x\n',
     );
   }
@@ -187,12 +198,19 @@ describe('DataAdapter', () => {
     it('updates id lists when with newer network values', async () => {
       isNetworkEnabled = true;
       await statsig.initialize(sdkKey, statsigOptions);
-      
+
       const lookup = await dataAdapter.get(idlistDataAdapterKey);
-      expect(lookup.result).toEqual('["user_id_list"]');
+      expect(lookup.result).toEqual(
+        '{"user_id_list":{"name":"user_id_list","size":20,"url":"https://fake.com/an_id_list_url","creationTime":1666625173000,"fileID":"1wkGp3X5k3mIQQR85D887n"}}',
+      );
 
       const ids = await dataAdapter.get(
-        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
+        getDataAdapterKey(
+          hashedKey,
+          DataAdapterKeyPath.IDList,
+          'plain_text',
+          'user_id_list',
+        ),
       );
       expect(ids.result).toEqual('+Z/hEKLio\n+M5m6a10x\n');
     });
@@ -451,7 +469,12 @@ describe('DataAdapter', () => {
       );
       syncingDataAdapter.set(idlistDataAdapterKey, '["user_id_list"]');
       syncingDataAdapter.set(
-        getDataAdapterKey(hashedKey, DataAdapterKeyPath.IDList, 'plain_text', 'user_id_list'),
+        getDataAdapterKey(
+          hashedKey,
+          DataAdapterKeyPath.IDList,
+          'plain_text',
+          'user_id_list',
+        ),
         '+Z/hEKLio\n+M5m6a10x\n',
       );
 

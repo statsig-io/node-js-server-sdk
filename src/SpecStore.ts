@@ -766,6 +766,7 @@ export default class SpecStore {
           this.hashedSDKKey,
           this.dataAdapter,
           this.store.idLists,
+          lookup,
         );
       }
     } catch (e) {
