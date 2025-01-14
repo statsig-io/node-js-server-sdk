@@ -189,8 +189,9 @@ describe('DataAdapter', () => {
       await statsig.initialize('secret-key', statsigOptions);
 
       const lookup = await dataAdapter.get(DataAdapterKey.IDLists);
-      expect(lookup.result).toEqual('["user_id_list"]');
-
+      expect(lookup.result).toEqual(
+        '{"user_id_list":{"name":"user_id_list","size":20,"url":"https://fake.com/an_id_list_url","creationTime":1666625173000,"fileID":"1wkGp3X5k3mIQQR85D887n"}}',
+      );
       const ids = await dataAdapter.get(
         DataAdapterKey.IDLists + '::user_id_list',
       );

@@ -733,6 +733,7 @@ export default class SpecStore {
         await IDListUtil.saveToDataAdapter(
           this.dataAdapter,
           this.store.idLists,
+          lookup,
         );
       }
     } catch (e) {
