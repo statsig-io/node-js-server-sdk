@@ -220,7 +220,7 @@ export default class StatsigServer {
     gateName: string,
     options?: CheckGateOptions,
   ): FeatureGate {
-    return this._errorBoundary.capture(
+    const res = this._errorBoundary.capture(
       (ctx) =>
         this.getGateImpl(
           user,
@@ -233,6 +233,11 @@ export default class StatsigServer {
       () => makeEmptyFeatureGate(gateName),
       StatsigContext.new({ caller: 'checkGate', configName: gateName }),
     );
+
+    if (this._options.evaluationCallback != null) {
+      this._options.evaluationCallback(res);
+    }
+    return res;
   }
 
   public logGateExposure(inputUser: StatsigUser, gateName: string) {
@@ -261,7 +266,7 @@ export default class StatsigServer {
     configName: string,
     options?: GetConfigOptions,
   ): DynamicConfig {
-    return this._errorBoundary.capture(
+    const res = this._errorBoundary.capture(
       (ctx) =>
         this.getConfigImpl(
           user,
@@ -274,6 +279,11 @@ export default class StatsigServer {
       () => new DynamicConfig(configName),
       StatsigContext.new({ caller: 'getConfig', configName: configName }),
     );
+
+    if (this._options.evaluationCallback != null) {
+      this._options.evaluationCallback(res);
+    }
+    return res;
   }
 
   public logConfigExposure(inputUser: StatsigUser, experimentName: string) {
@@ -312,7 +322,7 @@ export default class StatsigServer {
     experimentName: string,
     options?: GetExperimentOptions,
   ): DynamicConfig {
-    return this._errorBoundary.capture(
+    const res = this._errorBoundary.capture(
       (ctx) =>
         this.getConfigImpl(
           user,
@@ -330,6 +340,11 @@ export default class StatsigServer {
         persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
+
+    if (this._options?.evaluationCallback != null) {
+      this._options.evaluationCallback(res);
+    }
+    return res;
   }
 
   public logExperimentExposure(inputUser: StatsigUser, experimentName: string) {
@@ -381,7 +396,7 @@ export default class StatsigServer {
     layerName: string,
     options?: GetLayerOptions,
   ): Layer {
-    return this._errorBoundary.capture(
+    const res = this._errorBoundary.capture(
       (ctx) =>
         this.getLayerImpl(
           user,
@@ -399,6 +414,11 @@ export default class StatsigServer {
         persistentAssignmentOptions: options?.persistentAssignmentOptions,
       }),
     );
+
+    if (this._options.evaluationCallback != null) {
+      this._options.evaluationCallback(res);
+    }
+    return res;
   }
 
   public logLayerParameterExposure(

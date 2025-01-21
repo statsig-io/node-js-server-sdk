@@ -44,6 +44,7 @@ export type {
   GetLayerOptions,
   StatsigUser,
   InitializationDetails,
+  FeatureGate,
 };
 
 export {

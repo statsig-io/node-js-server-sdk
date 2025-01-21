@@ -1,8 +1,11 @@
+import DynamicConfig from './DynamicConfig';
+import { FeatureGate } from './FeatureGate';
 import { IDataAdapter } from './interfaces/IDataAdapter';
 import {
   IUserPersistentStorage,
   UserPersistedValues,
 } from './interfaces/IUserPersistentStorage';
+import Layer from './Layer';
 import { STATSIG_API, STATSIG_CDN } from './utils/StatsigFetcher';
 
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
@@ -64,6 +67,7 @@ export type ExplicitStatsigOptions = {
   disableIdListsSync: boolean;
   disableAllLogging: boolean;
   userPersistentStorage: IUserPersistentStorage | null;
+  evaluationCallback?: (config: FeatureGate | DynamicConfig | Layer) => void;
 };
 
 /**
@@ -143,6 +147,7 @@ export function OptionsWithDefaults(
     disableIdListsSync: opts.disableIdListsSync ?? false,
     disableAllLogging: opts.disableAllLogging ?? false,
     userPersistentStorage: opts.userPersistentStorage ?? null,
+    evaluationCallback: opts.evaluationCallback ?? undefined,
   };
 }
 
