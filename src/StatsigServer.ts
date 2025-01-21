@@ -672,7 +672,7 @@ export default class StatsigServer {
   public overrideGate(
     gateName: string,
     value: boolean,
-    userID: string | null = '',
+    userOrCustomID: string | null = '',
   ) {
     this._errorBoundary.swallow(
       () => {
@@ -682,7 +682,7 @@ export default class StatsigServer {
           );
           return;
         }
-        this._evaluator.overrideGate(gateName, value, userID);
+        this._evaluator.overrideGate(gateName, value, userOrCustomID);
       },
       StatsigContext.new({ caller: 'overrideGate' }),
     );
@@ -691,7 +691,7 @@ export default class StatsigServer {
   public overrideConfig(
     configName: string,
     value: Record<string, unknown>,
-    userID: string | null = '',
+    userOrCustomID: string | null = '',
   ) {
     this._errorBoundary.swallow(
       () => {
@@ -701,7 +701,7 @@ export default class StatsigServer {
           );
           return;
         }
-        this._evaluator.overrideConfig(configName, value, userID);
+        this._evaluator.overrideConfig(configName, value, userOrCustomID);
       },
       StatsigContext.new({ caller: 'overrideConfig' }),
     );
@@ -710,7 +710,7 @@ export default class StatsigServer {
   public overrideLayer(
     layerName: string,
     value: Record<string, unknown>,
-    userID: string | null = '',
+    userOrCustomID: string | null = '',
   ) {
     this._errorBoundary.swallow(
       () => {
@@ -720,7 +720,7 @@ export default class StatsigServer {
           );
           return;
         }
-        this._evaluator.overrideLayer(layerName, value, userID);
+        this._evaluator.overrideLayer(layerName, value, userOrCustomID);
       },
       StatsigContext.new({ caller: 'overrideLayer' }),
     );

@@ -118,30 +118,30 @@ export default class Evaluator {
   public overrideGate(
     gateName: string,
     value: boolean,
-    userID: string | null = null,
+    userOrCustomID: string | null = null,
   ): void {
     const overrides = this.gateOverrides[gateName] ?? {};
-    overrides[userID == null ? '' : userID] = value;
+    overrides[userOrCustomID == null ? '' : userOrCustomID] = value;
     this.gateOverrides[gateName] = overrides;
   }
 
   public overrideConfig(
     configName: string,
     value: Record<string, unknown>,
-    userID: string | null = '',
+    userOrCustomID: string | null = '',
   ): void {
     const overrides = this.configOverrides[configName] ?? {};
-    overrides[userID == null ? '' : userID] = value;
+    overrides[userOrCustomID == null ? '' : userOrCustomID] = value;
     this.configOverrides[configName] = overrides;
   }
 
   public overrideLayer(
     layerName: string,
     value: Record<string, unknown>,
-    userID: string | null = '',
+    userOrCustomID: string | null = '',
   ): void {
     const overrides = this.layerOverrides[layerName] ?? {};
-    overrides[userID == null ? '' : userID] = value;
+    overrides[userOrCustomID == null ? '' : userOrCustomID] = value;
     this.layerOverrides[layerName] = overrides;
   }
 
@@ -183,6 +183,7 @@ export default class Evaluator {
     user: StatsigUser,
     configName: string,
     ctx: StatsigContext,
+    skipStickyEvaluation = false,
   ): ConfigEvaluation {
     const override = this.lookupConfigOverride(user, configName);
     if (override) {
@@ -213,6 +214,7 @@ export default class Evaluator {
         user,
         spec: config,
       }),
+      skipStickyEvaluation,
     );
   }
 
@@ -544,6 +546,18 @@ export default class Evaluator {
       }
     }
 
+    // check if there is a customID override
+    const customIDs = user.customIDs;
+    if (customIDs != null) {
+      for (const customID in customIDs) {
+        const id = customIDs[customID];
+        const customIDOverride = overrides[id];
+        if (customIDOverride != null) {
+          return new ConfigEvaluation(customIDOverride, 'override');
+        }
+      }
+    }
+
     // check if there is a global override
     const allOverride = overrides[''];
     if (allOverride != null) {
@@ -588,6 +602,25 @@ export default class Evaluator {
           [],
           userOverride,
         );
+      }
+    }
+
+    // check if there is a customID override
+    const customIDs = user.customIDs;
+    if (customIDs != null) {
+      for (const customID in customIDs) {
+        const id = customIDs[customID];
+        const customIDOverride = overrides[id];
+        if (customIDOverride != null) {
+          return new ConfigEvaluation(
+            true,
+            'override',
+            null,
+            'userID',
+            [],
+            customIDOverride,
+          );
+        }
       }
     }
 
@@ -674,9 +707,15 @@ export default class Evaluator {
     );
   }
 
-  _evalConfig(ctx: EvaluationContext): ConfigEvaluation {
+  _evalConfig(
+    ctx: EvaluationContext,
+    skipStickyEvaluation = false,
+  ): ConfigEvaluation {
     const { user, spec, userPersistedValues, persistentAssignmentOptions } =
       ctx;
+    if (skipStickyEvaluation) {
+      return this._evalSpec(ctx);
+    }
     if (userPersistedValues == null || !spec.isActive) {
       this.persistentStore.delete(user, spec.idType, spec.name);
       return this._evalSpec(ctx);
@@ -879,12 +918,11 @@ export default class Evaluator {
     if (!config) {
       return null;
     }
-
-    const delegatedResult = this._eval(
-      EvaluationContext.get(ctx.getRequestContext(), {
-        user: ctx.user,
-        spec: config,
-      }),
+    const delegatedResult = this.getConfig(
+      ctx.user,
+      rule.configDelegate,
+      ctx,
+      true, // skip sticky evaluation
     );
     delegatedResult.config_delegate = rule.configDelegate;
     delegatedResult.undelegated_secondary_exposures = exposures;
