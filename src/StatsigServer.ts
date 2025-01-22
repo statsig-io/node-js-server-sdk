@@ -331,6 +331,7 @@ export default class StatsigServer {
             ? ExposureLogging.Disabled
             : ExposureLogging.Enabled,
           ctx,
+          true, // isExperiment
         ),
       () => new DynamicConfig(experimentName),
       StatsigContext.new({
@@ -1055,7 +1056,7 @@ export default class StatsigServer {
       );
     }
 
-    return makeFeatureGate(
+    const gate = makeFeatureGate(
       gateName,
       evaluation.rule_id,
       evaluation.value === true,
@@ -1063,6 +1064,15 @@ export default class StatsigServer {
       evaluation.id_type,
       evaluation.evaluation_details ?? null,
     );
+
+    if (this._options.evaluationCallbacks?.gateCallback != null) {
+      this._options.evaluationCallbacks.gateCallback(
+        gate,
+        user,
+        this._logger.getGateExposure(user, gateName, evaluation, true),
+      );
+    }
+    return gate;
   }
 
   private logConfigExposureImpl(
@@ -1105,6 +1115,7 @@ export default class StatsigServer {
     configName: string,
     exposureLogging: ExposureLogging,
     ctx: StatsigContext,
+    isExperiment = false,
   ): DynamicConfig {
     const { evaluation, user } = this.evalConfig(inputUser, configName, ctx);
     const config = new DynamicConfig(
@@ -1126,6 +1137,18 @@ export default class StatsigServer {
         configName,
         evaluation,
         ExposureCause.Automatic,
+      );
+    }
+
+    const callback = isExperiment
+      ? this._options.evaluationCallbacks?.experimentCallback
+      : this._options.evaluationCallbacks?.dynamicConfigCallback;
+
+    if (callback != null) {
+      callback(
+        config,
+        user,
+        this._logger.getConfigExposure(user, configName, evaluation, true),
       );
     }
 
@@ -1161,25 +1184,46 @@ export default class StatsigServer {
   ): Layer {
     const { evaluation, user } = this.evalLayer(inputUser, layerName, ctx);
     const logFunc = (layer: Layer, parameterName: string) => {
-      this.logLayerParameterExposureImpl(
-        user,
-        layerName,
-        parameterName,
-        evaluation,
-        ExposureCause.Automatic,
-      );
+      if (this._options.evaluationCallbacks?.layerParamCallback != null) {
+        this._options.evaluationCallbacks.layerParamCallback(
+          layer,
+          parameterName,
+          user,
+          this._logger.getLayerExposure(
+            user,
+            layerName,
+            parameterName,
+            evaluation,
+            true,
+          ),
+        );
+      }
+      if (exposureLogging !== ExposureLogging.Disabled) {
+        this.logLayerParameterExposureImpl(
+          user,
+          layerName,
+          parameterName,
+          evaluation,
+          ExposureCause.Automatic,
+        );
+      }
     };
 
-    return new Layer(
+    const layer = new Layer(
       layerName,
       evaluation?.json_value,
       evaluation?.rule_id,
       evaluation?.group_name,
       evaluation?.config_delegate,
-      exposureLogging === ExposureLogging.Disabled ? null : logFunc,
+      logFunc,
       evaluation?.evaluation_details,
       evaluation?.id_type,
     );
+
+    if (this._options.evaluationCallbacks?.layerCallback != null) {
+      this._options.evaluationCallbacks.layerCallback(layer, user);
+    }
+    return layer;
   }
 
   private logLayerParameterExposureImpl(

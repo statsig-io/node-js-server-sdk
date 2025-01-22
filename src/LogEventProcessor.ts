@@ -200,6 +200,24 @@ export default class LogEventProcessor {
     evaluation: ConfigEvaluation,
     isManualExposure: boolean,
   ) {
+    const metadata = this.getGateExposureMetadata(
+      gateName,
+      evaluation,
+      isManualExposure,
+    );
+    this.logStatsigInternal(
+      user,
+      GATE_EXPOSURE_EVENT,
+      metadata,
+      evaluation.secondary_exposures,
+    );
+  }
+
+  public getGateExposureMetadata(
+    gateName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): Record<string, unknown> {
     const metadata: Record<string, unknown> = {
       gate: gateName,
       gateValue: String(evaluation.value),
@@ -216,13 +234,26 @@ export default class LogEventProcessor {
       metadata,
       evaluation.evaluation_details,
     );
+    return metadata;
+  }
 
-    this.logStatsigInternal(
-      user,
-      GATE_EXPOSURE_EVENT,
-      metadata,
-      evaluation.secondary_exposures,
+  public getGateExposure(
+    user: StatsigUser,
+    gateName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): LogEvent {
+    const metadata = this.getGateExposureMetadata(
+      gateName,
+      evaluation,
+      isManualExposure,
     );
+
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + GATE_EXPOSURE_EVENT);
+    event.setUser(user);
+    event.setMetadata(metadata);
+    event.setSecondaryExposures(evaluation.secondary_exposures);
+    return event;
   }
 
   public logConfigExposure(
@@ -231,6 +262,40 @@ export default class LogEventProcessor {
     evaluation: ConfigEvaluation,
     isManualExposure: boolean,
   ): void {
+    const metadata = this.getConfigExposureMetadata(
+      configName,
+      evaluation,
+      isManualExposure,
+    );
+
+    this.logStatsigInternal(
+      user,
+      CONFIG_EXPOSURE_EVENT,
+      metadata,
+      evaluation.secondary_exposures,
+    );
+  }
+
+  public getConfigExposure(
+    user: StatsigUser,
+    configName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): LogEvent {
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + CONFIG_EXPOSURE_EVENT);
+    event.setUser(user);
+    event.setMetadata(
+      this.getConfigExposureMetadata(configName, evaluation, isManualExposure),
+    );
+    event.setSecondaryExposures(evaluation.secondary_exposures);
+    return event;
+  }
+
+  public getConfigExposureMetadata(
+    configName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): Record<string, unknown> {
     const metadata: Record<string, unknown> = {
       config: configName,
       ruleID: evaluation.rule_id,
@@ -247,13 +312,7 @@ export default class LogEventProcessor {
       metadata,
       evaluation.evaluation_details,
     );
-
-    this.logStatsigInternal(
-      user,
-      CONFIG_EXPOSURE_EVENT,
-      metadata,
-      evaluation.secondary_exposures,
-    );
+    return metadata;
   }
 
   public logLayerExposure(
@@ -263,13 +322,33 @@ export default class LogEventProcessor {
     evaluation: ConfigEvaluation,
     isManualExposure: boolean,
   ): void {
-    let allocatedExperiment = '';
     let exposures = evaluation.undelegated_secondary_exposures;
     const isExplicit =
       evaluation.explicit_parameters?.includes(parameterName) ?? false;
     if (isExplicit) {
-      allocatedExperiment = evaluation.config_delegate ?? '';
       exposures = evaluation.secondary_exposures;
+    }
+    const metadata = this.getLayerExposureMetadata(
+      layerName,
+      parameterName,
+      evaluation,
+      isManualExposure,
+    );
+
+    this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+  }
+
+  public getLayerExposureMetadata(
+    layerName: string,
+    parameterName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): Record<string, unknown> {
+    let allocatedExperiment = '';
+    const isExplicit =
+      evaluation.explicit_parameters?.includes(parameterName) ?? false;
+    if (isExplicit) {
+      allocatedExperiment = evaluation.config_delegate ?? '';
     }
 
     const metadata: Record<string, unknown> = {
@@ -290,8 +369,34 @@ export default class LogEventProcessor {
       metadata,
       evaluation.evaluation_details,
     );
+    return metadata;
+  }
 
-    this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+  public getLayerExposure(
+    user: StatsigUser,
+    layerName: string,
+    parameterName: string,
+    evaluation: ConfigEvaluation,
+    isManualExposure: boolean,
+  ): LogEvent {
+    let exposures = evaluation.undelegated_secondary_exposures;
+    const isExplicit =
+      evaluation.explicit_parameters?.includes(parameterName) ?? false;
+    if (isExplicit) {
+      exposures = evaluation.secondary_exposures;
+    }
+    const event = new LogEvent(INTERNAL_EVENT_PREFIX + LAYER_EXPOSURE_EVENT);
+    event.setMetadata(
+      this.getLayerExposureMetadata(
+        layerName,
+        parameterName,
+        evaluation,
+        isManualExposure,
+      ),
+    );
+    event.setSecondaryExposures(exposures);
+    event.setUser(user);
+    return event;
   }
 
   public logConfigDefaultValueFallback(

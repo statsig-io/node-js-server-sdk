@@ -6,6 +6,8 @@ import {
   UserPersistedValues,
 } from './interfaces/IUserPersistentStorage';
 import Layer from './Layer';
+import LogEvent from './LogEvent';
+import { StatsigUser } from './StatsigUser';
 import { STATSIG_API, STATSIG_CDN } from './utils/StatsigFetcher';
 
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
@@ -41,6 +43,31 @@ export type NetworkOverrideFunc = (
   params: RequestInit,
 ) => Promise<Response>;
 
+export type EvaluationCallbacks = {
+  gateCallback?: (
+    gate: FeatureGate,
+    user: StatsigUser,
+    event: LogEvent,
+  ) => void;
+  dynamicConfigCallback?: (
+    config: DynamicConfig,
+    user: StatsigUser,
+    event: LogEvent,
+  ) => void;
+  experimentCallback?: (
+    config: DynamicConfig,
+    user: StatsigUser,
+    event: LogEvent,
+  ) => void;
+  layerCallback?: (layer: Layer, user: StatsigUser) => void;
+  layerParamCallback?: (
+    layer: Layer,
+    paramName: string,
+    user: StatsigUser,
+    event: LogEvent,
+  ) => void;
+};
+
 export type ExplicitStatsigOptions = {
   api: string;
   apiForDownloadConfigSpecs: string;
@@ -68,6 +95,7 @@ export type ExplicitStatsigOptions = {
   disableAllLogging: boolean;
   userPersistentStorage: IUserPersistentStorage | null;
   evaluationCallback?: (config: FeatureGate | DynamicConfig | Layer) => void;
+  evaluationCallbacks?: EvaluationCallbacks;
 };
 
 /**
@@ -148,6 +176,7 @@ export function OptionsWithDefaults(
     disableAllLogging: opts.disableAllLogging ?? false,
     userPersistentStorage: opts.userPersistentStorage ?? null,
     evaluationCallback: opts.evaluationCallback ?? undefined,
+    evaluationCallbacks: opts.evaluationCallbacks ?? {},
   };
 }
 

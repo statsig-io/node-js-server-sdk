@@ -7,10 +7,12 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
   require('./data/download_config_specs_group_name_test.json'),
 );
 
-describe('Eval Callback', () => {
+describe('Eval Callbacks', () => {
   let gateCount = 0;
   let configCount = 0;
+  let experimentCount = 0;
   let layerCount = 0;
+  let layerParamCount = 0;
   beforeEach(async () => {
     const fetch = require('node-fetch');
     fetch.mockImplementation(() => {
@@ -21,18 +23,28 @@ describe('Eval Callback', () => {
     });
     gateCount = 0;
     configCount = 0;
+    experimentCount = 0;
     layerCount = 0;
+    layerParamCount = 0;
     StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key', {
       disableDiagnostics: true,
-      evaluationCallback: (config) => {
-        if (config instanceof DynamicConfig) {
-          configCount++;
-        } else if (config instanceof Layer) {
-          layerCount++;
-        } else {
+      evaluationCallbacks: {
+        gateCallback: (gate, user, event) => {
           gateCount++;
-        }
+        },
+        dynamicConfigCallback: (config, user, event) => {
+          configCount++;
+        },
+        experimentCallback: (config, user, event) => {
+          experimentCount++;
+        },
+        layerCallback: (layer, user) => {
+          layerCount++;
+        },
+        layerParamCallback(layer, paramName, user, event) {
+          layerParamCount++;
+        },
       },
     });
   });
@@ -75,21 +87,23 @@ describe('Eval Callback', () => {
     it('Calls callback when experiment found', async () => {
       const user = { userID: 'a-user' };
       Statsig.getExperiment(user, 'experiment_with_many_params');
-      expect(configCount).toBe(1);
+      expect(experimentCount).toBe(1);
     });
 
     it('Calls callback when experiment not found', async () => {
       const user = { userID: 'a-user' };
       Statsig.getExperiment(user, 'fake_exp');
-      expect(configCount).toBe(1);
+      expect(experimentCount).toBe(1);
     });
   });
 
   describe('getLayer', () => {
     it('Calls callback when layer found', async () => {
       const user = { userID: 'a-user' };
-      Statsig.getLayer(user, 'layer_with_many_params');
+      const layer = Statsig.getLayer(user, 'layer_with_many_params');
       expect(layerCount).toBe(1);
+      layer.get('a_string', '');
+      expect(layerParamCount).toBe(1);
     });
 
     it('Calls callback when layer not found', async () => {
