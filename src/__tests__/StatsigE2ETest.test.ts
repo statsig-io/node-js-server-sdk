@@ -112,7 +112,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(unsupportedGate).toEqual(false);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(postedLogs.events.length).toEqual(5);
     expect(postedLogs.events[0].eventName).toEqual('statsig::diagnostics');
     expect(postedLogs.events[1].eventName).toEqual('statsig::gate_exposure');
@@ -166,7 +166,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(config.value).toEqual({});
     expect(config.getEvaluationDetails()?.reason).toBe('Unsupported');
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     postedLogs.events = postedLogs.events.filter(
       (event) => event.eventName !== 'statsig::diagnostics',
     );
@@ -203,7 +203,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
 
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     postedLogs.events = postedLogs.events.filter(
       (event) => event.eventName !== 'statsig::diagnostics',
     );
@@ -253,7 +253,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(layer.getEvaluationDetails()?.reason).toBe('Network');
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     // fallback does not log an exposure, so nothing gets set here
     postedLogs.events = postedLogs.events.filter(
       (event) => event.eventName !== 'statsig::diagnostics',
@@ -267,7 +267,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       price: '9.99',
       item_name: 'diet_coke_48_pack',
     });
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     postedLogs.events = postedLogs.events.filter(
       (event) => event.eventName !== 'statsig::diagnostics',
     );
@@ -289,6 +289,6 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     expect(statsig.getExperimentList()).toContain('sample_experiment');
     expect(statsig.getAutotuneList()).toContain('test_autotune');
     expect(statsig.getLayerList()).toContain('statsig::test_layer');
-    statsig.shutdown();
+    await statsig.shutdownAsync();
   });
 });

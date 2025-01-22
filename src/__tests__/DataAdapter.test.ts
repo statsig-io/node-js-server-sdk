@@ -528,7 +528,7 @@ describe('DataAdapter', () => {
     });
 
     afterEach(async () => {
-      statsig.shutdown();
+      await statsig.shutdownAsync();
     });
 
     it('fetches config specs from adapter when network is down', async () => {

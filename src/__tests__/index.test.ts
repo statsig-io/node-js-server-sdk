@@ -22,17 +22,17 @@ const fetch = require('node-fetch');
 // @ts-ignore
 fetch.mockImplementation((url, params) => {
   if (url.includes('log_event') || url.includes('rgstr')) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const events = parseLogEvents(params).events;
-        flushedEventCount += events.length;
-        resolve({
-          ok: true,
-          json: () => {
-            return Promise.resolve({});
-          },
-        });
-      }, 10);
+    // We use `Promise.resolve().then(` to let the "flush() works" test run
+    // synchronous code before the events are counted
+    return Promise.resolve().then(() => {
+      // Simulate 10ms delay
+      jest.advanceTimersByTime(10);
+      const events = parseLogEvents(params).events;
+      flushedEventCount += events.length;
+      return {
+        ok: true,
+        json: () => Promise.resolve({}),
+      };
     });
   }
   return Promise.reject();
@@ -41,12 +41,12 @@ fetch.mockImplementation((url, params) => {
 describe('Verify behavior of top level index functions', () => {
   const secretKey = 'secret-key';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.restoreAllMocks();
     jest.resetModules();
 
     try {
-      Statsig.shutdown();
+      await Statsig.shutdownAsync();
     } catch {
       /* noop */
     }

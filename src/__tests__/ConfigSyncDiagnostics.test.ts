@@ -112,7 +112,7 @@ describe('ConfigSyncDiagnostics', () => {
         disableDiagnostics: disableDiagnostics,
       });
       await runSync('getConfigSpecs');
-      Statsig.shutdown();
+      await Statsig.shutdownAsync();
       events = events.filter((e) => e['metadata']['context'] !== 'initialize');
 
       expect(events.length).toBe(1);
@@ -210,7 +210,7 @@ describe('ConfigSyncDiagnostics', () => {
     setupFailureCase();
     await StatsigTestUtils.getEvaluator()['store'].syncConfigSpecs();
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     events = events.filter((e) => e['metadata']['context'] !== 'initialize');
     expect(events.length).toBe(1);
@@ -240,7 +240,7 @@ describe('ConfigSyncDiagnostics', () => {
     });
 
     await runSync('getIDList');
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
     events = events.filter((e) => e['metadata']['context'] !== 'initialize');
     expect(events.length).toBe(1);
     const event = events[0];
@@ -298,7 +298,7 @@ describe('ConfigSyncDiagnostics', () => {
       };
 
       await runSync('getIDList');
-      Statsig.shutdown();
+      await Statsig.shutdownAsync();
       events = events.filter((e) => e['metadata']['context'] !== 'initialize');
       // Disable diagnostics only disable api_call, so not affecting config_sync
       expect(events.length).toBe(1);

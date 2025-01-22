@@ -87,12 +87,12 @@ describe('Diagnostics', () => {
     Diagnostics.setContext('config_sync');
     Diagnostics.mark.downloadConfigSpecs.process.start({});
 
-    const assertLogDiagnostics = (
+    const assertLogDiagnostics = async (
       context: ContextType,
       expectedTime: number,
     ) => {
       Diagnostics.logDiagnostics(context);
-      logger.flush()
+      await logger.flush()
       expect(events).toHaveLength(1);
       expect(events[0].eventName).toBe('statsig::diagnostics');
       expect(events[0].metadata['context']).toEqual(context);
@@ -109,8 +109,8 @@ describe('Diagnostics', () => {
       events = [];
     };
 
-    assertLogDiagnostics('initialize', 1);
-    assertLogDiagnostics('config_sync', 2);
+    await assertLogDiagnostics('initialize', 1);
+    await assertLogDiagnostics('config_sync', 2);
   });
 
   const types = ['initialize', 'id_list', 'config_spec', 'api_call'] as const;
@@ -123,7 +123,7 @@ describe('Diagnostics', () => {
         type: type,
       });
     }
-    logger.flush()
+    await logger.flush()
     expect(events.length).toBeGreaterThan(400);
     expect(events.length).toBeLessThan(600);
   });

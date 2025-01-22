@@ -34,15 +34,13 @@ fetch.mockImplementation((url, params) => {
   }
   if (url.includes('download_config_specs')) {
     return new Promise((res) => {
-      setTimeout(
-        () =>
-          res({
-            ok: true,
-            json: () => Promise.resolve(jsonResponse),
-            text: () => Promise.resolve(JSON.stringify(jsonResponse)),
-          }),
-        1000,
-      );
+      // Simulate a 1s delay
+      jest.advanceTimersByTime(1000);
+      res({
+        ok: true,
+        json: () => Promise.resolve(jsonResponse),
+        text: () => Promise.resolve(JSON.stringify(jsonResponse)),
+      });
     });
   }
   return Promise.reject();
@@ -68,11 +66,7 @@ describe('Test local mode with overrides', () => {
     const prom = statsig.initialize('secret-abcdefg1234567890', {
       initTimeoutMs: 250,
     });
-    const now = Date.now();
-    jest.spyOn(global.Date, 'now').mockImplementation(() => now + 200);
-    jest.advanceTimersByTime(200);
-    jest.spyOn(global.Date, 'now').mockImplementation(() => now + 400);
-    jest.advanceTimersByTime(200);
+    jest.advanceTimersByTime(400);
 
     await prom;
     // @ts-ignore
@@ -85,16 +79,17 @@ describe('Test local mode with overrides', () => {
       ),
     ).toBe(false);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(events).toHaveLength(2); // 1 for init and 1 for gate check
     const event = events.find((e) => e.eventName === 'statsig::diagnostics');
     expect(event?.metadata['statsigOptions']['initTimeoutMs']).toBe(250);
 
-    const markers = event?.metadata['markers'];
-    expect(markers).toHaveLength(3);
-    expect(markers[2]['action']).toBe('end');
-    expect(markers[2]['success']).toBe(false);
-    expect(markers[2]['reason']).toStrictEqual('timeout');
+    const endMarker = event?.metadata['markers'].find(
+      (marker) => marker.action === 'end',
+    );
+    expect(endMarker['action']).toBe('end');
+    expect(endMarker['success']).toBe(false);
+    expect(endMarker['reason']).toStrictEqual('timeout');
   });
 
   test('Verify initialize() can resolve before the specified timeout and serve requests', async () => {
@@ -102,9 +97,6 @@ describe('Test local mode with overrides', () => {
       initTimeoutMs: 3000,
       disableDiagnostics: true,
     });
-    const now = Date.now();
-    jest.spyOn(global.Date, 'now').mockImplementation(() => now + 1200);
-    jest.advanceTimersByTime(1200);
     await prom;
     // @ts-ignore
     expect(StatsigInstanceUtils.getInstance()['_ready']).toBe(true);

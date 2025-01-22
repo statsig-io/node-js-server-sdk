@@ -30,7 +30,7 @@ describe('Output Logger Interface', () => {
     // @ts-ignore
     let event = new LogEvent(null);
     expect(errors.length).toEqual(level === 'error' ? 4 : 0);
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
     // @ts-ignore
     event = new LogEvent(null);
     expect(errors.length).toEqual(level === 'error' ? 4 : 0);

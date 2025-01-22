@@ -48,7 +48,7 @@ describe('Layer Exposure Logging', () => {
 
     const layer = await statsig.getLayer(user, 'unallocated_layer');
     layer.get('an_int', 'err');
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(logs).toEqual({events:[]});
   });
 
@@ -59,7 +59,7 @@ describe('Layer Exposure Logging', () => {
       const layer = await statsig.getLayer(user, 'unallocated_layer');
       expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs['events'].length).toEqual(1);
 
@@ -86,7 +86,7 @@ describe('Layer Exposure Logging', () => {
       expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
       layer[method]('a_string', 'err');
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs['events'].length).toEqual(2);
 
@@ -130,7 +130,7 @@ describe('Layer Exposure Logging', () => {
       layer[method]('a_string', 'err');
       layer[method]('an_array', []);
       layer[method]('an_object', {});
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs['events'].length).toEqual(7);
 
@@ -160,7 +160,7 @@ describe('Layer Exposure Logging', () => {
       );
       expect(layer.getIDType()).toEqual('userID');
       layer[method]('an_int', 0);
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs['events'].length).toEqual(1);
 
@@ -196,7 +196,7 @@ describe('Layer Exposure Logging', () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
       await statsig.getLayer(user, 'unallocated_layer');
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs).toEqual({events:[]});
     });
@@ -205,7 +205,7 @@ describe('Layer Exposure Logging', () => {
       await statsig.initialize('secret-123', { disableDiagnostics: true });
 
       const layer = await statsig.getLayer(user, 'unallocated_layer');
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       layer[method]('an_int', 0);
 
@@ -217,7 +217,7 @@ describe('Layer Exposure Logging', () => {
 
       const layer = await statsig.getLayer(user, 'unallocated_layer');
       layer[method]('a_string', 'err');
-      statsig.shutdown();
+      await statsig.shutdownAsync();
 
       expect(logs).toEqual({events:[]});
     });

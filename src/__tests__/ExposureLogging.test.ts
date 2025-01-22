@@ -47,14 +47,12 @@ describe('ExposureLogging', () => {
 
     StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key', { disableDiagnostics: true });
-
-    // @ts-ignore
-    StatsigInstanceUtils.getInstance()._options.loggingMaxBufferSize = 1;
   });
 
   describe('standard use', () => {
     it('logs check gate exposures', async () => {
       await Statsig.checkGate(user, 'a_gate');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.gate).toEqual('a_gate');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
@@ -62,7 +60,8 @@ describe('ExposureLogging', () => {
     });
 
     it('logs get feature gate exposures', async () => {
-      await Statsig.getFeatureGate(user, 'b_gate');
+      Statsig.getFeatureGate(user, 'b_gate');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.gate).toEqual('b_gate');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
@@ -71,6 +70,7 @@ describe('ExposureLogging', () => {
 
     it('logs config exposures', async () => {
       await Statsig.getConfig(user, 'a_config');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('a_config');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
@@ -79,6 +79,7 @@ describe('ExposureLogging', () => {
 
     it('logs experiment exposures', async () => {
       await Statsig.getExperiment(user, 'an_experiment');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('an_experiment');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
@@ -88,6 +89,7 @@ describe('ExposureLogging', () => {
     it('logs layer exposures', async () => {
       const layer = await Statsig.getLayer(user, 'a_layer');
       layer.get('a_bool', false);
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('a_layer');
       expect(events[0].metadata.isManualExposure).toBeUndefined();
@@ -140,6 +142,9 @@ describe('ExposureLogging', () => {
         disableExposureOption
       );
       layer.get('a_bool', false);
+
+      await Statsig.flush();
+
       expect(events).toHaveLength(0); 
       events = []
       const enableExposureOption = { disableExposureLogging: false };
@@ -153,6 +158,9 @@ describe('ExposureLogging', () => {
         enableExposureOption
       );
       layer_1.get('a_bool', false);
+
+      await Statsig.flush();
+
       expect(events).toHaveLength(4);
       expect(events[0].eventName).toEqual('statsig::gate_exposure');
       expect(events[1].eventName).toEqual('statsig::gate_exposure');
@@ -165,12 +173,14 @@ describe('ExposureLogging', () => {
     it('event with invalid event name does not get logged', async () => {
       const user: StatsigUser = { userID: '123' };
       Statsig.logEvent(user, '');
+      await Statsig.flush();
       expect(events.length).toBe(0);
     });
     it('null user gets logged as empty user', async () => {
       //@ts-ignore
       const user: StatsigUser = null;
       Statsig.logEvent(user, 'foo');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].user).toEqual({
         customIDs: {},
@@ -181,6 +191,7 @@ describe('ExposureLogging', () => {
       //@ts-ignore
       const user: StatsigUser = 'user';
       Statsig.logEvent(user, 'foo');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].user).toEqual(null);
     });
@@ -189,6 +200,7 @@ describe('ExposureLogging', () => {
         userID: '1'.repeat(4096),
       };
       Statsig.logEvent(user, 'foo');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].user).toEqual({
         ...user,
@@ -201,6 +213,7 @@ describe('ExposureLogging', () => {
         bigString: '1'.repeat(4096),
       };
       Statsig.logEvent(user, 'foo', undefined, metadata);
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata).toEqual(metadata);
     });
@@ -208,6 +221,7 @@ describe('ExposureLogging', () => {
       const user: StatsigUser = { userID: '123' };
       const value = '1'.repeat(4096);
       Statsig.logEvent(user, 'foo', value);
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].value).toEqual(value);
     });
@@ -216,6 +230,7 @@ describe('ExposureLogging', () => {
   describe('manual exposure logging', () => {
     it('logs a manual gate exposure', async () => {
       Statsig.manuallyLogGateExposure(user, 'a_gate');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.gate).toEqual('a_gate');
       expect(events[0].metadata.isManualExposure).toEqual('true');
@@ -224,6 +239,7 @@ describe('ExposureLogging', () => {
 
     it('logs a manual config exposure', async () => {
       Statsig.manuallyLogConfigExposure(user, 'a_config');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('a_config');
       expect(events[0].metadata.isManualExposure).toEqual('true');
@@ -232,6 +248,7 @@ describe('ExposureLogging', () => {
 
     it('logs a manual experiment exposure', async () => {
       Statsig.manuallyLogExperimentExposure(user, 'an_experiment');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('an_experiment');
       expect(events[0].metadata.isManualExposure).toEqual('true');
@@ -240,14 +257,16 @@ describe('ExposureLogging', () => {
 
     it('logs a manual layer exposure', async () => {
       Statsig.manuallyLogLayerParameterExposure(user, 'a_layer', 'a_bool');
+      await Statsig.flush();
       expect(events.length).toBe(1);
       expect(events[0].metadata.config).toEqual('a_layer');
       expect(events[0].metadata.isManualExposure).toEqual('true');
       expect(events[0].eventName).toEqual('statsig::layer_exposure');
     });
 
-    it('get experiment layer does not log exposure', () => {
+    it('get experiment layer does not log exposure', async () => {
       const layerName = Statsig.getExperimentLayer('sample_experiment');
+      await Statsig.flush();
       expect(events.length).toBe(0);
       expect(layerName).toEqual('a_layer');
     });

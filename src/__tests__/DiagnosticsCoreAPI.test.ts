@@ -106,7 +106,7 @@ describe('CoreAPIDiagnostics', () => {
     Statsig.getExperiment(user, 'teams');
     Statsig.getConfig(user, 'teams');
     Statsig.getLayer(user, 'unallocated_layer');
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
     events = events.filter(
       (event) => event.eventName === 'statsig::diagnostics',
     );
@@ -183,7 +183,7 @@ describe('CoreAPIDiagnostics', () => {
     for (let i = 0; i < MAX_MARKER_COUNT * 4; i++) {
       Statsig.checkGate(user, 'a_gate');
     }
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
     events = events.filter((e) => e['metadata']['context'] === 'api_call');
 
     expect(events.length).toBe(1);

@@ -47,7 +47,7 @@ describe('Test local mode with overrides', () => {
     );
     expect(experiment.getValue()).toEqual({});
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(hitNetwork).toEqual(false);
   });
 
@@ -83,7 +83,7 @@ describe('Test local mode with overrides', () => {
     checkGateAssertion(statsig, userOne, 'different_gate', false);
     checkGateAssertion(statsig, userTwo, 'different_gate', false);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(hitNetwork).toEqual(false);
   });
 
@@ -143,7 +143,7 @@ describe('Test local mode with overrides', () => {
     u1config = await statsig.getConfig(userOne, 'different_config');
     expect(u1config.getValue()).toEqual({});
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(hitNetwork).toEqual(false);
   });
 

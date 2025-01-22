@@ -12,7 +12,7 @@ import {
 } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
-import getCompressionFunc from './getCompressionFunc';
+import { getEncodedBody } from './getEncodedBody';
 import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
 import { StatsigContext } from './StatsigContext';
@@ -170,14 +170,14 @@ export default class StatsigFetcher {
       'STATSIG-SDK-VERSION': getSDKVersion(),
     } as Record<string, string>;
 
-    let contents: BodyInit | undefined = undefined;
-    const gzipSync = getCompressionFunc();
+    const { contents, contentEncoding } = await getEncodedBody(
+      body,
+      compress ? 'gzip' : 'none',
+      this.errorBoundry,
+    );
 
-    if (compress && body && gzipSync) {
-      headers['Content-Encoding'] = 'gzip';
-      contents = gzipSync(JSON.stringify(body));
-    } else if (body) {
-      contents = JSON.stringify(body);
+    if (contentEncoding) {
+      headers['Content-Encoding'] = contentEncoding;
     }
 
     if (!isRetrying) {

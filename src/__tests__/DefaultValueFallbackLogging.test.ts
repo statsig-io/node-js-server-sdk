@@ -45,21 +45,17 @@ describe('On Default Value Fallback', () => {
 
     StatsigInstanceUtils.setInstance(null);
     await Statsig.initialize('secret-key', {disableDiagnostics: true});
-
-    const inst = StatsigInstanceUtils.getInstance();
-    if (inst != null) {
-      // @ts-ignore
-      inst._options.loggingMaxBufferSize = 1;
-    }
   });
 
   beforeEach(async () => {
     config = await Statsig.getConfig(user, 'test_config');
+    await Statsig.flush()
     events = [];
   });
 
   it('logs an event when falling back to default value', async () => {
     config.get('number', 'a_string');
+    await Statsig.flush();
     expect(events.length).toBe(1);
 
     const event = events[0];
@@ -77,6 +73,7 @@ describe('On Default Value Fallback', () => {
 
   it('logs an event when the typeguard fails', async () => {
     config.get('boolean', 'a_string', (_v): _v is string => false);
+    await Statsig.flush();
     expect(events.length).toBe(1);
 
     const event = events[0];
@@ -94,11 +91,13 @@ describe('On Default Value Fallback', () => {
 
   it('does not log when returning the correct value', async () => {
     config.get('number', 0);
+    await Statsig.flush();
     expect(events.length).toBe(0);
   });
 
   it('does not log when type guard succeeds', async () => {
     config.get('number', 0, (_v): _v is number => true);
+    await Statsig.flush();
     expect(events.length).toBe(0);
   });
 });

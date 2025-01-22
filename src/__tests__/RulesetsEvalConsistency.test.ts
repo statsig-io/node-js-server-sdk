@@ -20,8 +20,8 @@ describe('RulesetsEvalConsistency', () => {
     jest.resetModules();
   });
 
-  afterEach(() => {
-    Statsig.shutdown();
+  afterEach(async () => {
+    await Statsig.shutdownAsync();
   });
 
   test.each([['https://statsigapi.net/v1']])('Verify [%s]', async (api) => {

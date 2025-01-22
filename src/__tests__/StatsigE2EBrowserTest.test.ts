@@ -106,7 +106,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(unsupportedGate).toEqual(false);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(postedLogs.events.length).toEqual(4);
     expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');
     expect(postedLogs.events[0].metadata['gate']).toEqual('always_on_gate');
@@ -158,7 +158,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(config.value).toEqual({});
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(postedLogs.events.length).toEqual(3);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual('test_config');
@@ -188,7 +188,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     experiment = await statsig.getExperiment(randomUser, 'sample_experiment');
     expect(experiment.get('sample_parameter', false)).toEqual(true);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     expect(postedLogs.events.length).toEqual(2);
     expect(postedLogs.events[0].eventName).toEqual('statsig::config_exposure');
     expect(postedLogs.events[0].metadata['config']).toEqual(
@@ -217,7 +217,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     );
     expect(layer.getValue('b_param', 'err')).toBe('err');
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
     // fallback does not log an exposure, so nothing gets set here
     expect(postedLogs.events).toEqual([]);
   });
@@ -228,7 +228,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
       price: '9.99',
       item_name: 'diet_coke_48_pack',
     });
-    statsig.shutdown();
+    await statsig.shutdownAsync();
 
     expect(postedLogs.events.length).toEqual(1);
     expect(postedLogs.events[0].eventName).toEqual('add_to_cart');
@@ -260,7 +260,7 @@ describe('Verify e2e behavior of the SDK with mocked network', () => {
     const on2 = await statsig.checkGate(randomUser, 'partial_rollout_gate');
     expect(on2).toEqual(false);
 
-    statsig.shutdown();
+    await statsig.shutdownAsync();
 
     expect(postedLogs.events.length).toEqual(2);
     expect(postedLogs.events[0].eventName).toEqual('statsig::gate_exposure');

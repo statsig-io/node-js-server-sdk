@@ -102,7 +102,7 @@ describe('InitStrategy', () => {
       initStrategyForIP3Country: 'await',
     });
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     expect(events.length).toBe(1);
     const event = events[0];
@@ -196,7 +196,7 @@ describe('InitStrategy', () => {
       initStrategyForIP3Country: 'none',
     });
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     expect(events.length).toBe(1);
     const event = events[0];
@@ -241,7 +241,7 @@ describe('InitStrategy', () => {
       initStrategyForIP3Country: 'lazy',
     });
 
-    Statsig.flush();
+    await Statsig.flush();
 
     expect(idlistCalled).toBe(false);
 
@@ -271,6 +271,6 @@ describe('InitStrategy', () => {
     await Promise.resolve();
     expect(idlistCalled).toBe(true);
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
   });
 });

@@ -76,7 +76,7 @@ describe('Evaluation Details', () => {
     ]);
     layer.get('experiment_param', 'fallback_value');
     uninitializedServer.checkGate(user, 'on_for_statsig_email');
-    uninitializedServer.shutdown();
+    await uninitializedServer.shutdownAsync();
 
     expect(events.length).toBe(4);
     expect(events[0]).toEqual(expectedResult('gate', 'Uninitialized', true));
@@ -94,7 +94,7 @@ describe('Evaluation Details', () => {
     ]);
     layer.get('a_value', 'fallback_value');
     server.checkGate(user, 'not_a_gate_2');
-    server.shutdown();
+    await server.shutdownAsync();
 
     expect(events.length).toBe(4);
     expect(events[0]).toEqual(expectedResult('gate', 'Unrecognized'));
@@ -112,7 +112,7 @@ describe('Evaluation Details', () => {
     ]);
     layer.get('experiment_param', 'fallback_value');
     server.checkGate(user, 'on_for_statsig_email');
-    server.shutdown();
+    await server.shutdownAsync();
 
     expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'Network'));
@@ -132,7 +132,7 @@ describe('Evaluation Details', () => {
       server.getExperiment(user, 'sample_experiment'),
     ]);
 
-    server.shutdown();
+    await server.shutdownAsync();
 
     expect(events.length).toBe(2);
     expect(events[0]).toEqual(expectedResult('gate', 'LocalOverride'));
@@ -155,7 +155,7 @@ describe('Evaluation Details', () => {
     ]);
     layer.get('experiment_param', 'fallback_value');
     bootstrapServer.checkGate(user, 'on_for_statsig_email');
-    bootstrapServer.shutdown();
+    await bootstrapServer.shutdownAsync();
 
     expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'Bootstrap'));
@@ -187,8 +187,8 @@ describe('Evaluation Details', () => {
       dataStoreServer.getLayer(user, 'a_layer'),
     ]);
     layer.get('experiment_param', 'fallback_value');
-    dataStoreServer.checkGate(user, 'on_for_statsig_email'),
-      dataStoreServer.shutdown();
+    dataStoreServer.checkGate(user, 'on_for_statsig_email');
+    await dataStoreServer.shutdownAsync();
 
     expect(events.length).toBe(5);
     expect(events[0]).toEqual(expectedResult('gate', 'DataAdapter'));

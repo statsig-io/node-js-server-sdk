@@ -99,7 +99,7 @@ describe('InitDiagnostics', () => {
         disableDiagnostics,
       });
       
-      Statsig.shutdown();
+      await Statsig.shutdownAsync();
 
       expect(events.length).toBe(1);
       const event = events[0];
@@ -179,7 +179,7 @@ describe('InitDiagnostics', () => {
     };
     await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1 });
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     expect(events.length).toBe(1);
     const event = events[0];
@@ -256,7 +256,7 @@ describe('InitDiagnostics', () => {
 
     await Statsig.initialize('secret-key', { loggingMaxBufferSize: 1 });
 
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     expect(events.length).toBe(1);
     const event = events[0];
@@ -348,7 +348,7 @@ describe('InitDiagnostics', () => {
       bootstrapValues: JSON.stringify(jsonResponse),
       loggingMaxBufferSize: 1,
     });
-    Statsig.shutdown();
+    await Statsig.shutdownAsync();
 
     expect(events.length).toBe(1);
     const event = events[0];
