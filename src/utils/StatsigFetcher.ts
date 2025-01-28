@@ -12,7 +12,7 @@ import {
 } from '../StatsigOptions';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
-import { CompressionType, getEncodedBody } from './getEncodedBody';
+import { getEncodedBody } from './getEncodedBody';
 import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
 import { StatsigContext } from './StatsigContext';
@@ -27,7 +27,7 @@ type RequestOptions = Partial<{
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
   signal: AbortSignal;
-  compression?: CompressionType;
+  compress?: boolean;
   additionalHeaders?: Record<string, string>;
 }>;
 
@@ -133,7 +133,7 @@ export default class StatsigFetcher {
       backoff = 1000,
       isRetrying = false,
       signal,
-      compression = 'none',
+      compress = false,
     } = options ?? {};
     const markDiagnostic = this.getDiagnosticFromURL(url);
     if (this.localMode) {
@@ -172,7 +172,7 @@ export default class StatsigFetcher {
 
     const { contents, contentEncoding } = await getEncodedBody(
       body,
-      compression,
+      compress ? 'gzip' : 'none',
       this.errorBoundry,
     );
 

@@ -4,15 +4,10 @@ import ErrorBoundary from './ErrorBoundary';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData, SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
-import SDKConfigs from './SDKConfigs';
 import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { getStatsigMetadata, poll } from './utils/core';
-import {
-  CompressionType,
-  isValidCompressionType,
-} from './utils/getEncodedBody';
 import { GlobalContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
@@ -120,7 +115,9 @@ export default class LogEventProcessor {
         retries: fireAndForget ? 0 : this.explicitOptions.postLogsRetryLimit,
         backoff: this.explicitOptions.postLogsRetryBackoff,
         signal: abortSignal,
-        compression: this.getLogEventCompression(),
+        compress:
+          !GlobalContext.isEdgeEnvironment &&
+          SDKFlags.on('stop_log_event_compression') === false,
         additionalHeaders: {
           'STATSIG-EVENT-COUNT': String(oldQueue.length),
         },
@@ -508,23 +505,5 @@ export default class LogEventProcessor {
       this.logDiagnosticsEvent({ context, markers });
     }
     Diagnostics.instance.clearMarker(context);
-  }
-
-  private getLogEventCompression(): CompressionType {
-    if (
-      GlobalContext.isEdgeEnvironment ||
-      SDKFlags.on('stop_log_event_compression') === true
-    ) {
-      return 'none';
-    }
-
-    // Validation of dynamic config value
-    const config = SDKConfigs.get('event_content_encoding');
-    if (isValidCompressionType(config)) {
-      return config;
-    }
-
-    // Default value
-    return 'gzip';
   }
 }

@@ -18,7 +18,6 @@ import {
   IDataAdapter,
 } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
-import SDKConfigs from './SDKConfigs';
 import SDKFlags from './SDKFlags';
 import {
   ExplicitStatsigOptions,
@@ -571,7 +570,6 @@ export default class SpecStore {
     }
 
     SDKFlags.setFlags(specsJSON?.sdk_flags);
-    SDKConfigs.setConfigs(specsJSON?.sdk_configs);
 
     const updatedExpToLayer: Record<string, string> =
       this._reverseLayerExperimentMapping(layerToExperimentMap);
