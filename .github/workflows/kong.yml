@@ -20,7 +20,7 @@ on:
 
 jobs:
   KONG:
-    timeout-minutes: 10
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - name: Get KONG
