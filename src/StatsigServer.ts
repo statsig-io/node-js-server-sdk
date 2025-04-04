@@ -67,6 +67,10 @@ export type LogEventObject = {
 export type ClientInitializeResponseOptions = {
   hash?: HashingAlgorithm;
   includeLocalOverrides?: boolean;
+  overrides?: {
+    gates?: Record<string, boolean>;
+    experimentsByGroupName?: Record<string, string>;
+  };
 };
 
 /**

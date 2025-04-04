@@ -316,7 +316,9 @@ export default class Evaluator {
       .map(([gate, spec]) => {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupGateOverride(user, spec.name)
-          : null;
+          : options?.overrides?.gates
+            ? this.findGateOverride(options?.overrides?.gates, gate, spec)
+            : null;
         const res =
           localOverride ??
           this._eval(
@@ -343,7 +345,12 @@ export default class Evaluator {
       .map(([, spec]) => {
         const localOverride = options?.includeLocalOverrides
           ? this.lookupConfigOverride(user, spec.name)
-          : null;
+          : options?.overrides?.experimentsByGroupName
+            ? this.findExperimentOverrideByGroupName(
+                options?.overrides?.experimentsByGroupName,
+                spec.name,
+              )
+            : null;
         const res =
           localOverride ??
           this._eval(
@@ -533,6 +540,76 @@ export default class Evaluator {
         this.deleteUndefinedFields(obj[key]);
       }
     }
+  }
+
+  private findGateOverride(
+    overrides: Record<string, boolean>,
+    gate: string,
+    spec: ConfigSpec,
+  ): ConfigEvaluation | null {
+    const override =
+      typeof overrides[gate] === 'boolean' ? overrides[gate] : null;
+
+    if (override === null) {
+      return null;
+    }
+
+    return new ConfigEvaluation(
+      override,
+      'override',
+      null,
+      spec.idType,
+      [],
+      override,
+    ).withEvaluationDetails(
+      EvaluationDetails.make(
+        this.store.getLastUpdateTime(),
+        this.store.getInitialUpdateTime(),
+        'LocalOverride',
+      ),
+    );
+  }
+
+  private findExperimentOverrideByGroupName(
+    overrides: Record<string, string>,
+    experimentName: string,
+  ): ConfigEvaluation | null {
+    const overrideGroupName =
+      typeof overrides[experimentName] === 'string'
+        ? overrides[experimentName]
+        : null;
+
+    if (overrideGroupName == null) {
+      return null;
+    }
+
+    const overrideConfig = this.store.getConfig(experimentName);
+    if (overrideConfig == null) {
+      return null;
+    }
+
+    const overrideRule = overrideConfig.rules.find((rule: ConfigRule) => {
+      return rule.groupName === overrideGroupName && rule.isExperimentGroup;
+    });
+
+    if (overrideRule == null) {
+      return null;
+    }
+
+    return new ConfigEvaluation(
+      true,
+      'override',
+      overrideRule.groupName,
+      overrideRule.idType,
+      [],
+      overrideRule.returnValue as Record<string, unknown>,
+    ).withEvaluationDetails(
+      EvaluationDetails.make(
+        this.store.getLastUpdateTime(),
+        this.store.getInitialUpdateTime(),
+        'LocalOverride',
+      ),
+    );
   }
 
   private lookupGateOverride(
