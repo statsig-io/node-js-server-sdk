@@ -1,11 +1,11 @@
 name: Long Running SDK CD
 
-on: 
+on:
   workflow_dispatch:
   push:
     branches:
       - main
-      
+
 env:
   api_key: ${{ secrets.LRS_SERVER_KEY }}
   image_tag: nodejs
@@ -17,13 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout LRS repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: statsig-io/long-running-sdk
           ref: main
           token: ${{ secrets.ROIM }}
       - name: Checkout SDK repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: statsig-io/${{  env.sdk_repo  }}
           ref: main
@@ -47,9 +47,5 @@ jobs:
           push: true
           tags: statsig/long-running-sdk:${{ env.image_tag }}
           github-token: ${{ secrets.GH_CI_CD_PAT }}
-          build-args: 
-            secret_key=${{env.api_key}}
+          build-args: secret_key=${{env.api_key}}
           platforms: linux/amd64
-            
-          
-        

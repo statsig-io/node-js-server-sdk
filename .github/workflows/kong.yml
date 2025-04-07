@@ -9,10 +9,10 @@ env:
 on:
   workflow_dispatch:
     inputs:
-    kong-branch:
-      description: "Kong branch name"
-      type: string
-      required: false
+      kong-branch:
+        description: 'Kong branch name'
+        type: string
+        required: false
   pull_request:
     branches: [main]
   push:
@@ -31,7 +31,7 @@ jobs:
               git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git .
           fi
 
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
           node-version: '16.x'
 
@@ -46,8 +46,8 @@ jobs:
 
       - name: Run Tests
         run: npm run kong -- test nodejs -v -r
-      
-      - name: Run Measure Base Benchmark Score 
+
+      - name: Run Measure Base Benchmark Score
         if: github.ref == 'refs/heads/main'
         run: npm run kong -- regression_test nodejs -p base -v
 
