@@ -19,13 +19,21 @@ import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
   CheckGateOptions,
+  CoreApiOptions,
+  EvaluationCallbacks,
+  ExplicitStatsigOptions,
   GetConfigOptions,
   GetExperimentOptions,
   GetLayerOptions,
   InitStrategy,
+  LoggerInterface,
+  NetworkOverrideFunc,
+  PersistentAssignmentOptions,
+  RetryBackoffFunc,
   RulesUpdatedCallback,
   StatsigEnvironment,
   StatsigOptions,
+  // Everything except OptionsLoggingCopy and OptionsWithDefaults
 } from './StatsigOptions';
 import StatsigServer, {
   ClientInitializeResponseOptions,
@@ -35,17 +43,31 @@ import { StatsigUser } from './StatsigUser';
 
 export type {
   AdapterResponse,
-  InitStrategy,
   LogEventObject,
-  RulesUpdatedCallback,
-  StatsigEnvironment,
-  StatsigOptions,
-  GetExperimentOptions,
-  GetLayerOptions,
   StatsigUser,
   InitializationDetails,
   FeatureGate,
+
+  // StatsigOptions
+  RulesUpdatedCallback,
+  StatsigOptions,
+  GetExperimentOptions,
+  GetLayerOptions,
+  StatsigEnvironment,
+  InitStrategy,
+  CoreApiOptions,
+  EvaluationCallbacks,
+  ExplicitStatsigOptions,
+  LoggerInterface,
+  NetworkOverrideFunc,
+  PersistentAssignmentOptions,
+  RetryBackoffFunc,
+  // NOTE: Ideally we'd do `export type * from './StatsigOptions';`, but we don't
+  //       want to export OptionsLoggingCopy and OptionsWithDefaults. This is verbose,
+  //       but we have a new node sdk using rust, so we don't expect major changes here.
 };
+
+export * from './StatsigOptions';
 
 export {
   DynamicConfig,
