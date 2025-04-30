@@ -23,6 +23,7 @@ import OutputLogger from './OutputLogger';
 import SpecStore from './SpecStore';
 import {
   CheckGateOptions,
+  ClientInitializeResponseOptions,
   ExplicitStatsigOptions,
   GetConfigOptions,
   GetExperimentOptions,
@@ -32,9 +33,7 @@ import {
   StatsigOptions,
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
-import asyncify from './utils/asyncify';
 import { isUserIdentifiable, notEmptyObject } from './utils/core';
-import type { HashingAlgorithm } from './utils/Hashing';
 import LogEventValidator from './utils/LogEventValidator';
 import { InitializeContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -62,11 +61,6 @@ export type LogEventObject = {
   value?: string | number | null;
   metadata?: Record<string, unknown> | null;
   time?: string | null;
-};
-
-export type ClientInitializeResponseOptions = {
-  hash?: HashingAlgorithm;
-  includeLocalOverrides?: boolean;
 };
 
 /**

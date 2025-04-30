@@ -7,8 +7,12 @@ import { UserPersistedValues } from './interfaces/IUserPersistentStorage';
 import { SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
 import SpecStore, { APIEntityNames } from './SpecStore';
-import { ExplicitStatsigOptions, InitStrategy } from './StatsigOptions';
-import { ClientInitializeResponseOptions } from './StatsigServer';
+import {
+  ClientInitializeResponseExperimentOverride,
+  ClientInitializeResponseOptions,
+  ExplicitStatsigOptions,
+  InitStrategy,
+} from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import UserPersistentStorageHandler from './UserPersistentStorageHandler';
 import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
@@ -37,7 +41,6 @@ import {
   InitializeContext,
   StatsigContext,
 } from './utils/StatsigContext';
-import StatsigFetcher from './utils/StatsigFetcher';
 
 const CONDITION_SEGMENT_COUNT = 10 * 1000;
 const USER_BUCKET_COUNT = 1000;
@@ -314,9 +317,11 @@ export default class Evaluator {
     const gates = Object.entries(this.store.getAllGates())
       .filter(([, spec]) => filterGate(spec))
       .map(([gate, spec]) => {
-        const localOverride = options?.includeLocalOverrides
-          ? this.lookupGateOverride(user, spec.name)
-          : null;
+        const localOverride = this.gateOverrideForClientInitializeResponse(
+          user,
+          spec.name,
+          options,
+        );
         const res =
           localOverride ??
           this._eval(
@@ -341,9 +346,11 @@ export default class Evaluator {
     const configs = Object.entries(this.store.getAllConfigs())
       .filter(([, spec]) => filterConfig(spec))
       .map(([, spec]) => {
-        const localOverride = options?.includeLocalOverrides
-          ? this.lookupConfigOverride(user, spec.name)
-          : null;
+        const localOverride = this.configOverrideForClientInitializeResponse(
+          user,
+          spec,
+          options,
+        );
         const res =
           localOverride ??
           this._eval(
@@ -391,9 +398,11 @@ export default class Evaluator {
     const layers = Object.entries(this.store.getAllLayers())
       .filter(([, spec]) => filterTargetAppID(spec))
       .map(([, spec]) => {
-        const localOverride = options?.includeLocalOverrides
-          ? this.lookupLayerOverride(user, spec.name)
-          : null;
+        const localOverride = this.layerOverrideForClientInitializeResponse(
+          user,
+          spec,
+          options,
+        );
         const res =
           localOverride ??
           this._eval(
@@ -533,6 +542,97 @@ export default class Evaluator {
         this.deleteUndefinedFields(obj[key]);
       }
     }
+  }
+
+  private gateOverrideForClientInitializeResponse(
+    user: StatsigUser,
+    gateName: string,
+    options: ClientInitializeResponseOptions | undefined,
+  ): ConfigEvaluation | null {
+    const optionsOverride = options?.overrides?.featureGates?.[gateName];
+    if (optionsOverride !== undefined) {
+      return new ConfigEvaluation(optionsOverride, 'override');
+    }
+
+    if (options?.includeLocalOverrides) {
+      return this.lookupGateOverride(user, gateName);
+    }
+    return null;
+  }
+
+  private configOverrideForClientInitializeResponse(
+    user: StatsigUser,
+    spec: ConfigSpec,
+    options: ClientInitializeResponseOptions | undefined,
+  ): ConfigEvaluation | null {
+    const optionsOverride = this.configBasedOverrideForClientInitializeResponse(
+      spec,
+      options?.overrides?.dynamicConfigs?.[spec.name],
+    );
+    if (optionsOverride) {
+      return optionsOverride;
+    }
+
+    if (options?.includeLocalOverrides) {
+      return this.lookupConfigOverride(user, spec.name);
+    }
+
+    return null;
+  }
+
+  private layerOverrideForClientInitializeResponse(
+    user: StatsigUser,
+    spec: ConfigSpec,
+    options: ClientInitializeResponseOptions | undefined,
+  ): ConfigEvaluation | null {
+    const optionsOverride = this.configBasedOverrideForClientInitializeResponse(
+      spec,
+      options?.overrides?.layers?.[spec.name],
+    );
+    if (optionsOverride) {
+      return optionsOverride;
+    }
+
+    if (options?.includeLocalOverrides) {
+      return this.lookupLayerOverride(user, spec.name);
+    }
+
+    return null;
+  }
+
+  private configBasedOverrideForClientInitializeResponse(
+    spec: ConfigSpec,
+    optionsOverride: ClientInitializeResponseExperimentOverride | undefined,
+  ): ConfigEvaluation | null {
+    if (!optionsOverride) {
+      return null;
+    }
+
+    const overrideRule = optionsOverride.groupName
+      ? spec.rules.find((rule: ConfigRule) => {
+          return (
+            rule.groupName === optionsOverride.groupName &&
+            rule.isExperimentGroup
+          );
+        })
+      : undefined;
+
+    const value =
+      optionsOverride.value ??
+      (overrideRule?.returnValue as Record<string, unknown> | undefined);
+
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    return new ConfigEvaluation(
+      true,
+      'override',
+      optionsOverride.groupName ?? null,
+      overrideRule?.idType ?? 'userID',
+      [],
+      value,
+    );
   }
 
   private lookupGateOverride(

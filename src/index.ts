@@ -19,6 +19,9 @@ import OutputLogger from './OutputLogger';
 import StatsigInstanceUtils from './StatsigInstanceUtils';
 import {
   CheckGateOptions,
+  ClientInitializeResponseExperimentOverride,
+  ClientInitializeResponseOptions,
+  ClientInitializeResponseValueOverride,
   CoreApiOptions,
   EvaluationCallbacks,
   ExplicitStatsigOptions,
@@ -35,10 +38,7 @@ import {
   StatsigOptions,
   // Everything except OptionsLoggingCopy and OptionsWithDefaults
 } from './StatsigOptions';
-import StatsigServer, {
-  ClientInitializeResponseOptions,
-  LogEventObject,
-} from './StatsigServer';
+import StatsigServer, { LogEventObject } from './StatsigServer';
 import { StatsigUser } from './StatsigUser';
 
 export type {
@@ -62,6 +62,9 @@ export type {
   NetworkOverrideFunc,
   PersistentAssignmentOptions,
   RetryBackoffFunc,
+  ClientInitializeResponseOptions,
+  ClientInitializeResponseExperimentOverride,
+  ClientInitializeResponseValueOverride,
   // NOTE: Ideally we'd do `export type * from './StatsigOptions';`, but we don't
   //       want to export OptionsLoggingCopy and OptionsWithDefaults. This is verbose,
   //       but we have a new node sdk using rust, so we don't expect major changes here.

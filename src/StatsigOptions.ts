@@ -8,6 +8,7 @@ import {
 import Layer from './Layer';
 import LogEvent from './LogEvent';
 import { StatsigUser } from './StatsigUser';
+import { HashingAlgorithm } from './utils/Hashing';
 import { STATSIG_API, STATSIG_CDN } from './utils/StatsigFetcher';
 
 const DEFAULT_RULESETS_SYNC_INTERVAL = 10 * 1000;
@@ -302,4 +303,58 @@ export type GetLayerOptions = CoreApiOptions & {
 
 export type CoreApiOptions = {
   disableExposureLogging?: boolean;
+};
+
+export interface ClientInitializeResponseValueOverride {
+  value?: Record<string, unknown>;
+}
+
+export interface ClientInitializeResponseExperimentOverride
+  extends ClientInitializeResponseValueOverride {
+  groupName?: string;
+}
+
+export type ClientInitializeResponseOptions = {
+  hash?: HashingAlgorithm;
+  includeLocalOverrides?: boolean;
+  /**
+   * Overrides for the generated client initialize response.
+   * To override an experiment, use the dynamicConfigs object. You can override
+   * the value directly with the 'value' property, or set the 'groupName' property
+   * to use the value associated with that group.
+   *
+   * @example
+   * {
+   *   overrides: {
+   *     featureGates: {
+   *       'my_gate': true,             // Override gate value to true
+   *     },
+   *
+   *     dynamicConfigs: {
+   *       'price_config': {
+   *         value: { price: 9.99 }     // Override value only
+   *       },
+   *       'color_experiment': {
+   *         groupName: 'Control'       // Override group assignment only
+   *       },
+   *       'spacing_experiment': {
+   *         value: { spacing: 64 },    // Override both value and
+   *         groupName: 'Variant_B'     // group assignment
+   *       }
+   *     },
+   *
+   *     layers: {
+   *       'my_layer': {
+   *         value: { param: 123 }      // Override layer value
+   *       }
+   *     }
+   *   }
+   * }
+   *
+   */
+  overrides?: {
+    featureGates?: Record<string, boolean>;
+    dynamicConfigs?: Record<string, ClientInitializeResponseExperimentOverride>;
+    layers?: Record<string, ClientInitializeResponseValueOverride>;
+  };
 };
