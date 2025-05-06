@@ -1273,32 +1273,52 @@ export default class Evaluator {
 
       // array
       case 'any':
-        evalResult = arrayAny(
-          value,
-          target,
-          stringCompare(true, (a, b) => a === b),
-        );
+        if (condition.targetValueSet != null) {
+          evalResult =
+            condition.targetValueSet.has(String(value)) ||
+            condition.targetValueSet.has(String(value).toLowerCase());
+        } else {
+          evalResult = arrayAny(
+            value,
+            target,
+            stringCompare(true, (a, b) => a === b),
+          );
+        }
         break;
       case 'none':
-        evalResult = !arrayAny(
-          value,
-          target,
-          stringCompare(true, (a, b) => a === b),
-        );
+        if (condition.targetValueSet != null) {
+          evalResult =
+            !condition.targetValueSet.has(String(value)) &&
+            !condition.targetValueSet.has(String(value).toLowerCase());
+        } else {
+          evalResult = !arrayAny(
+            value,
+            target,
+            stringCompare(true, (a, b) => a === b),
+          );
+        }
         break;
       case 'any_case_sensitive':
-        evalResult = arrayAny(
-          value,
-          target,
-          stringCompare(false, (a, b) => a === b),
-        );
+        if (condition.targetValueSet != null) {
+          evalResult = condition.targetValueSet.has(String(value));
+        } else {
+          evalResult = arrayAny(
+            value,
+            target,
+            stringCompare(false, (a, b) => a === b),
+          );
+        }
         break;
       case 'none_case_sensitive':
-        evalResult = !arrayAny(
-          value,
-          target,
-          stringCompare(false, (a, b) => a === b),
-        );
+        if (condition.targetValueSet != null) {
+          evalResult = !condition.targetValueSet.has(String(value));
+        } else {
+          evalResult = !arrayAny(
+            value,
+            target,
+            stringCompare(false, (a, b) => a === b),
+          );
+        }
         break;
 
       // string

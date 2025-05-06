@@ -99,6 +99,7 @@ export class ConfigCondition {
   public field: string;
   public additionalValues: Record<string, unknown>;
   public idType: string;
+  public targetValueSet?: Set<string>;
   public constructor(conditionJSON: Record<string, unknown>) {
     this.type = conditionJSON.type as string;
     this.targetValue = conditionJSON.targetValue;
@@ -107,5 +108,27 @@ export class ConfigCondition {
     this.additionalValues =
       (conditionJSON.additionalValues as Record<string, unknown>) ?? {};
     this.idType = conditionJSON.idType as string;
+    if (this.operator === 'any' || this.operator === 'none') {
+      if (Array.isArray(this.targetValue)) {
+        this.targetValueSet = new Set<string>();
+        const values = this.targetValue as (string | number)[];
+        for (let i = 0; i < values.length; i++) {
+          this.targetValueSet.add(String(values[i]));
+          this.targetValueSet.add(String(values[i]).toLowerCase());
+        }
+      }
+    }
+    if (
+      this.operator === 'any_case_sensitive' ||
+      this.operator === 'none_case_sensitive'
+    ) {
+      if (Array.isArray(this.targetValue)) {
+        this.targetValueSet = new Set<string>();
+        const values = this.targetValue as (string | number)[];
+        for (let i = 0; i < values.length; i++) {
+          this.targetValueSet.add(String(values[i]));
+        }
+      }
+    }
   }
 }
