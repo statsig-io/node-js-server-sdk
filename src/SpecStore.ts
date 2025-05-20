@@ -46,6 +46,19 @@ export type APIEntityNames = {
   configs: string[];
 };
 
+type SessionReplayTrigger = {
+  sampling_rate?: number;
+  values?: string[];
+};
+
+type SessionReplayInfo = {
+  sampling_rate?: number;
+  targeting_gate?: string;
+  recording_blocked?: boolean;
+  session_recording_event_triggers?: Record<string, SessionReplayTrigger>;
+  session_recording_exposure_triggers?: Record<string, SessionReplayTrigger>;
+};
+
 export default class SpecStore {
   private initReason: EvaluationReason;
   private rulesUpdatedCallback: ((rules: string, time: number) => void) | null;
@@ -77,6 +90,7 @@ export default class SpecStore {
   private primaryTargetAppID: string | null;
   private networkOverrideFunc: NetworkOverrideFunc | null;
   private defaultEnvironemnt: string | null;
+  private sessionReplayInfo: SessionReplayInfo | null;
 
   public constructor(
     secretKey: string,
@@ -112,6 +126,7 @@ export default class SpecStore {
     this.hashedClientSDKKeyToAppMap = {};
     this.primaryTargetAppID = null;
     this.defaultEnvironemnt = null;
+    this.sessionReplayInfo = null;
   }
 
   public getInitReason() {
@@ -176,6 +191,10 @@ export default class SpecStore {
 
   public getDefaultEnvironment(): string | null {
     return this.defaultEnvironemnt;
+  }
+
+  public getSessionReplayInfo(): SessionReplayInfo | null {
+    return this.sessionReplayInfo;
   }
 
   public async init(ctx: InitializeContext): Promise<void> {
@@ -589,6 +608,8 @@ export default class SpecStore {
     this.defaultEnvironemnt = (specsJSON?.default_environment ?? null) as
       | string
       | null;
+    this.sessionReplayInfo = (specsJSON?.session_replay_info ??
+      null) as SessionReplayInfo | null;
     return { success: true, hasUpdates: true };
   }
 

@@ -63,6 +63,11 @@ type InitializeResponse = {
   passed?: boolean;
 };
 
+type SessionReplayTrigger = {
+  values?: string[];
+  passes_sampling?: boolean;
+};
+
 export type ClientInitializeResponse = {
   feature_gates: Record<string, InitializeResponse>;
   dynamic_configs: Record<string, InitializeResponse>;
@@ -75,6 +80,12 @@ export type ClientInitializeResponse = {
   evaluated_keys: Record<string, unknown>;
   hash_used: HashingAlgorithm;
   user: StatsigUser;
+  can_record_session?: boolean;
+  session_recording_rate?: number;
+  recording_blocked?: boolean;
+  passes_session_recording_targeting?: boolean;
+  session_recording_event_triggers?: Record<string, SessionReplayTrigger>;
+  session_recording_exposure_triggers?: Record<string, SessionReplayTrigger>;
 };
 
 export default class Evaluator {
@@ -463,7 +474,7 @@ export default class Evaluator {
     delete user.privateAttributes;
     this.deleteUndefinedFields(user);
 
-    return {
+    const result = {
       feature_gates: Object.assign(
         {},
         ...gates.map((item) => ({ [item.name]: item })),
@@ -484,7 +495,78 @@ export default class Evaluator {
       evaluated_keys: evaluatedKeys,
       hash_used: hashAlgo,
       user: user,
-    };
+    } as ClientInitializeResponse;
+
+    const sessionReplayInfo = this.store.getSessionReplayInfo();
+    if (sessionReplayInfo == null) {
+      return result;
+    }
+
+    result.recording_blocked = sessionReplayInfo.recording_blocked;
+    result.can_record_session =
+      (sessionReplayInfo.recording_blocked ?? false) === false;
+    const random = Math.random();
+    if (sessionReplayInfo.sampling_rate != null) {
+      result.session_recording_rate = sessionReplayInfo.sampling_rate;
+      if (random > sessionReplayInfo.sampling_rate) {
+        result.can_record_session = false;
+      }
+    }
+    const targetingGate = sessionReplayInfo.targeting_gate;
+    if (targetingGate != null) {
+      const res = result.feature_gates[hashString(targetingGate, hashAlgo)];
+      const passesTargeting = res?.value === true;
+      if (!passesTargeting) {
+        result.can_record_session = false;
+      }
+      result.passes_session_recording_targeting = passesTargeting;
+    }
+
+    const eventTriggers = sessionReplayInfo.session_recording_event_triggers;
+    if (eventTriggers != null) {
+      result.session_recording_event_triggers = {};
+      for (const eventName in eventTriggers) {
+        const trigger = eventTriggers[eventName];
+
+        result.session_recording_event_triggers[eventName] = {};
+        if (trigger.values != null) {
+          result.session_recording_event_triggers[eventName].values =
+            trigger.values;
+        }
+        if (trigger.sampling_rate != null) {
+          const passesSampling =
+            trigger.sampling_rate == null || random <= trigger.sampling_rate;
+          result.session_recording_event_triggers[eventName].passes_sampling =
+            passesSampling;
+        }
+      }
+    }
+    const exposureTriggers =
+      sessionReplayInfo.session_recording_exposure_triggers;
+    if (exposureTriggers != null) {
+      result.session_recording_exposure_triggers = {};
+      for (const exposureName in exposureTriggers) {
+        const trigger = exposureTriggers[exposureName];
+        result.session_recording_exposure_triggers[
+          hashString(exposureName, hashAlgo)
+        ] = {};
+
+        if (trigger.values != null) {
+          result.session_recording_exposure_triggers[
+            hashString(exposureName, hashAlgo)
+          ].values = trigger.values;
+        }
+        if (trigger.sampling_rate != null) {
+          const passesSampling =
+            trigger.sampling_rate == null || random <= trigger.sampling_rate;
+          result.session_recording_exposure_triggers[
+            hashString(exposureName, hashAlgo)
+          ].passes_sampling = passesSampling;
+        }
+      }
+    }
+
+    return result;
   }
 
   public clearAllGateOverrides(): void {
