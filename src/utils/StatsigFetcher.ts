@@ -10,6 +10,7 @@ import {
   NetworkOverrideFunc,
   RetryBackoffFunc,
 } from '../StatsigOptions';
+import { AbortSignalLike } from './AbortSignalLike';
 import { getSDKType, getSDKVersion } from './core';
 import Dispatcher from './Dispatcher';
 import { getEncodedBody } from './getEncodedBody';
@@ -26,7 +27,7 @@ type RequestOptions = Partial<{
   retryURL: string;
   backoff: number | RetryBackoffFunc;
   isRetrying: boolean;
-  signal: AbortSignal;
+  signal: AbortSignalLike;
   compress?: boolean;
   additionalHeaders?: Record<string, string>;
 }>;

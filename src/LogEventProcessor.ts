@@ -7,6 +7,7 @@ import OutputLogger from './OutputLogger';
 import SDKFlags from './SDKFlags';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
+import { AbortSignalLike } from './utils/AbortSignalLike';
 import { getStatsigMetadata, poll } from './utils/core';
 import { GlobalContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
@@ -96,7 +97,7 @@ export default class LogEventProcessor {
 
   public async flush(
     fireAndForget = false,
-    abortSignal?: AbortSignal,
+    abortSignal?: AbortSignalLike,
   ): Promise<void> {
     this.addDiagnosticsMarkers('api_call');
     this.addDiagnosticsMarkers('get_client_initialize_response');
