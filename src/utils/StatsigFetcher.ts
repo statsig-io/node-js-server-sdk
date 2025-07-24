@@ -7,6 +7,7 @@ import {
 } from '../Errors';
 import {
   ExplicitStatsigOptions,
+  LoggerInterface,
   NetworkOverrideFunc,
   RetryBackoffFunc,
 } from '../StatsigOptions';
@@ -18,7 +19,7 @@ import { djb2Hash } from './Hashing';
 import safeFetch from './safeFetch';
 import { StatsigContext } from './StatsigContext';
 
-const retryStatusCodes = [408, 500, 502, 503, 504, 522, 524, 599];
+const retryStatusCodes = [0, 408, 500, 502, 503, 504, 522, 524, 599];
 export const STATSIG_API = 'https://statsigapi.net/v1';
 export const STATSIG_CDN = 'https://api.statsigcdn.com/v1';
 
@@ -44,6 +45,7 @@ export default class StatsigFetcher {
   private sdkKey: string;
   private errorBoundry: ErrorBoundary;
   private networkOverrideFunc: NetworkOverrideFunc | null;
+  private outputLogger: LoggerInterface | null = null;
 
   public constructor(
     secretKey: string,
@@ -62,6 +64,7 @@ export default class StatsigFetcher {
     this.sdkKey = secretKey;
     this.errorBoundry = errorBoundry;
     this.networkOverrideFunc = options.networkOverrideFunc;
+    this.outputLogger = options.logger ?? null;
   }
 
   public validateSDKKeyUsed(hashedSDKKeyUsed: string): boolean {
@@ -84,7 +87,23 @@ export default class StatsigFetcher {
 
     let options: RequestOptions | undefined;
     if (this.fallbackToStatsigAPI) {
-      options = { retries: 1, retryURL: STATSIG_CDN + path };
+      try {
+        const res = await this.get(url, options);
+        if (res.ok) {
+          return res;
+        }
+        this.outputLogger?.warn(
+          `Failed to download config specs from ${this.apiForDownloadConfigSpecs}, status code: ${res.status}. Falling back to Statsig API.`,
+        );
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.outputLogger?.warn(
+          `Error downloading config specs from: ${message}. Falling back to Statsig API.`,
+        );
+      }
+
+      // Fallback to Statsig API
+      return await this.get(STATSIG_CDN + path);
     }
 
     return await this.get(url, options);
@@ -95,8 +114,23 @@ export default class StatsigFetcher {
     const url = this.apiForGetIdLists + path;
 
     let options: RequestOptions | undefined;
+
     if (this.fallbackToStatsigAPI) {
-      options = { retries: 1, retryURL: STATSIG_API + path };
+      try {
+        const res = await this.post(url, {}, options);
+        if (res.ok) {
+          return res;
+        }
+        this.outputLogger?.warn(
+          `Failed to download ID lists from ${this.apiForGetIdLists}, status code: ${res.status}. Falling back to Statsig API.`,
+        );
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.outputLogger?.warn(`Error getting id lists from: ${message}`);
+      }
+
+      // Fallback to Statsig API
+      return await this.post(STATSIG_API + path, {});
     }
 
     return await this.post(url, {}, options);
