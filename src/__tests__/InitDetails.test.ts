@@ -18,7 +18,7 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
 
 describe('InitDetails', () => {
   const network500Error = new Error(
-    'Request to https://api.statsigcdn.com/v1/download_config_specs/secret-key.json?sinceTime=0 failed with status 500',
+    'Request to https://api.statsigcdn.com/v1/download_config_specs/REDACTED.json?sinceTime=0 failed with status 500',
   );
   let dcsStatus: number = 200;
   let sdkKey = "secret-key"

@@ -242,7 +242,17 @@ export default class SpecStore {
         ctx.setSuccess('Network');
       }
       if (error) {
-        const err = new StatsigInitializeFromNetworkError(error);
+        const maskedUrl = error.message.replace(
+          /\/download_config_specs\/([^/]+)\.json/,
+          (match, secretKey) => {
+            const maskedKey =
+              (secretKey as string).length > 13
+                ? `${(secretKey as string).slice(0, 13)}****`
+                : 'REDACTED';
+            return `/download_config_specs/${maskedKey}.json`;
+          },
+        );
+        const err = new StatsigInitializeFromNetworkError(new Error(maskedUrl));
         OutputLogger.error(err);
         ctx.setFailed(err);
       }

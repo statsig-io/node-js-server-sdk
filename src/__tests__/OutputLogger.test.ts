@@ -24,7 +24,7 @@ describe('Output Logger Interface', () => {
     expect(errors.length).toEqual(level === 'error' ? 3 : 0);
     if (level === 'error') {
       expect(errors).toContainEqual('statsigSDK> EventName needs to be a string of non-zero length.');
-      expect(errors).toContainEqual((new StatsigInitializeFromNetworkError(new Error(`Request to https://api.statsigcdn.com/v1/download_config_specs/******.json?sinceTime=0 failed with status 401`))).toString());
+      expect(errors).toContainEqual((new StatsigInitializeFromNetworkError(new Error(`Request to https://api.statsigcdn.com/v1/download_config_specs/REDACTED.json?sinceTime=0 failed with status 401`))).toString());
       expect(errors).toContainEqual((new StatsigInitializeIDListsError(new Error('Request to https://statsigapi.net/v1/get_id_lists failed with status 401'))).toString());
     }
     // @ts-ignore
