@@ -7,7 +7,7 @@ const statsig = statsigsdk.default;
 jest.mock('node-fetch', () => jest.fn());
 
 const CONFIG_SPEC_RESPONSE = JSON.stringify(
-  require('./data/download_config_spec.json'),
+  require('./data/download_config_spec_overrides.json'),
 );
 
 const user: StatsigUser = {
@@ -116,6 +116,29 @@ describe('ClientInitializeResponse overrides', () => {
       overriddenTest?.dynamic_configs['sample_experiment'].value,
     ).toMatchObject({
       sample_parameter: true,
+    });
+
+    const overriddenNonExpGroup = statsig.getClientInitializeResponse(
+      user,
+      clientKey,
+      {
+        hash: 'none',
+        overrides: {
+          dynamicConfigs: {
+            sample_experiment_2: {
+              groupName: 'Control',
+            },
+          },
+        },
+      },
+    );
+    expect(
+      overriddenNonExpGroup?.dynamic_configs['sample_experiment_2'].group_name,
+    ).toBe('Control');
+    expect(
+      overriddenNonExpGroup?.dynamic_configs['sample_experiment_2'].value,
+    ).toMatchObject({
+      sample_parameter: false,
     });
   });
 });

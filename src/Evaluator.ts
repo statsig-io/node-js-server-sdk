@@ -691,12 +691,9 @@ export default class Evaluator {
     }
 
     const overrideRule = optionsOverride.groupName
-      ? spec.rules.find((rule: ConfigRule) => {
-          return (
-            rule.groupName === optionsOverride.groupName &&
-            rule.isExperimentGroup
-          );
-        })
+      ? spec.rules.find(
+          (rule: ConfigRule) => rule.groupName === optionsOverride.groupName,
+        )
       : undefined;
 
     const value =
