@@ -262,6 +262,9 @@ export default class StatsigFetcher {
           error: Diagnostics.formatNetworkError(error),
         });
         this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
+        if (this.leakyBucket[url] <= 0) {
+          delete this.leakyBucket[url];
+        }
       });
   }
 
@@ -288,6 +291,10 @@ export default class StatsigFetcher {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.leakyBucket[url] = Math.max(this.leakyBucket[url] - 1, 0);
+        if (this.leakyBucket[url] <= 0) {
+          delete this.leakyBucket[url];
+        }
+        this.pendingTimers = this.pendingTimers.filter((t) => t !== timer);
         this.request(method, url, body, { retries, backoff, isRetrying: true })
           .then(resolve)
           .catch(reject);
