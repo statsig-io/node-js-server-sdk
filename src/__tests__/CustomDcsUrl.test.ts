@@ -40,7 +40,7 @@ describe('Check custom DCS url', () => {
 
     expect(spy).toHaveBeenCalledWith(
       'GET',
-      customUrl + dcsPath + `/${secretKey}.json?sinceTime=0`,
+      customUrl + dcsPath + `/${secretKey}.json`,
       undefined,
       undefined,
     );

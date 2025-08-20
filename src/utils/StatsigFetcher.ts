@@ -82,7 +82,7 @@ export default class StatsigFetcher {
     const path =
       '/download_config_specs' +
       `/${this.sdkKey}.json` +
-      `?sinceTime=${sinceTime}`;
+      (sinceTime === 0 ? '' : `?sinceTime=${sinceTime}`);
     const url = this.apiForDownloadConfigSpecs + path;
 
     let options: RequestOptions | undefined;

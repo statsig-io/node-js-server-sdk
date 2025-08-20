@@ -3,7 +3,10 @@ import {
   StatsigInvalidBootstrapValuesError,
   StatsigInvalidDataAdapterValuesError,
 } from '../Errors';
-import { DataAdapterKeyPath, getDataAdapterKey } from '../interfaces/IDataAdapter';
+import {
+  DataAdapterKeyPath,
+  getDataAdapterKey,
+} from '../interfaces/IDataAdapter';
 import Statsig from '../index';
 import StatsigInstanceUtils from '../StatsigInstanceUtils';
 import TestDataAdapter from './TestDataAdapter';
@@ -18,11 +21,14 @@ const CONFIG_SPEC_RESPONSE = JSON.stringify(
 
 describe('InitDetails', () => {
   const network500Error = new Error(
-    'Request to https://api.statsigcdn.com/v1/download_config_specs/REDACTED.json?sinceTime=0 failed with status 500',
+    'Request to https://api.statsigcdn.com/v1/download_config_specs/REDACTED.json failed with status 500',
   );
   let dcsStatus: number = 200;
-  let sdkKey = "secret-key"
-  let dcsDataAdapterKey = getDataAdapterKey(sha256HashBase64(sdkKey), DataAdapterKeyPath.V1Rulesets)
+  let sdkKey = 'secret-key';
+  let dcsDataAdapterKey = getDataAdapterKey(
+    sha256HashBase64(sdkKey),
+    DataAdapterKeyPath.V1Rulesets,
+  );
 
   beforeEach(async () => {
     const fetch = require('node-fetch');
@@ -122,8 +128,11 @@ describe('InitDetails', () => {
 
   it('Data Adapter - success', async () => {
     const dataAdapter = new TestDataAdapter();
-    const hashedSDKkey = sha256HashBase64("secret-key")
-    await dataAdapter.set(getDataAdapterKey(hashedSDKkey, DataAdapterKeyPath.V1Rulesets), CONFIG_SPEC_RESPONSE);
+    const hashedSDKkey = sha256HashBase64('secret-key');
+    await dataAdapter.set(
+      getDataAdapterKey(hashedSDKkey, DataAdapterKeyPath.V1Rulesets),
+      CONFIG_SPEC_RESPONSE,
+    );
     const res = await Statsig.initialize(sdkKey, {
       dataAdapter: dataAdapter,
     });

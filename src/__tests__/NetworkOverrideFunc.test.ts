@@ -7,7 +7,7 @@ jest.mock('node-fetch', () => jest.fn());
 
 function verifyDcsFetchCall(call: any[]) {
   expect(call[0]).toEqual(
-    'https://api.statsigcdn.com/v1/download_config_specs/secret-key.json?sinceTime=0',
+    'https://api.statsigcdn.com/v1/download_config_specs/secret-key.json',
   );
   expect(call[1].method).toBe('GET');
 }
