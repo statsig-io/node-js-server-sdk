@@ -96,7 +96,7 @@ export class ConfigCondition {
   public type: string;
   public targetValue: unknown;
   public operator: string;
-  public field: string;
+  public field: string | null;
   public additionalValues: Record<string, unknown>;
   public idType: string;
   public targetValueSet?: Set<string>;

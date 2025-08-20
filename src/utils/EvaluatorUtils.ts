@@ -32,8 +32,11 @@ export function computeUserHash(userHash: string) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getFromUser(user: StatsigUser, field: string): any | null {
-  if (typeof user !== 'object') {
+export function getFromUser(
+  user: StatsigUser,
+  field: string | null,
+): any | null {
+  if (typeof user !== 'object' || field == null) {
     return null;
   }
   const indexableUser = user as { [field: string]: unknown };
@@ -48,7 +51,11 @@ export function getFromUser(user: StatsigUser, field: string): any | null {
   );
 }
 
-export function getFromUserAgent(user: StatsigUser, field: string) {
+export function getFromUserAgent(user: StatsigUser, field: string | null) {
+  if (field == null) {
+    return null;
+  }
+
   const ua = getFromUser(user, 'userAgent');
   if (ua == null) {
     return null;
@@ -76,7 +83,10 @@ export function getFromUserAgent(user: StatsigUser, field: string) {
   }
 }
 
-export function getFromEnvironment(user: StatsigUser, field: string) {
+export function getFromEnvironment(user: StatsigUser, field: string | null) {
+  if (field == null) {
+    return null;
+  }
   return getParameterCaseInsensitive(user?.statsigEnvironment, field);
 }
 

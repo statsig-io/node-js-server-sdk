@@ -1548,7 +1548,10 @@ export default class Evaluator {
     return evalResult.is_experiment_group;
   }
 
-  private getFromIP(user: StatsigUser, field: string) {
+  private getFromIP(user: StatsigUser, field: string | null) {
+    if (field == null) {
+      return null;
+    }
     const ip = getFromUser(user, 'ip');
     if (ip == null || field !== 'country') {
       return null;
