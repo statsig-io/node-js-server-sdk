@@ -5,6 +5,7 @@ import {
   StatsigSDKKeyMismatchError,
   StatsigTooManyRequestsError,
 } from '../Errors';
+import { SDKConfigs } from '../SDKConfigs';
 import {
   ExplicitStatsigOptions,
   LoggerInterface,

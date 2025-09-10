@@ -16,6 +16,9 @@ export default class ConfigEvaluation {
   public evaluation_details: EvaluationDetails | undefined;
   public id_type: string | null;
   public configVersion?: number | undefined;
+  public forward_all_exposures: boolean;
+  public sample_rate?: number | undefined;
+  public seen_analytical_gates: boolean;
 
   constructor(
     value: boolean,
@@ -28,6 +31,9 @@ export default class ConfigEvaluation {
     config_delegate: string | null = null,
     configVersion?: number,
     unsupported = false,
+    forward_all_exposures?: boolean,
+    sample_rate?: number,
+    seen_analytical_gates?: boolean,
   ) {
     this.value = value;
     this.rule_id = rule_id;
@@ -46,6 +52,9 @@ export default class ConfigEvaluation {
     this.group_name = group_name;
     this.id_type = id_type;
     this.configVersion = configVersion;
+    this.forward_all_exposures = forward_all_exposures ?? false;
+    this.sample_rate = sample_rate;
+    this.seen_analytical_gates = seen_analytical_gates ?? false;
   }
 
   public withEvaluationDetails(
@@ -63,6 +72,8 @@ export default class ConfigEvaluation {
     configSyncTime: number,
     initialUpdateTime: number,
     version?: number | undefined,
+    forward_all_exposures?: boolean,
+    sample_rate?: number | undefined,
   ): ConfigEvaluation {
     return new ConfigEvaluation(
       false,
@@ -75,6 +86,8 @@ export default class ConfigEvaluation {
       undefined,
       version,
       true,
+      forward_all_exposures,
+      sample_rate,
     ).withEvaluationDetails(
       EvaluationDetails.unsupported(configSyncTime, initialUpdateTime),
     );

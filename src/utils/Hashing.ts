@@ -28,6 +28,21 @@ export function sha256HashBase64(name: string) {
   return Base64.encodeArrayBuffer(buffer.arrayBuffer());
 }
 
+export function bigqueryHash(str: string): bigint {
+  const hash = SHA256(str).arrayBuffer();
+  const view = new DataView(hash);
+
+  let num = view.getBigUint64(0, false);
+
+  const TWO_TO_63 = BigInt('9223372036854775808'); // 2^63
+  const TWO_TO_64 = BigInt('18446744073709551616'); // 2^64
+
+  if (num >= TWO_TO_63) {
+    num -= TWO_TO_64;
+  }
+  return num;
+}
+
 export function sha256Hash(name: string): DataView {
   return SHA256(name).dataView();
 }

@@ -189,8 +189,21 @@ export default class Evaluator {
       );
       return this.getUnrecognizedEvaluation();
     }
+
+    let samplingRate: number | undefined;
+    let seenAnalyticalGates = false;
+    if (ctx instanceof EvaluationContext) {
+      samplingRate = ctx.samplingRate;
+      seenAnalyticalGates = ctx.seenAnalyticalGates;
+    }
+
     return this._evalSpec(
-      EvaluationContext.get(ctx.getRequestContext(), { user, spec: gate }),
+      EvaluationContext.get(ctx.getRequestContext(), {
+        user,
+        spec: gate,
+        samplingRate,
+        seenAnalyticalGates,
+      }),
     );
   }
 
@@ -1026,6 +1039,8 @@ export default class Evaluator {
         undefined, // explicit parameters
         undefined, // config delegate
         config.version,
+        false, // unsupported
+        config.forwardAllExposures,
       );
     }
 
@@ -1039,12 +1054,15 @@ export default class Evaluator {
 
     let secondary_exposures: SecondaryExposure[] = [];
     for (const rule of rules) {
+      ctx.samplingRate = rule.sampleRate;
       const ruleResult = this._evalRule(user, rule, ctx);
       if (ruleResult.unsupported) {
         return ConfigEvaluation.unsupported(
           this.store.getLastUpdateTime(),
           this.store.getInitialUpdateTime(),
           config.version,
+          config.forwardAllExposures,
+          rule.sampleRate,
         );
       }
 
@@ -1075,6 +1093,10 @@ export default class Evaluator {
           config.explicitParameters,
           ruleResult.config_delegate,
           config.version,
+          false, // unsupported
+          config.forwardAllExposures,
+          ruleResult.sample_rate,
+          ruleResult.seen_analytical_gates,
         );
         evaluation.setIsExperimentGroup(ruleResult.is_experiment_group);
         return evaluation;
@@ -1091,6 +1113,10 @@ export default class Evaluator {
       config.explicitParameters,
       undefined, // config delegate
       config.version,
+      false, // unsupported
+      config.forwardAllExposures,
+      ctx.samplingRate, // sample_rate
+      ctx.seenAnalyticalGates,
     );
   }
 
@@ -1170,6 +1196,13 @@ export default class Evaluator {
       null,
       secondaryExposures,
       rule.returnValue as Record<string, unknown>,
+      undefined, // explicit_parameters
+      undefined, // config_delegate
+      undefined, // configVersion
+      false, // unsupported
+      undefined, // forward_all_exposures
+      rule.sampleRate, // sample_rate
+      ctx.seenAnalyticalGates,
     );
     evaluation.setIsExperimentGroup(rule.isExperimentGroup ?? false);
     return evaluation;
@@ -1206,6 +1239,19 @@ export default class Evaluator {
           ruleID: gateResult?.rule_id ?? '',
         });
 
+        ctx.samplingRate = gateResult?.sample_rate;
+        ctx.seenAnalyticalGates = gateResult?.seen_analytical_gates;
+
+        if (
+          (ctx.samplingRate === null ||
+            ctx.samplingRate === undefined ||
+            ctx.samplingRate === 0) &&
+          typeof target === 'string' &&
+          !target.startsWith('segment:')
+        ) {
+          ctx.seenAnalyticalGates = true;
+        }
+
         return {
           passes:
             condition.type.toLowerCase() === 'fail_gate' ? !value : !!value,
@@ -1235,6 +1281,14 @@ export default class Evaluator {
             ruleID: gateResult?.rule_id ?? '',
           });
           exposures = exposures.concat(gateResult.secondary_exposures);
+
+          if (
+            ctx.samplingRate === null &&
+            typeof gateName === 'string' &&
+            !gateName.startsWith('segment:')
+          ) {
+            ctx.seenAnalyticalGates = true;
+          }
 
           if (resValue === true) {
             value = true;

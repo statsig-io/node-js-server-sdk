@@ -69,6 +69,8 @@ export class EvaluationContext extends StatsigContext {
   readonly spec: ConfigSpec;
   readonly targetAppID?: string;
   readonly onlyEvaluateTargeting?: boolean;
+  samplingRate?: number | undefined;
+  seenAnalyticalGates = false;
 
   protected constructor(
     ctx: RequestContext,
@@ -76,12 +78,16 @@ export class EvaluationContext extends StatsigContext {
     spec: ConfigSpec,
     targetAppID?: string,
     onlyEvaluateTargeting?: boolean,
+    samplingRate?: number,
+    seenAnalyticalGates?: boolean,
   ) {
     super(ctx);
     this.user = user;
     this.spec = spec;
     this.targetAppID = targetAppID;
     this.onlyEvaluateTargeting = onlyEvaluateTargeting;
+    this.samplingRate = samplingRate;
+    this.seenAnalyticalGates = seenAnalyticalGates ?? false;
   }
 
   public static new(
@@ -98,6 +104,8 @@ export class EvaluationContext extends StatsigContext {
       spec: ConfigSpec;
       targetAppID?: string;
       onlyEvaluateTargeting?: boolean;
+      samplingRate?: number;
+      seenAnalyticalGates?: boolean;
     },
   ): EvaluationContext {
     return new EvaluationContext(
@@ -106,6 +114,8 @@ export class EvaluationContext extends StatsigContext {
       evalCtx.spec,
       evalCtx.targetAppID,
       evalCtx.onlyEvaluateTargeting,
+      evalCtx.samplingRate,
+      evalCtx.seenAnalyticalGates,
     );
   }
 }

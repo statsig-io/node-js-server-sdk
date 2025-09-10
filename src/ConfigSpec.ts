@@ -12,6 +12,7 @@ export class ConfigSpec {
   public isActive?: boolean;
   public targetAppIDs?: string[];
   public version?: number;
+  public forwardAllExposures?: boolean;
 
   constructor(specJSON: Record<string, unknown>) {
     this.name = specJSON.name as string;
@@ -35,6 +36,9 @@ export class ConfigSpec {
         : false;
     if (specJSON.targetAppIDs != null) {
       this.targetAppIDs = specJSON.targetAppIDs as string[];
+    }
+    if (specJSON.forwardAllExposures !== null) {
+      this.forwardAllExposures = specJSON.forwardAllExposures as boolean;
     }
   }
 
@@ -60,6 +64,7 @@ export class ConfigRule {
   public configDelegate: string | null;
   public isExperimentGroup?: boolean;
   public groupName: string | null;
+  public sampleRate?: number;
 
   constructor(ruleJSON: Record<string, unknown>) {
     this.name = ruleJSON.name as string;
@@ -74,6 +79,9 @@ export class ConfigRule {
 
     if (ruleJSON.isExperimentGroup !== null) {
       this.isExperimentGroup = ruleJSON.isExperimentGroup as boolean;
+    }
+    if (ruleJSON.samplingRate !== null) {
+      this.sampleRate = ruleJSON.samplingRate as number;
     }
   }
 

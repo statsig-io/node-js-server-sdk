@@ -10,7 +10,6 @@ import {
   StatsigLocalModeNetworkError,
 } from './Errors';
 import { EvaluationReason } from './EvaluationReason';
-import { InitializationSource } from './InitializationDetails';
 import {
   CompressFormat,
   DataAdapterKeyPath,
@@ -18,7 +17,7 @@ import {
   IDataAdapter,
 } from './interfaces/IDataAdapter';
 import OutputLogger from './OutputLogger';
-import SDKFlags from './SDKFlags';
+import { SDKConfigs } from './SDKConfigs';
 import {
   ExplicitStatsigOptions,
   InitStrategy,
@@ -598,7 +597,8 @@ export default class SpecStore {
       }
     }
 
-    SDKFlags.setFlags(specsJSON?.sdk_flags);
+    SDKConfigs.setConfigs(specsJSON?.sdk_configs as Record<string, unknown>);
+    SDKConfigs.setFlags(specsJSON?.sdk_flags as Record<string, boolean>);
 
     const updatedExpToLayer: Record<string, string> =
       this._reverseLayerExperimentMapping(layerToExperimentMap);

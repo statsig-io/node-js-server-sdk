@@ -6,6 +6,7 @@ import Evaluator from '../Evaluator';
 import LogEventProcessor from '../LogEventProcessor';
 import SpecStore from '../SpecStore';
 import { OptionsLoggingCopy, OptionsWithDefaults } from '../StatsigOptions';
+import { StatsigUser } from '../StatsigUser';
 import {
   EvaluationContext,
   InitializeContext,
@@ -368,8 +369,20 @@ describe('Test condition evaluation', () => {
           json.field = null;
         }
         const condition = new ConfigCondition(json);
+        // Create a minimal context for testing condition evaluation
+        // @ts-ignore - user can be various types in test scenarios
+        const testContext = EvaluationContext.new({
+          // @ts-ignore
+          user: user || {},
+          spec: new ConfigSpec({ name: 'test_config', rules: [] }),
+        });
         // @ts-ignore
-        const result = mockedEvaluator._evalCondition(user, condition);
+        const result = mockedEvaluator._evalCondition(
+          // @ts-ignore
+          user,
+          condition,
+          testContext,
+        );
         if (
           result.passes !== evalPasses ||
           result.unsupported !== unsupported

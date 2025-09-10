@@ -4,11 +4,17 @@ import ErrorBoundary from './ErrorBoundary';
 import { EvaluationDetails } from './EvaluationDetails';
 import LogEvent, { LogEventData, SecondaryExposure } from './LogEvent';
 import OutputLogger from './OutputLogger';
-import SDKFlags from './SDKFlags';
+import { SDKConfigs } from './SDKConfigs';
 import { ExplicitStatsigOptions, StatsigOptions } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import { AbortSignalLike } from './utils/AbortSignalLike';
 import { getStatsigMetadata, poll } from './utils/core';
+import {
+  compute_dedupe_key_for_config,
+  compute_dedupe_key_for_gate,
+  compute_dedupe_key_for_layer,
+  is_hash_in_sampling_rate,
+} from './utils/samplingHelpers';
 import { GlobalContext, StatsigContext } from './utils/StatsigContext';
 import StatsigFetcher from './utils/StatsigFetcher';
 
@@ -28,6 +34,40 @@ const ignoredMetadataKeys = new Set([
   'reason',
 ]);
 
+enum SamplingKeyType {
+  Gate = 'gate',
+  Config = 'config',
+  Layer = 'layer',
+}
+
+export class SamplingDecision {
+  shouldLog: boolean;
+  samplingRate: number | undefined;
+  shadowLogged: string | undefined;
+  samplingMode: string | undefined;
+
+  constructor(
+    shouldLog: boolean,
+    samplingRate?: number,
+    shadowLogged?: string,
+    samplingMode?: string,
+  ) {
+    this.shouldLog = shouldLog;
+    this.samplingRate = samplingRate;
+    this.shadowLogged = shadowLogged;
+    this.samplingMode = samplingMode;
+  }
+
+  public static createForceLog(samplingMode: string | null): SamplingDecision {
+    return new SamplingDecision(
+      true,
+      undefined,
+      undefined,
+      samplingMode ?? undefined,
+    );
+  }
+}
+
 export default class LogEventProcessor {
   private explicitOptions: ExplicitStatsigOptions;
   private optionsLoggiingCopy: StatsigOptions;
@@ -41,6 +81,8 @@ export default class LogEventProcessor {
   private deduperTimer: NodeJS.Timer | null;
   private sessionID: string;
   private errorBoundary: ErrorBoundary;
+  private _sampling_key_set: Set<string>;
+  private samplingKeyTimer: NodeJS.Timer | null;
 
   public constructor(
     fetcher: StatsigFetcher,
@@ -54,6 +96,7 @@ export default class LogEventProcessor {
     this.fetcher = fetcher;
     this.sessionID = sessionID;
     this.errorBoundary = errorBoundry;
+    this._sampling_key_set = new Set<string>();
 
     this.queue = [];
     this.deduper = new Set();
@@ -65,6 +108,9 @@ export default class LogEventProcessor {
     this.deduperTimer = poll(() => {
       this.deduper.clear();
     }, deduperInterval);
+    this.samplingKeyTimer = poll(() => {
+      this._sampling_key_set.clear();
+    }, 60 * 1000); // Reset every 60 seconds
   }
 
   public log(event: LogEvent, errorKey: string | null = null): void {
@@ -118,7 +164,7 @@ export default class LogEventProcessor {
         signal: abortSignal,
         compress:
           !GlobalContext.isEdgeEnvironment &&
-          SDKFlags.on('stop_log_event_compression') === false,
+          SDKConfigs.on('stop_log_event_compression') === false,
         additionalHeaders: {
           'STATSIG-EVENT-COUNT': String(oldQueue.length),
         },
@@ -151,6 +197,10 @@ export default class LogEventProcessor {
       clearInterval(this.deduperTimer);
       this.deduperTimer = null;
     }
+    if (this.samplingKeyTimer != null) {
+      clearInterval(this.samplingKeyTimer);
+      this.samplingKeyTimer = null;
+    }
     if (timeout != null) {
       const controller = new AbortController();
       const handle = setTimeout(() => controller.abort(), timeout);
@@ -167,6 +217,7 @@ export default class LogEventProcessor {
     metadata: Record<string, unknown> | null,
     secondaryExposures: SecondaryExposure[] | null = null,
     value: string | number | null = null,
+    samplingDecision?: SamplingDecision,
   ) {
     if (!this.isUniqueExposure(user, eventName, metadata)) {
       return;
@@ -188,6 +239,10 @@ export default class LogEventProcessor {
       event.setValue(value);
     }
 
+    if (samplingDecision != null) {
+      event.setSamplingDecision(samplingDecision);
+    }
+
     if (metadata?.error != null) {
       this.log(event, eventName + metadata.error);
     } else {
@@ -201,6 +256,15 @@ export default class LogEventProcessor {
     evaluation: ConfigEvaluation,
     isManualExposure: boolean,
   ) {
+    const samplingDecision = this.determineSamplingDecision(
+      SamplingKeyType.Gate,
+      gateName,
+      evaluation,
+      user,
+    );
+    if (!samplingDecision.shouldLog) {
+      return;
+    }
     const metadata = this.getGateExposureMetadata(
       gateName,
       evaluation,
@@ -211,6 +275,8 @@ export default class LogEventProcessor {
       GATE_EXPOSURE_EVENT,
       metadata,
       evaluation.secondary_exposures,
+      null,
+      samplingDecision,
     );
   }
 
@@ -263,6 +329,15 @@ export default class LogEventProcessor {
     evaluation: ConfigEvaluation,
     isManualExposure: boolean,
   ): void {
+    const samplingDecision = this.determineSamplingDecision(
+      SamplingKeyType.Config,
+      configName,
+      evaluation,
+      user,
+    );
+    if (!samplingDecision.shouldLog) {
+      return;
+    }
     const metadata = this.getConfigExposureMetadata(
       configName,
       evaluation,
@@ -274,6 +349,8 @@ export default class LogEventProcessor {
       CONFIG_EXPOSURE_EVENT,
       metadata,
       evaluation.secondary_exposures,
+      null,
+      samplingDecision,
     );
   }
 
@@ -336,7 +413,27 @@ export default class LogEventProcessor {
       isManualExposure,
     );
 
-    this.logStatsigInternal(user, LAYER_EXPOSURE_EVENT, metadata, exposures);
+    const samplingDecision = this.determineSamplingDecision(
+      SamplingKeyType.Layer,
+      layerName,
+      evaluation,
+      user,
+      metadata['allocatedExperiment']?.toString() ?? undefined,
+      parameterName,
+    );
+
+    if (!samplingDecision.shouldLog) {
+      return;
+    }
+
+    this.logStatsigInternal(
+      user,
+      LAYER_EXPOSURE_EVENT,
+      metadata,
+      exposures,
+      null,
+      samplingDecision,
+    );
   }
 
   public getLayerExposureMetadata(
@@ -506,5 +603,135 @@ export default class LogEventProcessor {
       this.logDiagnosticsEvent({ context, markers });
     }
     Diagnostics.instance.clearMarker(context);
+  }
+
+  private determineSamplingDecision(
+    entityType: SamplingKeyType,
+    entityName: string,
+    evaluation: ConfigEvaluation,
+    user: StatsigUser,
+    allocatedExperiment?: string,
+    parameterName?: string,
+  ): SamplingDecision {
+    try {
+      let shadowShouldLog = true;
+      let loggedSamplingRate: number | undefined;
+      const env = this.get_sdk_environment_tier();
+      const samplingMode = SDKConfigs.getConfigStrValue('sampling_mode');
+      const specialCaseSamplingRate = SDKConfigs.getConfigIntValue(
+        'special_case_sampling_rate',
+      );
+      const specialCaseRules = ['disabled', 'default', ''];
+
+      if (
+        samplingMode === null ||
+        samplingMode === 'none' ||
+        env !== 'production'
+      ) {
+        return SamplingDecision.createForceLog(samplingMode);
+      }
+
+      if (evaluation.forward_all_exposures) {
+        return SamplingDecision.createForceLog(samplingMode);
+      }
+
+      const samplingSetKey = `${entityName}_${evaluation.rule_id}`;
+      if (!this._sampling_key_set.has(samplingSetKey)) {
+        this._sampling_key_set.add(samplingSetKey);
+        return SamplingDecision.createForceLog(samplingMode);
+      }
+
+      if (evaluation.seen_analytical_gates) {
+        return SamplingDecision.createForceLog(samplingMode);
+      }
+
+      const shouldSample =
+        evaluation.sample_rate !== null ||
+        specialCaseRules.includes(evaluation.rule_id);
+      if (!shouldSample) {
+        return SamplingDecision.createForceLog(samplingMode);
+      }
+
+      let exposureKey = '';
+      if (entityType === SamplingKeyType.Gate) {
+        exposureKey = compute_dedupe_key_for_gate(
+          entityName,
+          evaluation.rule_id,
+          evaluation.value,
+          user.userID ?? '',
+          user.customIDs || {},
+        );
+      } else if (entityType === SamplingKeyType.Config) {
+        exposureKey = compute_dedupe_key_for_config(
+          entityName,
+          evaluation.rule_id,
+          user.userID ?? '',
+          user.customIDs || {},
+        );
+      } else if (entityType === SamplingKeyType.Layer) {
+        exposureKey = compute_dedupe_key_for_layer(
+          entityName,
+          allocatedExperiment ?? '',
+          parameterName ?? '',
+          evaluation.rule_id,
+          user.userID ?? '',
+          user.customIDs || {},
+        );
+      }
+
+      if (evaluation.sample_rate !== undefined) {
+        shadowShouldLog = is_hash_in_sampling_rate(
+          exposureKey,
+          evaluation.sample_rate,
+        );
+        loggedSamplingRate = evaluation.sample_rate;
+      } else if (
+        specialCaseRules.includes(evaluation.rule_id) &&
+        specialCaseSamplingRate !== null
+      ) {
+        shadowShouldLog = is_hash_in_sampling_rate(
+          exposureKey,
+          specialCaseSamplingRate,
+        );
+        loggedSamplingRate = specialCaseSamplingRate;
+      }
+
+      const shadowLogged = loggedSamplingRate
+        ? undefined
+        : shadowShouldLog
+          ? 'logged'
+          : 'dropped';
+
+      if (samplingMode === 'on') {
+        return new SamplingDecision(
+          shadowShouldLog,
+          loggedSamplingRate,
+          shadowLogged,
+          samplingMode,
+        );
+      }
+      if (samplingMode === 'shadow') {
+        return new SamplingDecision(
+          true,
+          loggedSamplingRate,
+          shadowLogged,
+          samplingMode,
+        );
+      }
+
+      return SamplingDecision.createForceLog(samplingMode);
+    } catch (e) {
+      this.errorBoundary.logError(
+        new Error('determineSamplingDecision failed'),
+        StatsigContext.new({
+          caller: 'determineSamplingDecision',
+        }),
+      );
+      return SamplingDecision.createForceLog(null);
+    }
+  }
+
+  private get_sdk_environment_tier(): string {
+    return this.explicitOptions.environment?.tier ?? 'production';
   }
 }

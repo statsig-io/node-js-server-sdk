@@ -1,9 +1,8 @@
 import { Marker } from './Diagnostics';
-import { ExplicitStatsigOptions } from './StatsigOptions';
+import { SamplingDecision } from './LogEventProcessor';
 import { StatsigUser } from './StatsigUser';
 import { clone } from './utils/core';
 import LogEventValidator, { MAX_OBJ_SIZE } from './utils/LogEventValidator';
-
 export type LogEventData = {
   time: number;
   eventName: string;
@@ -11,6 +10,7 @@ export type LogEventData = {
   value: string | number | null;
   metadata: Record<string, unknown> | null;
   secondaryExposures: SecondaryExposure[];
+  statsigMetadata: Record<string, unknown> | null;
 };
 
 export type SecondaryExposure = {
@@ -26,6 +26,7 @@ export default class LogEvent {
   private value: string | number | null = null;
   private metadata: Record<string, unknown> | null = null;
   private secondaryExposures: SecondaryExposure[] = [];
+  private statsigMetadata: Record<string, unknown> = {};
 
   public constructor(eventName: string) {
     this.time = Date.now();
@@ -58,6 +59,18 @@ export default class LogEvent {
       return;
     }
     this.metadata = clone(validatedMetadata);
+  }
+
+  public setSamplingDecision(samplingDecision: SamplingDecision) {
+    if (samplingDecision.samplingRate != null) {
+      this.statsigMetadata['samplingRate'] = samplingDecision.samplingRate;
+    }
+    if (samplingDecision.shadowLogged != null) {
+      this.statsigMetadata['shadowLogged'] = samplingDecision.shadowLogged;
+    }
+    if (samplingDecision.samplingMode != null) {
+      this.statsigMetadata['samplingMode'] = samplingDecision.samplingMode;
+    }
   }
 
   public setDiagnosticsMetadata(metadata: {
@@ -116,6 +129,7 @@ export default class LogEvent {
       user: this.user,
       value: this.value,
       secondaryExposures: this.secondaryExposures,
+      statsigMetadata: this.statsigMetadata,
     };
   }
 }
