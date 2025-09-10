@@ -239,7 +239,7 @@ export default class LogEventProcessor {
       event.setValue(value);
     }
 
-    if (samplingDecision != null) {
+    if (samplingDecision) {
       event.setSamplingDecision(samplingDecision);
     }
 
@@ -697,10 +697,10 @@ export default class LogEventProcessor {
       }
 
       const shadowLogged = loggedSamplingRate
-        ? undefined
-        : shadowShouldLog
+        ? shadowShouldLog
           ? 'logged'
-          : 'dropped';
+          : 'dropped'
+        : undefined;
 
       if (samplingMode === 'on') {
         return new SamplingDecision(

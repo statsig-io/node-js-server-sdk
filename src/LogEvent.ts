@@ -62,13 +62,13 @@ export default class LogEvent {
   }
 
   public setSamplingDecision(samplingDecision: SamplingDecision) {
-    if (samplingDecision.samplingRate != null) {
+    if (samplingDecision.samplingRate) {
       this.statsigMetadata['samplingRate'] = samplingDecision.samplingRate;
     }
-    if (samplingDecision.shadowLogged != null) {
+    if (samplingDecision.shadowLogged) {
       this.statsigMetadata['shadowLogged'] = samplingDecision.shadowLogged;
     }
-    if (samplingDecision.samplingMode != null) {
+    if (samplingDecision.samplingMode) {
       this.statsigMetadata['samplingMode'] = samplingDecision.samplingMode;
     }
   }
