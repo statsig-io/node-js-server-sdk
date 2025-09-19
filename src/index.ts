@@ -279,6 +279,10 @@ export const Statsig = {
     return this._enforceServer().getUserPersistedValues(user, idType);
   },
 
+  getPromptSet(aiConfigName: string): Record<string, unknown>[] | null {
+    return this._enforceServer().getPromptSet(aiConfigName);
+  },
+
   /**
    * Log an event for data analysis and alerting or to measure the impact of an experiment
    *

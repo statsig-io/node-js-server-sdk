@@ -38,6 +38,12 @@ export type ConfigStore = {
   idLists: Record<string, IDList>;
   layers: Record<string, ConfigSpec>;
   experimentToLayer: Record<string, string>;
+  promptConfigs?: Record<string, AIConfig>;
+};
+
+export type AIConfig = {
+  promptVersionIds: string[];
+  targetAppIDs: string[];
 };
 
 export type APIEntityNames = {
@@ -106,6 +112,7 @@ export default class SpecStore {
       idLists: {},
       layers: {},
       experimentToLayer: {},
+      promptConfigs: {},
     };
     this.networkOverrideFunc = options.networkOverrideFunc ?? null;
     this.hashedSDKKey =
@@ -154,6 +161,22 @@ export default class SpecStore {
 
   public getExperimentLayer(experimentName: string): string | null {
     return this.store.experimentToLayer[experimentName] ?? null;
+  }
+
+  public getPromptSet(aiConfigName: string): Record<string, unknown>[] | null {
+    const aiConfig = this.store.promptConfigs?.[aiConfigName];
+    if (aiConfig == null) {
+      return null;
+    }
+    return aiConfig.promptVersionIds
+      .map((id) => {
+        const config = this.getConfig(id);
+        if (config == null) {
+          return null;
+        }
+        return (config?.defaultValue ?? {}) as Record<string, unknown>;
+      })
+      .filter((v) => v !== null) as Record<string, unknown>[];
   }
 
   public getIDList(listName: string): IDList | null {
@@ -607,6 +630,10 @@ export default class SpecStore {
     this.store.configs = updatedConfigs;
     this.store.layers = updatedLayers;
     this.store.experimentToLayer = updatedExpToLayer;
+    this.store.promptConfigs = (specsJSON?.prompt_configs ?? {}) as Record<
+      string,
+      AIConfig
+    >;
     this.lastUpdateTime = (specsJSON.time as number) ?? this.lastUpdateTime;
     this.clientSDKKeyToAppMap = (specsJSON?.sdk_keys_to_app_ids ??
       {}) as Record<string, string>;

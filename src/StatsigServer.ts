@@ -20,7 +20,7 @@ import Layer from './Layer';
 import LogEvent from './LogEvent';
 import LogEventProcessor from './LogEventProcessor';
 import OutputLogger from './OutputLogger';
-import SpecStore from './SpecStore';
+import SpecStore, { AIConfig } from './SpecStore';
 import {
   CheckGateOptions,
   ClientInitializeResponseOptions,
@@ -440,6 +440,17 @@ export default class StatsigServer {
   }
 
   //#endregion
+
+  public getPromptSet(aiConfigName: string): Record<string, unknown>[] | null {
+    return this._errorBoundary.capture(
+      () => this._store.getPromptSet(aiConfigName),
+      () => null,
+      StatsigContext.new({
+        caller: 'getPromptSet',
+        configName: aiConfigName,
+      }),
+    );
+  }
 
   public getUserPersistedValues(
     user: StatsigUser,
