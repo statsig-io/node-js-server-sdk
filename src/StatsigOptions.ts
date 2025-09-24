@@ -24,8 +24,11 @@ const DEFAULT_POST_LOGS_RETRY_BACKOFF = 1000;
 export type RulesUpdatedCallback = (rulesJSON: string, time: number) => void;
 export type RetryBackoffFunc = (retriesRemaining: number) => number;
 
+// eslint-disable-next-line @typescript-eslint/ban-types
+type StringLiteralOrString<T extends string> = T | (string & {});
+
 export type StatsigEnvironment = {
-  tier?: 'production' | 'staging' | 'development' | string;
+  tier?: StringLiteralOrString<'production' | 'staging' | 'development'>;
   [key: string]: string | undefined;
 };
 
