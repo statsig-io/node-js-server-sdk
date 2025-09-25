@@ -15,7 +15,12 @@ import {
 } from './StatsigOptions';
 import { StatsigUser } from './StatsigUser';
 import UserPersistentStorageHandler from './UserPersistentStorageHandler';
-import { cloneEnforce, getSDKType, getSDKVersion } from './utils/core';
+import {
+  cloneEnforce,
+  getSDKType,
+  getSDKVersion,
+  getStatsigMetadata,
+} from './utils/core';
 import {
   arrayAny,
   arrayHasAllValues,
@@ -75,7 +80,7 @@ export type ClientInitializeResponse = {
   sdkParams: Record<string, unknown>;
   has_updates: boolean;
   generator: 'statsig-node-sdk';
-  sdkInfo: { sdkType: string; sdkVersion: string };
+  sdkInfo: { sdkType: string; sdkVersion: string; sessionId: string };
   time: number;
   evaluated_keys: Record<string, unknown>;
   hash_used: HashingAlgorithm;
@@ -503,7 +508,11 @@ export default class Evaluator {
       sdkParams: {},
       has_updates: true,
       generator: 'statsig-node-sdk',
-      sdkInfo: { sdkType: getSDKType(), sdkVersion: getSDKVersion() },
+      sdkInfo: {
+        sdkType: getSDKType(),
+        sdkVersion: getSDKVersion(),
+        sessionId: getStatsigMetadata().sessionID,
+      },
       time: this.store.getLastUpdateTime(),
       evaluated_keys: evaluatedKeys,
       hash_used: hashAlgo,
