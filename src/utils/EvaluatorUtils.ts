@@ -200,22 +200,31 @@ export function stringCompare(
 
 export function dateCompare(
   fn: (a: Date, b: Date) => boolean,
-): (a: string, b: string) => boolean {
-  return (a: string, b: string): boolean => {
+): (a: string | number, b: string | number) => boolean {
+  return (a: string | number, b: string | number): boolean => {
     if (a == null || b == null) {
       return false;
     }
     try {
       // Try to parse into date as a string first, if not, try unixtime
       let dateA = new Date(a);
-      if (isNaN(dateA.getTime())) {
-        dateA = new Date(Number(a));
+      if (typeof a == 'string') {
+        if (isNaN(dateA.getTime())) {
+          dateA = new Date(getTimeInMs(a));
+        }
+      } else {
+        dateA = new Date(getTimeInMs(a));
       }
 
       let dateB = new Date(b);
-      if (isNaN(dateB.getTime())) {
-        dateB = new Date(Number(b));
+      if (typeof b == 'string') {
+        if (isNaN(dateB.getTime())) {
+          dateB = new Date(getTimeInMs(b));
+        }
+      } else {
+        dateB = new Date(getTimeInMs(b));
       }
+
       return (
         !isNaN(dateA.getTime()) && !isNaN(dateB.getTime()) && fn(dateA, dateB)
       );
@@ -224,6 +233,18 @@ export function dateCompare(
       return false;
     }
   };
+}
+
+function getTimeInMs(time: string | number): number {
+  let numericalVal = Number(time);
+  if (isNaN(numericalVal)) {
+    return Number.NaN;
+  }
+  if (numericalVal < 10_000_000_000) {
+    // Timestamp in seconds format, we convert it to be ms
+    numericalVal *= 1000;
+  }
+  return numericalVal;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
