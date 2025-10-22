@@ -163,22 +163,6 @@ export default class SpecStore {
     return this.store.experimentToLayer[experimentName] ?? null;
   }
 
-  public getPromptSet(aiConfigName: string): Record<string, unknown>[] | null {
-    const aiConfig = this.store.promptConfigs?.[aiConfigName];
-    if (aiConfig == null) {
-      return null;
-    }
-    return aiConfig.promptVersionIds
-      .map((id) => {
-        const config = this.getConfig(id);
-        if (config == null) {
-          return null;
-        }
-        return (config?.defaultValue ?? {}) as Record<string, unknown>;
-      })
-      .filter((v) => v !== null) as Record<string, unknown>[];
-  }
-
   public getIDList(listName: string): IDList | null {
     return this.store.idLists[listName] ?? null;
   }
