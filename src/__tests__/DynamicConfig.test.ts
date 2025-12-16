@@ -25,6 +25,40 @@ describe('Verify behavior of DynamicConfig', () => {
     expect.hasAssertions();
   });
 
+  test('Default undefined: missing key returns null; existing key returns value', () => {
+    expect(testConfig.getValue('missing_for_undefined', undefined)).toBeNull();
+    expect(testConfig.getValue('bool', undefined)).toBe(true);
+    expect(testConfig.getValue('object', undefined)).toStrictEqual({
+      key: 'value',
+      key2: 123,
+    });
+
+    // @ts-ignore intentional undefined default for behavior check
+    expect(testConfig.get('missing_for_undefined', undefined)).toBeNull();
+    // @ts-ignore intentional undefined default for behavior check
+    expect(testConfig.get('bool', undefined)).toBe(true);
+    // @ts-ignore intentional undefined default for behavior check
+    expect(testConfig.get('object', undefined)).toStrictEqual({
+      key: 'value',
+      key2: 123,
+    });
+  });
+
+  test('Default null: missing key returns null; existing key returns value', () => {
+    expect(testConfig.getValue('missing_for_null', null)).toBeNull();
+    expect(testConfig.getValue('bool', null)).toBe(true);
+    expect(testConfig.getValue('object', null)).toStrictEqual({
+      key: 'value',
+      key2: 123,
+    });
+
+    expect(testConfig.get('missing_for_null', null)).toBeNull();
+    expect(testConfig.get('bool', null)).toBe(true);
+    expect(testConfig.get('object', null)).toStrictEqual({
+      key: 'value',
+      key2: 123,
+    });
+  });
   test('Test constructor', () => {
     // @ts-ignore intentional mistyping test
     let config = new DynamicConfig();
