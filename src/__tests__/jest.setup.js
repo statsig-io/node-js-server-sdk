@@ -11,6 +11,10 @@ global.console = {
 
 jest.setTimeout(20000);
 
+// Remove native fetch so tests can mock node-fetch
+// This ensures backward compatibility with existing tests that mock node-fetch
+delete global.fetch;
+
 const mock_gateSpec = {
   name: 'nfl_gate',
   type: 'feature_gate',
