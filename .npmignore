@@ -1,0 +1,5 @@
+**/__tests__
+**/*.test.ts
+./.github/
+./.prettier*
+./docs/
