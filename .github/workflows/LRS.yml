@@ -14,7 +14,7 @@ env:
 jobs:
   CD:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Checkout LRS repo
         uses: actions/checkout@v4

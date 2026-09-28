@@ -21,7 +21,7 @@ on:
 jobs:
   KONG:
     timeout-minutes: 15
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Get KONG
         run: |
